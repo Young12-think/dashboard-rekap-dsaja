@@ -112,9 +112,10 @@ Browser (JS + HTML)
 - Browser modern (Chrome / Edge / Firefox)
 
 ### Langkah Instalasi
-```
+
 **create file .env untuk scrapper
-BASE_URL=https://apps.rejosomanisindo.com
+```
+BASE_URL=url tujuan
 RMI_USER=user name
 RMI_PASS= password
 MODULE_NAME=Crushing Monitor
