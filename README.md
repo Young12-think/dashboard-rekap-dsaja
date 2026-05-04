@@ -113,6 +113,14 @@ Browser (JS + HTML)
 
 ### Langkah Instalasi
 
+**create file .env untuk scrapper
+BASE_URL=https://apps.rejosomanisindo.com
+RMI_USER=user name
+RMI_PASS= password
+MODULE_NAME=Crushing Monitor
+TARGET_PATH=/crushingmonitor/MDC
+
+
 **1. Buat virtual environment & install dependensi**
 
 ```bash
