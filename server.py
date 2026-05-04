@@ -1,0 +1,480 @@
+from flask import Flask, jsonify, request, send_from_directory, session, redirect, url_for, render_template
+from flask_cors import CORS
+from datetime import datetime
+import secrets
+import hashlib
+
+import app_queries as queries
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+app.secret_key = secrets.token_hex(32)  # Random secret key setiap restart
+CORS(app)
+
+# ─── SESSION AUTH HELPER ───────────────────────────────────
+PUBLIC_ROUTES = {'/login', '/login.html', '/api/health', '/api/login'}
+
+def is_logged_in():
+    return session.get('user') is not None
+
+def require_login():
+    """Return redirect response jika belum login, else None."""
+    if not is_logged_in():
+        return redirect('/login')
+    return None
+
+# ─── Static / Page Routes ──────────────────────────────────
+@app.route('/login')
+@app.route('/login.html')
+def login_page():
+    if is_logged_in():
+        return redirect('/')
+    return send_from_directory('.', 'login.html')
+
+@app.route('/')
+def index():
+    guard = require_login()
+    if guard: return guard
+    #return send_from_directory('.', 'index.html')
+    return render_template('index.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    # API routes dan login tidak perlu guard
+    if filename.startswith('api/') or filename in ('login', 'login.html'):
+        pass
+    else:
+        guard = require_login()
+        if guard: return guard
+    return send_from_directory('.', filename)
+
+# =============================================
+# API: Production Data (grouped by type & shift)
+# =============================================
+@app.route('/api/production')
+def api_production():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_production_data(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+# =============================================
+# API: Analytics (Grafik & Insight)
+# =============================================
+@app.route('/api/analytics')
+def api_analytics():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_analytics_data(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+@app.route('/api/analytics/shift-radar')
+def api_shift_radar():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_shift_productivity_data(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+@app.route('/api/analytics/top-transportir')
+def api_top_transportir():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_top_transportir_data(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+@app.route('/api/analytics/history-insights')
+def api_history_insights():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    days = int(request.args.get('days', 7))
+    data = queries.get_history_insights_data(date_str, days)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+# =============================================
+# API: Report Tebu
+# =============================================
+@app.route('/api/report-tebu')
+def api_report_tebu():
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to = request.args.get('date_to', datetime.now().strftime('%Y-%m-%d'))
+    rekap_from = request.args.get('rekap_from')
+    rekap_to = request.args.get('rekap_to', date_to)
+    
+    data = queries.get_report_tebu(date_from, date_to, rekap_from, rekap_to)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date_from": date_from, "date_to": date_to, "data": data})
+
+# =============================================
+# API: Scrape Cane Yard (Playwright)
+# =============================================
+@app.route('/api/scrape-caneyard', methods=['GET', 'POST'])
+def api_scrape_caneyard():
+    try:
+        import rmi_scraper
+        val = rmi_scraper.get_cy_total_truck(headless=True)
+        if val is not None:
+            return jsonify({"status": "success", "caneYard": val})
+        else:
+            return jsonify({"status": "error", "message": "Gagal menemukan nilai Cane Yard"}), 404
+    except ImportError:
+         return jsonify({"status": "error", "message": "Library scraper tidak tersedia"}), 500
+    except Exception as e:
+         return jsonify({"status": "error", "message": str(e)}), 500
+
+# =============================================
+# API: Vendor Data (grouped by card_name & shift)
+# =============================================
+@app.route('/api/vendors')
+def api_vendors():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_vendor_data(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
+# =============================================
+# API: Summary stats for cards
+# =============================================
+@app.route('/api/summary')
+def api_summary():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    summary = queries.get_summary_data(date_str)
+    if summary is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "summary": summary})
+
+# =============================================
+# API: Distinct types (for dynamic card rendering)
+# =============================================
+@app.route('/api/types')
+def api_types():
+    types = queries.get_types()
+    if types is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "types": types})
+
+# =============================================
+# API: History (for charts — last N days)
+# =============================================
+@app.route('/api/production/history')
+def api_history():
+    days = int(request.args.get('days', 7))
+    # JURUS SAKTI: Tangkap tanggal dari kalender UI!
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    
+    # Masukkan date_str ke dalam fungsi queries
+    result = queries.get_history_data(date_str, days)
+    
+    if result is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", **result})
+
+# =============================================
+# API: Recent transactions (raw data table)
+# =============================================
+@app.route('/api/recent')
+def api_recent():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    limit = int(request.args.get('limit', 50))
+    data = queries.get_recent_data(date_str, limit)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data or []})
+
+# =============================================
+# API: Transaction Data (date range + item filter)
+# =============================================
+@app.route('/api/transactions')
+def api_transactions():
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to = request.args.get('date_to', datetime.now().strftime('%Y-%m-%d'))
+    item_type = request.args.get('type', '')
+    po_filter = request.args.get('po', '').strip() or None
+    
+    # Parameter tambahan
+    search_term = request.args.get('search', '').strip() or None
+    tx_key = request.args.get('tx_key', '')
+    limit = int(request.args.get('limit', 100))
+    page = int(request.args.get('page', 1))
+    offset = (page - 1) * limit
+
+    # Parameter khusus support (dikirim terpisah agar tidak kena split koma)
+    support_item = request.args.get('support_item', '').strip() or None
+    support_vendor = request.args.get('support_vendor', '').strip() or None
+
+    filters = [f.strip() for f in item_type.split(',') if f.strip()]
+
+    result = queries.get_transaction_data(
+        date_from, date_to, filters, po_filter, search_term,
+        limit, offset, tx_key,
+        support_item=support_item,
+        support_vendor=support_vendor
+    )
+    if result is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+        
+    return jsonify({
+        "status": "success", 
+        "date_from": date_from, 
+        "date_to": date_to, 
+        "total_rows": result.get("total_rows", 0),
+        "summary": result.get("summary", {}),
+        "data": result.get("data", [])
+    })
+# =============================================
+# API: PO Stock (user-managed PO quantities)
+# =============================================
+@app.route('/api/po-stock', methods=['GET'])
+def api_get_po_stock():
+    stocks = queries.get_po_stocks()
+    return jsonify({"status": "success", "data": stocks})
+
+# API BARU: Untuk menerima perintah Tutup Paksa PO dari Browser
+@app.route('/api/po-close', methods=['POST'])
+def api_close_po_stock():
+    body = request.get_json()
+    if not body or 'nomor_po' not in body:
+        return jsonify({"status": "error", "message": "Missing nomor_po"}), 400
+    ok = queries.close_po_stock(body['nomor_po'])
+    if not ok:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success"})
+
+@app.route('/api/po-stock', methods=['POST'])
+def api_save_po_stock():
+    body = request.get_json()
+    if not body or 'nomor_po' not in body or 'qty_po' not in body:
+        return jsonify({"status": "error", "message": "Missing nomor_po or qty_po"}), 400
+    ok = queries.save_po_stock(body['nomor_po'], float(body['qty_po']))
+    if not ok:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success"})
+
+# =============================================
+# API: Distinct PO Numbers (for limbah filter dropdown)
+# =============================================
+@app.route('/api/po-numbers')
+def api_po_numbers():
+    item_type = request.args.get('type', '')
+    filters = [f.strip() for f in item_type.split(',') if f.strip()]
+    po_list = queries.get_distinct_po_numbers(filters)
+    return jsonify({"status": "success", "data": po_list or []})
+
+# =============================================
+# API: PO Monitor (Target vs Terkirim)
+# =============================================
+@app.route('/api/po-monitor')
+def api_po_monitor():
+    data = queries.get_po_monitor_data()
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "data": data})
+
+# =============================================
+# API: support items & vendors
+# =============================================
+
+@app.route('/api/support-items', methods=['GET'])
+def api_support_items():
+    try:
+        items = queries.get_support_items()
+        return jsonify({"status": "success", "data": items or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/support-items: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/support-vendors', methods=['GET'])
+def api_support_vendors():
+    try:
+        item_filter = request.args.get('item', '').strip() or None
+        date_from   = request.args.get('date_from', '').strip() or None
+        date_to     = request.args.get('date_to', '').strip() or None
+        vendors = queries.get_support_vendors(
+            item_filter=item_filter,
+            date_from=date_from,
+            date_to=date_to
+        )
+        return jsonify({"status": "success", "data": vendors or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/support-vendors: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# =============================================
+# API: Health check
+# =============================================
+@app.route('/api/health')
+def health():
+    db_status = queries.check_db_health()
+    return jsonify({
+        "status": "ok",
+        "database": db_status,
+        "timestamp": datetime.now().isoformat()
+    })
+
+# =============================================
+# API: Login / Logout
+# =============================================
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({"status": "error", "message": "Invalid request"}), 400
+
+    # Strip dan batasi panjang input (defense in depth)
+    username = str(body.get('username', '')).strip()[:64]
+    password = str(body.get('password', '')).strip()[:128]
+
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Username dan password wajib diisi"}), 400
+
+    # Verifikasi credential via PARAMETERIZED QUERY (100% SQL injection safe)
+    user = queries.verify_login(username, password)
+
+    if user:
+        session['user'] = user['username']
+        session.permanent = False
+        token = secrets.token_urlsafe(32)
+        return jsonify({
+            "status": "success",
+            "username": user['username'],
+            "token": token
+        })
+    else:
+        # Delay kecil untuk mencegah brute force timing attack
+        import time; time.sleep(0.5)
+        return jsonify({"status": "error", "message": "Username atau password salah"}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({"status": "success"})
+
+@app.route('/api/me')
+def api_me():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    return jsonify({"status": "success", "username": session.get('user')})
+
+# =============================================
+# DAILY REPORT ENDPOINTS
+# =============================================
+
+# ── SECTION 1: DELIVERY ──────────────────────────────────────
+
+
+@app.route('/api/report-daily/delivery', methods=['GET'])
+def api_delivery():
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    
+    if not date_from or not date_to:
+        return jsonify({"error": "Parameter date_from dan date_to wajib diisi"}), 400
+
+    try:
+        # Panggil otak perhitungannya dari modul queries
+        data = queries.get_daily_delivery(date_from, date_to)
+        return jsonify({"status": "success", "data": data or []})
+    except Exception as e:
+        print(f"[API ERROR Delivery] {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ── SECTION 2: SUPPORT ───────────────────────────────────────
+@app.route('/api/report-daily/support')
+def api_daily_support():
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to   = request.args.get('date_to',   datetime.now().strftime('%Y-%m-%d'))
+    try:
+        data = queries.get_daily_support(date_from, date_to)
+        return jsonify({"status": "success", "data": data or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-daily/support: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── SECTION 3: LIMBAH ────────────────────────────────────────
+@app.route('/api/report-daily/limbah')
+def api_daily_limbah():
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to   = request.args.get('date_to',   datetime.now().strftime('%Y-%m-%d'))
+    try:
+        data = queries.get_daily_limbah(date_from, date_to)
+        return jsonify({"status": "success", "data": data or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-daily/limbah: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── SECTION 4: CANE RECEIVED ─────────────────────────────────
+@app.route('/api/report-daily/cane')
+def api_daily_cane():
+    date_from  = request.args.get('date_from',  datetime.now().strftime('%Y-%m-%d'))
+    date_to    = request.args.get('date_to',    datetime.now().strftime('%Y-%m-%d'))
+    rekap_from = request.args.get('rekap_from', '').strip() or None
+    rekap_to   = request.args.get('rekap_to',   '').strip() or None
+    try:
+        data = queries.get_daily_cane(date_from, date_to, rekap_from, rekap_to)
+        # data = None berarti tidak ada data tebu → return null agar seksi disembunyikan
+        return jsonify({"status": "success", "data": data})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-daily/cane: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── SECTION 5: TRANSFER GULA ─────────────────────────────────
+@app.route('/api/report-daily/transfer')
+def api_daily_transfer():
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to   = request.args.get('date_to',   datetime.now().strftime('%Y-%m-%d'))
+    try:
+        data = queries.get_daily_transfer_gula(date_from, date_to)
+        return jsonify({"status": "success", "data": data or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-daily/transfer: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── BONUS: Single endpoint (ambil semua sekaligus) ───────────
+@app.route('/api/report-daily/all')
+def api_daily_all():
+    """
+    Satu endpoint yang mengembalikan semua section sekaligus.
+    Lebih efisien karena hanya 1 round-trip dari browser.
+    """
+    date_from  = request.args.get('date_from',  datetime.now().strftime('%Y-%m-%d'))
+    date_to    = request.args.get('date_to',    datetime.now().strftime('%Y-%m-%d'))
+    rekap_from = request.args.get('rekap_from', '').strip() or None
+    rekap_to   = request.args.get('rekap_to',   '').strip() or None
+    try:
+        delivery = queries.get_daily_delivery(date_from, date_to)
+        support  = queries.get_daily_support(date_from, date_to)
+        limbah   = queries.get_daily_limbah(date_from, date_to)
+        cane     = queries.get_daily_cane(date_from, date_to, rekap_from, rekap_to)
+        transfer = queries.get_daily_transfer_gula(date_from, date_to)
+
+        return jsonify({
+            "status":    "success",
+            "date_from": date_from,
+            "date_to":   date_to,
+            "delivery":  delivery or [],
+            "support":   support  or [],
+            "limbah":    limbah   or [],
+            "cane":      cane,          # bisa None
+            "transfer":  transfer or [],
+        })
+    except Exception as e:
+        print(f"[API ERROR] /api/report-daily/all: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# =============================================
+if __name__ == '__main__':
+    print("=" * 50)
+    print("  REKAP DSAJA - Production Dashboard")
+    print("  DB: timbangan / timbang_data")
+    print("  http://localhost:8000")
+    print("=" * 50)
+    app.run(host='0.0.0.0', port=8000, debug=True)

@@ -1,0 +1,42 @@
+# Example MySQL Connection Configuration
+# You would use a library like 'mysql-connector-python' in Python
+# or 'mysqli' / 'PDO' in PHP.
+
+# --- Python Example (using mysql-connector-python) ---
+"""
+import mysql.connector
+
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host="localhost",
+        user="your_username",
+        password="your_password",
+        database="your_database_name"
+    )
+    return connection
+
+# Usage:
+# conn = get_db_connection()
+# cursor = conn.cursor()
+# cursor.execute("SELECT * FROM users")
+# result = cursor.fetchall()
+"""
+
+# --- PHP Example ---
+"""
+<?php
+$servername = "localhost";
+$username = "username";
+$password = "password";
+$dbname = "myDB";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+echo "Connected successfully";
+?>
+"""

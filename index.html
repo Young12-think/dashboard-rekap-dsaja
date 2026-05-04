@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="REKAP DSAJA - Dashboard Timbangan Produksi">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>REKAP DSAJA — Dashboard Timbangan</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3.10">
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fa-solid fa-industry"></i></div>
+                    <div class="logo-text">
+                        <h2>REKAP DSAJA</h2>
+                        <span class="version">v2.5</span>
+                    </div>
+                </div>
+                <button class="sidebar-close" id="sidebarClose"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-section-title">MENU UTAMA</li>
+                    <li class="active" data-page="dashboard">
+                        <a href="#"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+                    </li>
+                    <li data-page="charts">
+                        <a href="#"><i class="fa-solid fa-chart-column"></i><span>Grafik</span></a>
+                    </li>
+                    <li data-page="vendors">
+                        <a href="#"><i class="fa-solid fa-truck"></i><span>Vendor</span></a>
+                    </li>
+                    <li class="has-submenu" id="transactionMenu">
+                        <a href="#" class="submenu-toggle">
+                            <i class="fa-solid fa-list"></i>
+                            <span>Transaksi</span>
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="transactionSubmenu">
+                            <!-- Generated dynamically by JavaScript from TRANSACTION_TYPES -->
+                        </ul>
+                    </li>
+                    <li class="has-submenu" id="reportMenu">
+                        <a href="#" class="submenu-toggle">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Report</span>
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="reportSubmenu">
+                            <li data-page="report_daily"><a href="#"><i class="fa-solid fa-calendar-day"></i><span>Daily</span></a></li>
+                            <li data-page="report_tebu"><a href="#"><i class="fa-solid fa-seedling"></i><span>Tebu</span></a></li>
+                            <li data-page="report_limbah"><a href="#"><i class="fa-solid fa-recycle"></i><span>Limbah</span></a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-dot"></div>
+                    <span>Checking...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="hamburger" id="hamburgerBtn"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="page-title" id="pageTitle">Dashboard Timbangan</h1>
+                </div>
+                <div class="topbar-right">
+                    <!-- Jam WIB Live -->
+                    <div class="wib-clock-wrap" title="Jam WIB sekarang">
+                        <i class="fa-regular fa-clock" style="font-size:13px; opacity:0.6;"></i>
+                        <span id="wibClock" style="font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:1px; color:var(--text);">--:--:--</span>
+                        <span style="font-size:10px; color:var(--text-muted); margin-left:2px;">WIB</span>
+                    </div>
+                    <div class="date-picker-wrap">
+                        <i class="fa-regular fa-calendar"></i>
+                        <input type="date" id="datePicker" class="date-picker">
+                    </div>
+                    <button class="btn-icon" id="refreshBtn" title="Refresh"><i
+                            class="fa-solid fa-arrows-rotate"></i></button>
+                    <div class="shift-indicator" id="shiftIndicator" title="Shift 1: 00-08 | Shift 2: 08-16 | Shift 3: 16-24">
+                        <span class="shift-badge">SHIFT <span id="currentShift">-</span></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- PAGE: Dashboard -->
+            <div class="page active" id="page-dashboard">
+                <!-- Dynamic Summary Cards -->
+                <section class="summary-cards" id="summaryCards">
+                    <div class="loading-cell">
+                        <div class="loader"></div> Memuat ringkasan...
+                    </div>
+                </section>
+
+                <!-- Production Table -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-weight-scale"></i> Data Timbangan Harian</h2>
+                        <div class="section-actions">
+                            <button class="btn-sm active" id="btnTableView"><i class="fa-solid fa-table"></i>
+                                Tabel</button>
+                            <button class="btn-sm" id="btnChartView"><i class="fa-solid fa-chart-bar"></i>
+                                Grafik</button>
+                        </div>
+                    </div>
+                    <div class="view-panel active" id="tableView">
+                        <div class="table-responsive">
+                            <table class="data-table" id="productionTable">
+                                <thead>
+                                    <tr>
+                                        <th class="sticky-col" rowspan="2">TYPE</th>
+                                        <th colspan="2" class="shift-header s1">SHIFT 1</th>
+                                        <th colspan="2" class="shift-header s2">SHIFT 2</th>
+                                        <th colspan="2" class="shift-header s3">SHIFT 3</th>
+                                        <th colspan="2" class="shift-header today">TODAY</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="sub-header s1">TONASE</th>
+                                        <th class="sub-header s1">RITASE</th>
+                                        <th class="sub-header s2">TONASE</th>
+                                        <th class="sub-header s2">RITASE</th>
+                                        <th class="sub-header s3">TONASE</th>
+                                        <th class="sub-header s3">RITASE</th>
+                                        <th class="sub-header today">TONASE</th>
+                                        <th class="sub-header today">RITASE</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productionTableBody">
+                                    <tr>
+                                        <td colspan="9" class="loading-cell">
+                                            <div class="loader"></div> Memuat data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="view-panel" id="chartView">
+                        <div class="inline-charts-grid">
+                            <div class="inline-chart-box">
+                                <h3>Perbandingan Shift (Tonase)</h3><canvas id="shiftCompareChart"></canvas>
+                            </div>
+                            <div class="inline-chart-box">
+                                <h3>Komposisi Produksi</h3><canvas id="compositionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- po + grapik -->
+                <!---po-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-file-invoice"></i> Monitor PO Limbah Aktif</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="poMonitorTable">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; min-width: 150px;">NOMOR PO</th>
+                                    <th style="text-align:left; min-width: 200px;">ITEM (BARANG)</th>
+                                    <th>TARGET PO (KG)</th>
+                                    <th>TERKIRIM (KG)</th>
+                                    <th>SISA KUOTA (KG)</th>
+                                    <th style="min-width: 150px;">STATUS TERPAKAI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poMonitorBody">
+                                <tr>
+                                    <td colspan="6" class="loading-cell">
+                                        <div class="loader"></div> Memuat Monitor PO...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <!---tren iki-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Tren Tonase (7 Hari)</h2>
+                        <div class="section-actions">
+                            <select id="trendFilter" class="filter-select">
+                                <option value="ALL">Semua Item</option>
+                                <option value="GULA">Gula</option>
+                                <option value="TEBU">Tebu</option>
+                                <option value="MOLASSES">Molasses</option>
+                                <option value="FILTER CAKE">Filter Cake</option>
+                                <option value="FLY ASH">Fly Ash</option>
+                                <option value="BATU BARA">Batu Bara</option>
+                                <option value="SUPPORT">Support Operasional</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="height: 300px; position: relative; width: 100%;">
+                        <canvas id="dashboardTrendChart"></canvas>
+                    </div>
+                </section>
+
+
+
+                <!-- PAGE: Charts -->
+            </div>
+            <div class="page" id="page-charts">
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Grafik Historis (7 Hari)</h2>
+                    </div>
+                    <div class="charts-full-grid">
+                        <div class="chart-full-box">
+                            <h3>Tren Total Tonase</h3><canvas id="historyLineChart"></canvas>
+                        </div>
+                        <div class="chart-full-box">
+                            <h3>Per Type per Hari</h3><canvas id="historyBarChart"></canvas>
+                        </div>
+                        <div class="chart-full-box span-full">
+                            <h3>Total Ritase Pabrik</h3><canvas id="historyRitaseChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- PAGE: Report Limbah -->
+            <div class="page" id="page-report_limbah">
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-recycle"></i> Laporan Limbah Harian</h2>
+                        <div class="section-actions">
+                            <button class="btn-sm" id="btnCopyReportText"><i class="fa-solid fa-copy"></i> Salin Teks WA</button>
+                            <button class="btn-sm active" id="btnCopyReportImg"><i class="fa-solid fa-image"></i> Salin Gambar</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive" id="reportLimbahCaptureArea" style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md);">
+                        <div style="background: #000; padding: 10px 20px; display: inline-block; margin-bottom: 20px;">
+                            <h2 id="reportLimbahDateStr" style="color: #f0c000; font-family: 'Orbitron', sans-serif; margin: 0; font-size: 1.5rem; letter-spacing: 2px;">--/--/----</h2>
+                        </div>
+                        <div id="reportLimbahContent">
+                            <div class="loading-cell"><div class="loader"></div> Memuat Laporan...</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- PAGE: Report Tebu -->
+            <div class="page" id="page-report_tebu">
+                <div class="tebu-v2">
+                    <div class="wrap" style="padding:0; padding-top:28px;">
+
+                        <!-- ─── PAGE HEADER ─── -->
+                        <div class="ph fade-up">
+                          <div class="ph-left">
+                            <h1><i class="fa-solid fa-seedling"></i> Report Tebu</h1>
+                            <p>Laporan penerimaan &amp; rekap giling tebu harian</p>
+                            <div class="live-pill">Live Data</div>
+                          </div>
+                        </div>
+
+                        <!-- ─── GLOBAL PERSISTENT SETTINGS ─── -->
+                        <div class="global-panel fade-up fade-up-1">
+                          <div class="fp-group" style="flex:1.5; min-width:160px;">
+                            <label class="fp-label"><i class="fa-solid fa-flag" style="color:var(--green);margin-right:4px;"></i> Tanggal Mulai Giling</label>
+                            <input type="date" class="fp-input green" id="globalStartDate">
+                            <div class="persisted-badge"><i class="fa-solid fa-lock"></i> Tersimpan permanen</div>
+                          </div>
+                          <div class="fp-group" style="flex:2; min-width:180px;">
+                            <label class="fp-label"><i class="fa-solid fa-bullseye" style="color:var(--gold);margin-right:4px;"></i> Target Giling Musim (KG)</label>
+                            <input type="number" class="fp-input gold" id="globalTarget" placeholder="Contoh: 120000000">
+                            <div class="persisted-badge"><i class="fa-solid fa-lock"></i> Tersimpan permanen</div>
+                          </div>
+                          <div class="fp-group" style="flex:1; min-width:120px;">
+                            <label class="fp-label" style="display:flex; justify-content:space-between;">
+                              <span><i class="fa-solid fa-warehouse" style="color:var(--t2);margin-right:4px;"></i> Cane Yard</span>
+                              <button id="btnSyncCY" onclick="syncCaneYard()" style="background:none; border:none; color:var(--blue); font-size:.65rem; cursor:pointer; font-family:var(--mono);">
+                                <i class="fa-solid fa-rotate"></i> Auto-Sync
+                              </button>
+                            </label>
+                            <input type="number" class="fp-input" id="globalCaneYard" placeholder="0">
+                            <div class="persisted-badge"><i class="fa-solid fa-lock"></i> Tersimpan permanen</div>
+                          </div>
+                          <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;">
+                            <button class="btn-gen" onclick="saveGlobalTebu()" style="background:linear-gradient(135deg,var(--gold),var(--green)); box-shadow: 0 4px 18px rgba(34,197,94,.2);">
+                              <i class="fa-solid fa-floppy-disk"></i> Simpan
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- ─── SEKSYEN 1: LAPORAN (CARDS & PROGRESS) ─── -->
+                        <div class="filter-panel laporan fade-up fade-up-2" style="margin-bottom: 20px;">
+                          <div class="fp-title blue" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div><i class="fa-solid fa-file-lines"></i> Data Laporan Shift &amp; Summary</div>
+                            <button class="btn-gen" id="btnGenLaporan" onclick="generateLaporanTebu()" style="font-size:0.75rem; padding:8px 16px;">
+                              <i class="fa-solid fa-rotate"></i> Tampilkan Laporan
+                            </button>
+                          </div>
+                          <div class="fp-row" style="margin-top:12px;">
+                            <div class="fp-group" style="min-width:130px; flex:1.2;">
+                              <label class="fp-label">Tanggal Laporan</label>
+                              <input type="date" class="fp-input" id="laporanDate">
+                            </div>
+                            <div class="fp-group" style="flex:2; min-width:190px;">
+                              <label class="fp-label">Pilih Shift</label>
+                              <div class="shift-pills">
+                                <button class="spill s1 active" onclick="setTebuShift(1,this)">
+                                  Shift 1<sub>00:00–08:00</sub>
+                                </button>
+                                <button class="spill s2" onclick="setTebuShift(2,this)">
+                                  Shift 2<sub>08:00–16:00</sub>
+                                </button>
+                                <button class="spill s3" onclick="setTebuShift(3,this)">
+                                  Shift 3<sub>16:00–24:00</sub>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <p style="font-size:.68rem; color:var(--t3); margin-top:10px;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
+                            Data <b>Received</b> dan <b>Format WA</b> berdasarkan tanggal dan shift ini. Data <b>Summary To-Date</b> mengambil dari Awal Giling hingga Tanggal Laporan.
+                          </p>
+                        </div>
+
+                        <!-- Laporan Cards Area -->
+                        <div id="laporanCardsArea" style="display:none;" class="fade-up fade-up-3">
+                          <div style="padding:0 0 20px 0;" id="tebuMainCaptureArea1">
+                            <div class="stats-grid">
+                              <!-- Received shift selected -->
+                              <div class="section-block" style="margin:0; background:var(--bg3); border:1px solid var(--b);">
+                                <div class="sb-head" style="padding:12px 16px;">
+                                  <h3 id="rcvTitle" style="font-size:.72rem;">
+                                    <i class="fa-solid fa-truck-ramp-box" style="color:var(--blue)"></i> Received —
+                                  </h3>
+                                  <span style="font-family:var(--mono); font-size:.68rem; color:var(--t2);" id="rcvTime">—</span>
+                                </div>
+                                <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:10px;">
+                                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--b);">
+                                    <span style="font-size:.76rem; color:var(--t2);">Timbang Kosong</span>
+                                    <span class="mstat-val" id="rcv_rit" style="font-size:1rem;">— <span class="u">trk</span></span>
+                                  </div>
+                                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--b);">
+                                    <span style="font-size:.76rem; color:var(--t2);">Total Netto</span>
+                                    <span class="mstat-val tgreen" id="rcv_netto" style="font-size:1rem; color:var(--green);">— <span class="u">KG</span></span>
+                                  </div>
+                                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:.76rem; color:var(--t2);">Sebelum Rafaksi</span>
+                                    <span class="mstat-val" id="rcv_sblm" style="font-size:.88rem; color:var(--t);">— <span class="u">KG</span></span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Summary todate -->
+                              <div class="section-block" style="margin:0; background:var(--bg3); border:1px solid var(--b);">
+                                <div class="sb-head" style="padding:12px 16px;">
+                                  <h3 style="font-size:.72rem;">
+                                    <i class="fa-solid fa-sigma" style="color:var(--gold)"></i> Summary To-Date
+                                  </h3>
+                                  <span style="font-family:var(--mono); font-size:.68rem; color:var(--t2);" id="sumRange">—</span>
+                                </div>
+                                <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:10px;">
+                                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--b);">
+                                    <span style="font-size:.76rem; color:var(--t2);">Cane Yard</span>
+                                    <span class="mstat-val" id="sum_cy" style="font-size:1rem; color:var(--gold);">— <span class="u">trk</span></span>
+                                  </div>
+                                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--b);">
+                                    <span style="font-size:.76rem; color:var(--t2);">Total Timbang Kosong</span>
+                                    <span class="mstat-val" id="sum_rit" style="font-size:1rem;">— <span class="u">trk</span></span>
+                                  </div>
+                                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:.76rem; color:var(--t2);">Total Netto</span>
+                                    <span class="mstat-val" id="sum_netto" style="font-size:1rem; color:var(--green);">— <span class="u">KG</span></span>
+                                  </div>
+                                </div>
+
+                                <!-- Truck type mini -->
+                                <div style="padding:0 16px 14px;">
+                                  <div style="font-size:.62rem; font-weight:700; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:8px;">
+                                    <i class="fa-solid fa-truck-monster" style="margin-right:4px;"></i>Type Kendaraan — Hari Ini &amp; To-Date
+                                  </div>
+                                  <div class="truck-row">
+                                    <div class="truck-mini">
+                                      <div class="truck-mini-lbl">Engkel</div>
+                                      <div class="truck-mini-today" id="tk_e">0</div>
+                                      <div class="truck-mini-todate">TD: <span id="tdt_e">0</span></div>
+                                    </div>
+                                    <div class="truck-mini">
+                                      <div class="truck-mini-lbl">Fuso</div>
+                                      <div class="truck-mini-today" id="tk_f">0</div>
+                                      <div class="truck-mini-todate">TD: <span id="tdt_f">0</span></div>
+                                    </div>
+                                    <div class="truck-mini">
+                                      <div class="truck-mini-lbl">Double</div>
+                                      <div class="truck-mini-today" id="tk_d">0</div>
+                                      <div class="truck-mini-todate">TD: <span id="tdt_d">0</span></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Progress ring -->
+                              <div class="ring-card">
+                                <div class="ring-wrap">
+                                  <svg class="ring-svg" viewBox="0 0 100 100">
+                                    <circle class="ring-track" cx="50" cy="50" r="42"/>
+                                    <circle class="ring-fill" id="ringFill" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+                                  </svg>
+                                  <div class="ring-inner">
+                                    <span class="ring-pct" id="ringPct">0%</span>
+                                    <span class="ring-sub2">received</span>
+                                  </div>
+                                </div>
+                                <div class="ring-info">
+                                  <div class="ring-info-title">% In Ton Received</div>
+                                  <div class="ring-target">Target: <span id="ringTarget">—</span> KG</div>
+                                  <div style="margin-top:8px; font-size:.7rem; color:var(--t2); font-family:var(--mono);" id="ringNetto">Netto: — KG</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- ─── SEKSYEN 2: REKAP HARI & TO-DATE (DETAIL TABLE) ─── -->
+                        <div class="filter-panel rekap fade-up fade-up-3" style="margin-bottom: 20px;">
+                          <div class="fp-title gold" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div><i class="fa-solid fa-calendar-range"></i> Filter Data Rekap (Tabel Rincian)</div>
+                            <button class="btn-gen" id="btnGenRekap" onclick="generateRekapTebu()" style="font-size:0.75rem; padding:8px 16px; background:linear-gradient(135deg,var(--gold),#d97706); box-shadow: 0 4px 18px rgba(245,158,11,.15);">
+                              <i class="fa-solid fa-rotate"></i> Tampilkan Rekap
+                            </button>
+                          </div>
+                          <div class="fp-row" style="margin-top:12px;">
+                            <div class="fp-group">
+                              <label class="fp-label">Dari Tanggal (Rekap)</label>
+                              <input type="date" class="fp-input gold" id="rekapFrom">
+                            </div>
+                            <div class="fp-group">
+                              <label class="fp-label">Sampai Tanggal (Rekap)</label>
+                              <input type="date" class="fp-input gold" id="rekapTo">
+                            </div>
+                          </div>
+                          <p style="font-size:.68rem; color:var(--t3); margin-top:10px;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
+                            Data untuk tabel di bawah. <b>Hari Ini (Shift 1,2,3)</b> dihitung dari rentang tanggal ini. <b>To-Date</b> dihitung dari Awal Giling hingga Sampai Tanggal.
+                          </p>
+                        </div>
+
+                        <div class="section-block fade-up fade-up-4" id="rincianBlock" style="display:none;" >
+                          <div class="sb-head">
+                            <h3><i class="fa-solid fa-table-cells" style="color:var(--blue)"></i>
+                              Rincian Per Shift &amp; Akumulasi
+                            </h3>
+                            <div style="font-size:.72rem; color:var(--t2); font-family:var(--mono);" id="rincianRange">—</div>
+                          </div>
+                          <div class="sb-body" id="tebuCaptureArea2" style="padding-bottom:12px;">
+                            <div class="tscroll">
+                              <table class="rtable">
+                                <thead>
+                                  <tr>
+                                    <th class="tleft" style="width:32px">#</th>
+                                    <th class="tleft" style="min-width:200px;">Keterangan</th>
+                                    <th class="th-s1">Shift 1</th>
+                                    <th class="th-s2">Shift 2</th>
+                                    <th class="th-s3">Shift 3</th>
+                                    <th class="th-td">Total Rentang</th>
+                                    <th class="th-dt">To-Date</th>
+                                  </tr>
+                                </thead>
+                                <tbody id="rincianBody"></tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- ─── WA EXPORT ─── -->
+                        <div class="wa-section fade-up fade-up-4" id="waBlock" style="display:none;">
+                          <div class="wa-head">
+                            <h3><i class="fa-brands fa-whatsapp"></i> Format WhatsApp — Siap Kirim</h3>
+                            <div class="wa-btns">
+                              <button class="btn-wa cp" onclick="copyWA('waTextFull')">
+                                <i class="fa-solid fa-copy"></i> Salin Teks WA
+                              </button>
+                              <button class="btn-wa imgcp" id="btnCopyTebuImgFull">
+                                <i class="fa-solid fa-image"></i> Gambar Ringkasan
+                              </button>
+                              <button class="btn-wa imgcp" id="btnCopyTebuImg2">
+                                <i class="fa-solid fa-image"></i> Gambar Tabel
+                              </button>
+                            </div>
+                          </div>
+
+                          <div class="wa-preview-wrap" style="flex-direction: column;">
+                            <div class="wa-col">
+                              <div class="wa-col-title">Laporan Shift & Summary (Kesatuan)</div>
+                              <div class="wa-box" id="waBoxFull" style="white-space: pre-wrap;">—</div>
+                            </div>
+                          </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="page-vendors">
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-building"></i> Detail Vendor</h2>
+                    </div>
+                    <div class="vendor-detail-grid" id="vendorDetailGrid">
+                        <div class="loading-cell">
+                            <div class="loader"></div> Memuat...
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page" id="page-transactions">
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-receipt"></i> <span id="transactionTitle">Pilih Jenis
+                                Transaksi</span></h2>
+                        <div class="section-actions">
+                            <button class="btn-export" id="btnExportExcel" style="display:none">
+                                <i class="fa-solid fa-file-excel"></i> Export Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div id="transactionFilters"></div>
+                    <div id="poSummary"></div>
+                    <div class="table-responsive tx-table-scroll">
+                        <table class="data-table" id="transactionTable">
+                            <thead id="transactionTableHead"></thead>
+                            <tbody id="transactionTableBody">
+                                <tr>
+                                    <td colspan="10" class="loading-cell">
+                                        <div class="no-data">
+                                            <i class="fa-solid fa-hand-pointer"></i>
+                                            <p>Pilih jenis transaksi dari menu di samping</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="transactionPagination"></div>
+                </section>
+            </div>
+
+            <div class="page" id="page-report_daily">
+                <!-- ── DAILY REPORT LAYOUT ── -->
+                <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
+
+                    <!-- BLOK 1: FILTER -->
+                    <div style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
+                      <!-- accent bar atas -->
+                      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple));"></div>
+
+                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <!-- Kiri: judul + tanggal -->
+                        <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
+                          <div style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--blue); display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-lines"></i> Pilih Tanggal Laporan
+                          </div>
+                          <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:2px;">Tanggal Laporan</label>
+                          <input type="date" class="fp-input" id="dailyReportDate" style="max-width:220px; padding:7px 10px; font-size:.82rem;">
+                          <p style="font-size:.6rem; color:var(--t3); margin:0;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
+                            Pilih tanggal lalu klik <b>Generate</b>. Klik <b>Export PDF</b> untuk mencetak.
+                          </p>
+                        </div>
+                        <!-- Kanan: Tombol -->
+                        <div style="display:flex; gap:8px; align-items:flex-end;">
+                          <button class="btn-gen" id="btnGen" onclick="generateReport()" style="font-size:0.78rem; padding:9px 18px;">
+                            <i class="fa-solid fa-rotate"></i> Generate
+                          </button>
+                          <button class="btn-gen" onclick="printDoc()" style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#e65100,#bf360c); box-shadow:0 4px 14px rgba(230,81,0,.25);">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- BLOK 2: DOCUMENT -->
+                    <div class="doc-outer" style="margin:0; padding:0 0 40px;">
+
+<div class="paper" id="docPaper">
+ 
+  <!-- EMPTY STATE (before generate) -->
+  <div class="empty-doc" id="emptyState">
+    <i class="fa-solid fa-file-chart-column" style="color:#c8cdd4;"></i>
+    <h3>Daily Rekapitulasi Timbang Weightbridge</h3>
+    <p>Pilih tanggal di atas lalu klik <strong>Generate</strong> untuk membuat laporan</p>
+    <p style="margin-top:8px; font-size:.75rem; color:#aab;">Seksi yang tidak memiliki data akan otomatis disembunyikan</p>
+  </div>
+ 
+  <!-- DOCUMENT (hidden until generated) -->
+  <div id="docContent" style="display:none;">
+ 
+    <!-- ══════════════════════════════════════════
+         DOCUMENT HEADER — matching template exactly
+    ═══════════════════════════════════════════ -->
+    <div class="doc-header">
+      <div class="logo-area">
+        <!-- MITR PHOL GROUP Logo -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg width="48" height="36" viewBox="0 0 48 36">
+              <polygon points="8,35 24,4 40,35" fill="#00539B" stroke="#00539B" stroke-width="1"/>
+              <polygon points="14,35 24,12 34,35" fill="#4CAF50" stroke="#4CAF50" stroke-width="1"/>
+              <polyline points="10,28 24,8 38,28" fill="none" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <div style="text-align:center; line-height:1.15;">
+              <div style="font-size:.62rem; font-weight:900; color:#00539B; letter-spacing:.5px; font-family:'Arial Black',sans-serif;">MITR PHOL</div>
+              <div style="font-size:.5rem; font-weight:700; color:#00539B; letter-spacing:1.5px;">GROUP</div>
+            </div>
+          </div>
+        </div>
+        <!-- RMI Logo -->
+        <div style="display:flex; align-items:center; gap:6px; margin-left:12px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg width="40" height="36" viewBox="0 0 40 36">
+              <circle cx="20" cy="16" r="14" fill="none" stroke="#2E7D32" stroke-width="1.5"/>
+              <text x="20" y="14" text-anchor="middle" font-size="8" fill="#C5A028" font-weight="bold" font-family="serif">R</text>
+              <line x1="20" y1="18" x2="20" y2="30" stroke="#2E7D32" stroke-width="1.5"/>
+              <line x1="14" y1="24" x2="20" y2="30" stroke="#4CAF50" stroke-width="1"/>
+              <line x1="26" y1="24" x2="20" y2="30" stroke="#4CAF50" stroke-width="1"/>
+              <line x1="16" y1="20" x2="20" y2="26" stroke="#66BB6A" stroke-width="1"/>
+              <line x1="24" y1="20" x2="20" y2="26" stroke="#66BB6A" stroke-width="1"/>
+            </svg>
+            <div style="text-align:center; line-height:1.1;">
+              <div style="font-size:.45rem; font-weight:700; color:#1565c0; letter-spacing:.3px;">REJOSO MANIS INDO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="doc-title-center">
+        <h1>DAILY REKAPITULASI TIMBANG WEIGHTBRIDGE</h1>
+        <div class="doc-date" id="docDateDisplay">—</div>
+      </div>
+ 
+      <div class="doc-meta">
+        <table>
+          <tr><td>No Dok</td><td id="hdrNoDok">F.WB.01.21</td></tr>
+          <tr><td>No. Rev</td><td id="hdrNoRev">02</td></tr>
+          <tr><td>Tgl. Edit</td><td id="hdrTglEdit">1 September 2022</td></tr>
+          <tr><td>Halaman</td><td id="hdrHal">1 dari 1</td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
+         SECTION 1: DELIVERY PRODUCT
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secDelivery">
+      <div class="section-label-bold">DELIVERY PRODUCT</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblDelivery">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
+              <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
+              <th colspan="2" class="group-head">TOTAL</th>
+              <th rowspan="2" style="min-width:200px;">CUSTOMER / VENDOR</th>
+              <th rowspan="2" style="min-width:120px;">SPPB</th>
+              <th class="group-head">BAG</th>
+              <th rowspan="2" style="min-width:80px;">EVERAGE</th>
+            </tr>
+            <tr>
+              <th>WB RMI</th>
+              <th>SPT</th>
+              <th>TRUCK</th>
+              <th>SPT</th>
+              <th>QUANTITY</th>
+            </tr>
+          </thead>
+          <tbody id="tblDeliveryBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
+         SECTION 2: SUPPORT OPERATIONAL
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secSupport">
+      <div class="section-label-bold">SUPPORT OPERATIONAL</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblSupport">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:200px;">NAMA MATERIAL</th>
+              <th style="min-width:110px;">TOTAL NETTO (KG)</th>
+              <th style="min-width:60px;">TRUCK</th>
+              <th style="min-width:180px;">CUSTOMER / VENDOR</th>
+              <th style="min-width:100px;">PO</th>
+              <th style="min-width:160px;">REMARKS</th>
+            </tr>
+          </thead>
+          <tbody id="tblSupportBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
+         SECTION 3: LIMBAH
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secLimbah">
+      <div class="section-label-bold">LIMBAH</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblLimbah">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
+              <th style="min-width:80px;">NAME</th>
+              <th style="min-width:60px;">TRUCK</th>
+              <th style="min-width:120px;">TOTAL NETTO (KG)</th>
+              <th style="min-width:180px;">CUSTOMER / VENDOR</th>
+              <th style="min-width:100px;">PO</th>
+              <th style="min-width:160px;">REMARKS</th>
+            </tr>
+          </thead>
+          <tbody id="tblLimbahBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
+         SECTION 4: CANE RECEIVED
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secCane">
+      <div class="section-label-bold">Cane RECEIVED</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblCane">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:180px;">KETERANGAN</th>
+              <th style="min-width:100px;">SHIFT 1</th>
+              <th style="min-width:100px;">SHIFT 2</th>
+              <th style="min-width:100px;">SHIFT 3</th>
+              <th style="min-width:100px;">TODAY</th>
+              <th style="min-width:100px;">TODATE</th>
+            </tr>
+          </thead>
+          <tbody id="tblCaneBody">
+            <!-- JS populated -->
+          </tbody>
+          <tbody id="tblCaneTruckBody">
+            <!-- JS populated for truck types -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 5: TRANSFER GULA
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secTransfer">
+      <div class="section-label-bold">TRANSFER GULA</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblTransfer">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:160px;">WAREHOUSE BULOG</th>
+              <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
+              <th colspan="2" class="group-head">TOTAL</th>
+              <th colspan="2" class="group-head" style="background:#004d40;">TODATE</th>
+            </tr>
+            <tr>
+              <th>WB RMI</th>
+              <th>SPT</th>
+              <th>TRUCK</th>
+              <th>SPT</th>
+              <th style="background:#00695c; color:#fff;">TRUCK</th>
+              <th style="background:#00695c; color:#fff;">NETTO</th>
+            </tr>
+          </thead>
+          <tbody id="tblTransferBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 6: ASUGAR (BAGASSE)
+    ════════════════════════════════════════ -->
+    <div class="doc-section" id="secAsugar" style="display:none;">
+      <div class="section-label-bold">BAGASSE</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblAsugar">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:180px;">KETERANGAN</th>
+              <th colspan="2" class="group-head">SHIFT 1</th>
+              <th colspan="2" class="group-head">SHIFT 2</th>
+              <th colspan="2" class="group-head">SHIFT 3</th>
+              <th colspan="2" class="group-head" style="background:#004d40;">TOTAL</th>
+            </tr>
+            <tr>
+              <th>RIT</th>
+              <th>KG</th>
+              <th>RIT</th>
+              <th>KG</th>
+              <th>RIT</th>
+              <th>KG</th>
+              <th style="background:#00695c; color:#fff;">RIT</th>
+              <th style="background:#00695c; color:#fff;">KG</th>
+            </tr>
+          </thead>
+          <tbody id="tblAsugarBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ── SIGNATURE ── -->
+    <div class="sig-block" id="sigBlock">
+      <!-- Baris 1: Label -->
+      <div class="sig-row">
+        <div class="sig-item">
+          <div class="sig-noted">Disiapkan</div>
+          <div class="sig-line"></div>
+          <div class="sig-role">WEIGHBRIDGE</div>
+        </div>
+        <div class="sig-item">
+          <div class="sig-noted">Diketahui Oleh</div>
+          <div class="sig-line"></div>
+          <div class="sig-role">SHIFT CHIEF</div>
+        </div>
+        <div class="sig-item">
+          <div class="sig-noted">Disetujui Oleh</div>
+          <div class="sig-line"></div>
+          <div class="sig-role">SECTION HEAD</div>
+        </div>
+      </div>
+    </div>
+ 
+    </div><!-- /docContent -->
+    </div><!-- /paper -->
+    </div><!-- /doc-outer = BLOK 2 -->
+
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-check-circle"></i>
+        <span id="toastMsg">Dokumen dibuat!</span>
+    </div>
+    </div><!-- /container 1100px -->
+    </div><!-- /page-report_daily -->
+
+
+
+
+            <!-- Modal: Edit PO Stock -->
+            <div class="modal-overlay" id="modalOverlay">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h3><i class="fa-solid fa-pen-to-square"></i> Edit PO Stock</h3>
+                        <button class="modal-close" id="modalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nomor PO</label>
+                            <input type="text" id="modalPoNumber" class="form-input" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Qty PO (KG)</label>
+                            <input type="number" id="modalPoQty" class="form-input" placeholder="Masukkan jumlah PO..."
+                                step="0.01">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" id="modalCancelBtn">Batal</button>
+                        <button class="btn-save" id="modalSaveBtn"><i class="fa-solid fa-check"></i> Simpan</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- html2canvas untuk Copy Gambar -->
+    <script src="html2canvas.min.js"></script>
+    
+    <script src="script.js?v=3.7"></script>
+</body>
+
+</html>

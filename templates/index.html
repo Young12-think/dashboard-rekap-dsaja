@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="REKAP DSAJA - Dashboard Timbangan Produksi">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>REKAP DSAJA — Dashboard Timbangan</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Lexend:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=4.3">
+    <link rel="stylesheet" href="static/css/neo-brutalism.css?v=2.1">
+
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        {% include 'sidebar.html' %}
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            {% include 'topbar.html' %}
+
+            <!-- PAGE: Dashboard -->
+            {% include 'page_dashboard.html' %}
+            {% include 'page_charts.html' %}
+
+            <!-- PAGE: Report Limbah -->
+            {% include 'page_report_limbah.html' %}
+
+            <!-- PAGE: Report Tebu -->
+            {% include 'page_report_tebu.html' %}
+
+            {% include 'page_vendors.html' %}
+
+            {% include 'page_transactions.html' %}
+
+            {% include 'page_report_daily.html' %}
+
+            {% include 'page_report_asugar.html' %}
+
+            <!-- Modal: Edit PO Stock -->
+            {% include 'modal_po.html' %}
+        </main>
+    </div>
+    <!-- html2canvas untuk Copy Gambar -->
+    <script src="html2canvas.min.js"></script>
+    
+    <!-- ★ MODULAR JS — urutan penting! config → utils → api → nav → dashboard → tx → reports → main -->
+    <script src="static/js/config.js?v=5.0"></script>
+    <script src="static/js/utils.js?v=5.0"></script>
+    <script src="static/js/api.js?v=5.0"></script>
+    <script src="static/js/navigation.js?v=5.0"></script>
+    <script src="static/js/dashboard.js?v=5.0"></script>
+    <script src="static/js/transactions.js?v=5.0"></script>
+    <script src="static/js/report_limbah.js?v=5.0"></script>
+    <script src="static/js/report_tebu.js?v=5.0"></script>
+    <script src="static/js/report_daily.js?v=5.0"></script>
+    <script src="static/js/main.js?v=5.0"></script>
+    <!-- Rename _old_script.js → script.js lalu uncomment baris ini untuk fallback:
+    <script src="script.js?v=4.3"></script> -->
+
+</body>
+
+</html>
+

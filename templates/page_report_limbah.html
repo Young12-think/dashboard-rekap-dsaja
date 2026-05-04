@@ -1,0 +1,20 @@
+            <div class="page" id="page-report_limbah">
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-recycle"></i> Laporan Limbah Harian</h2>
+                        <div class="section-actions">
+                            <button class="btn-sm" id="btnCopyReportText"><i class="fa-solid fa-copy"></i> Salin Teks WA</button>
+                            <button class="btn-sm active" id="btnCopyReportImg"><i class="fa-solid fa-image"></i> Salin Gambar</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive" id="reportLimbahCaptureArea" style="background: var(--bg-primary); padding: 20px; border-radius: var(--radius-md);">
+                        <div style="background: #000; padding: 10px 20px; display: inline-block; margin-bottom: 20px;">
+                            <h2 id="reportLimbahDateStr" style="color: #f0c000; font-family: 'Orbitron', sans-serif; margin: 0; font-size: 1.5rem; letter-spacing: 2px;">--/--/----</h2>
+                        </div>
+                        <div id="reportLimbahContent">
+                            <div class="loading-cell"><div class="loader"></div> Memuat Laporan...</div>
+                        </div>
+                    </div>
+                </section>
+            </div>

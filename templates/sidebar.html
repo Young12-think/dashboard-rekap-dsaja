@@ -1,0 +1,66 @@
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fa-solid fa-industry"></i></div>
+                    <div class="logo-text">
+                        <h2>REKAP DSAJA</h2>
+                        <span class="version">v2.5</span>
+                    </div>
+                </div>
+                <!-- Tombol close (mobile) -->
+                <button class="sidebar-close" id="sidebarClose" title="Tutup sidebar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-section-title">MENU UTAMA</li>
+                    <li class="active" data-page="dashboard">
+                        <a href="#"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+                    </li>
+                    <li data-page="charts">
+                        <a href="#"><i class="fa-solid fa-chart-column"></i><span>Grafik</span></a>
+                    </li>
+                    <li data-page="vendors" style="display:none"><!-- Hidden: belum dibutuhkan -->
+                        <a href="#"><i class="fa-solid fa-truck"></i><span>Vendor</span></a>
+                    </li>
+                    <li class="has-submenu" id="transactionMenu">
+                        <a href="#" class="submenu-toggle">
+                            <i class="fa-solid fa-list"></i>
+                            <span>Transaksi</span>
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="transactionSubmenu">
+                            <!-- Generated dynamically by JavaScript from TRANSACTION_TYPES -->
+                        </ul>
+                    </li>
+                    <li class="has-submenu" id="reportMenu">
+                        <a href="#" class="submenu-toggle">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Report</span>
+                            <i class="fa-solid fa-chevron-down submenu-arrow"></i>
+                        </a>
+                        <ul class="submenu" id="reportSubmenu">
+                            <li data-page="report_daily"><a href="#"><i class="fa-solid fa-calendar-day"></i><span>Daily</span></a></li>
+                            <li data-page="report_tebu"><a href="#"><i class="fa-solid fa-seedling"></i><span>Tebu</span></a></li>
+                            <li data-page="report_limbah"><a href="#"><i class="fa-solid fa-recycle"></i><span>Limbah</span></a></li>
+                            <li data-page="report_asugar"><a href="#"><i class="fa-solid fa-candy-cane"></i><span>A Sugar</span></a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <!-- User Info -->
+                <div class="sidebar-user-info" id="sidebarUserInfo">
+                    <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="user-details">
+                        <div class="user-name" id="sidebarUsername">—</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                    <button class="btn-logout-sm" id="btnLogoutSm" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+                <!-- Connection Status -->
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-dot"></div>
+                    <span>Checking...</span>
+                </div>
+            </div>
+        </aside>

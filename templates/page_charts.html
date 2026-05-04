@@ -1,0 +1,93 @@
+            <div class="page" id="page-charts">
+                
+                <!-- Analytics Insight Timbangan (New) -->
+                <section class="section-card" style="margin-bottom:20px;">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-stopwatch"></i> Analisis Operasional Timbangan (Harian)</h2>
+                    </div>
+                    <div class="charts-full-grid" id="analyticsGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; padding:20px;">
+                        <!-- Peak Hours -->
+                        <div class="chart-full-box" style="padding:15px; border:var(--nb-border, 1px solid #ddd); border-radius:var(--nb-radius, 8px);">
+                            <h3 style="margin-bottom:10px; font-size:1rem; color:var(--text);"><i class="fa-solid fa-clock"></i> Jam Sibuk Timbangan (Truk Keluar)</h3>
+                            <canvas id="peakHoursChart" height="200"></canvas>
+                        </div>
+                        
+                        <!-- TAT Trend -->
+                        <div class="chart-full-box" style="padding:15px; border:var(--nb-border, 1px solid #ddd); border-radius:var(--nb-radius, 8px);">
+                            <h3 style="margin-bottom:10px; font-size:1rem; color:var(--text);"><i class="fa-solid fa-truck-fast"></i> Rata-rata Waktu Proses (Turnaround Time)</h3>
+                            <canvas id="tatTrendChart" height="200"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Tara Anomalies -->
+                    <div style="padding:0 20px 20px 20px;">
+                        <h3 style="margin-bottom:10px; font-size:1rem; color:var(--text);"><i class="fa-solid fa-triangle-exclamation" style="color:var(--nb-red, #FF6B6B);"></i> Indikasi Anomali Tara (Selisih > 100 kg)</h3>
+                        <div class="table-responsive">
+                            <table class="data-table" style="width:100%; text-align:left;">
+                                <thead>
+                                    <tr>
+                                        <th>NOPOL</th>
+                                        <th>Frekuensi Timbang</th>
+                                        <th>Tara Min (KG)</th>
+                                        <th>Tara Max (KG)</th>
+                                        <th>Selisih (KG)</th>
+                                        <th>Item</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="taraAnomaliesBody">
+                                    <tr><td colspan="6" style="text-align:center; padding:20px;">Memuat data anomali...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Insight Baru: Radar Shift + Top Transportir -->
+                <section class="section-card" style="margin-bottom:20px;">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-lightbulb"></i> Insight Operasional</h2>
+                    </div>
+                    <div class="charts-full-grid" id="insightGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; padding:20px;">
+                        <!-- Radar Shift Productivity -->
+                        <div class="chart-full-box insight-chart-box" id="radarShiftBox" style="padding:20px; border:var(--nb-border, 1px solid #ddd); border-radius:var(--nb-radius, 8px); position:relative;">
+                            <h3 style="margin-bottom:6px; font-size:1rem; color:var(--text);"><i class="fa-solid fa-diagram-project"></i> Produktivitas per Shift</h3>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Multidimensi: Tonase, Ritase, Kecepatan, Variasi Item (skala relatif 0–100)</p>
+                            <div style="max-width:360px; margin:0 auto;">
+                                <canvas id="shiftRadarChart" height="280"></canvas>
+                            </div>
+                            <!-- Detail Stats Cards -->
+                            <div id="radarStatsCards" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:14px;"></div>
+                        </div>
+
+                        <!-- Top 10 Transportir -->
+                        <div class="chart-full-box insight-chart-box" id="topTransportirBox" style="padding:20px; border:var(--nb-border, 1px solid #ddd); border-radius:var(--nb-radius, 8px);">
+                            <h3 style="margin-bottom:6px; font-size:1rem; color:var(--text);"><i class="fa-solid fa-ranking-star"></i> Top 10 Customer (Tonase)</h3>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Customer dengan tonase terbesar hari ini</p>
+                            <div style="position:relative; height:300px; width:100%;">
+                                <canvas id="topTransportirChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Grafik Historis (7 Hari Terakhir)</h2>
+                    </div>
+                    <div class="charts-full-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; padding:20px;">
+                        <div class="chart-full-box">
+                            <h3><i class="fa-solid fa-clock-rotate-left"></i> Tren Rata-rata TAT Harian</h3>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Turnaround Time (Menit) rata-rata seluruh truk per hari</p>
+                            <div style="position:relative; height:280px; width:100%;">
+                                <canvas id="historyTatChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-full-box">
+                            <h3><i class="fa-solid fa-scale-unbalanced"></i> Tren Selisih Timbangan (Loss/Gain)</h3>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Selisih total Netto vs dokumen SPT harian (KG). Positif = Gain, Negatif = Loss</p>
+                            <div style="position:relative; height:280px; width:100%;">
+                                <canvas id="historySelisihChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>

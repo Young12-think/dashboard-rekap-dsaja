@@ -1,0 +1,31 @@
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="hamburger" id="hamburgerBtn" title="Toggle Sidebar"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="page-title" id="pageTitle">Dashboard Timbangan</h1>
+                </div>
+                <div class="topbar-right">
+                    <!-- Jam WIB Live -->
+                    <div class="wib-clock-wrap" title="Jam WIB sekarang">
+                        <i class="fa-regular fa-clock" style="font-size:13px; opacity:0.6;"></i>
+                        <span id="wibClock" style="font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:1px; color:var(--text);">--:--:--</span>
+                        <span style="font-size:10px; color:var(--text-muted); margin-left:2px;">WIB</span>
+                    </div>
+                    <div class="date-picker-wrap">
+                        <i class="fa-regular fa-calendar"></i>
+                        <input type="date" id="datePicker" class="date-picker">
+                    </div>
+                    <button class="btn-icon" id="refreshBtn" title="Refresh"><i class="fa-solid fa-arrows-rotate"></i></button>
+                    <!-- Dark / Light Toggle -->
+                    <button class="btn-icon theme-toggle-btn" id="themeToggleBtn" title="Ganti tema gelap/terang">
+                        <i class="fa-solid fa-moon" id="themeIcon"></i>
+                    </button>
+                    <!-- Neo Brutalism Toggle -->
+                    <button class="btn-icon" id="neoModeBtn" title="Neo Brutalism Mode" style="font-size:0.7rem; font-weight:800; letter-spacing:0.5px; padding:0 10px;">
+                        NEO
+                    </button>
+                    <div class="shift-indicator" id="shiftIndicator" title="Shift 1: 00-08 | Shift 2: 08-16 | Shift 3: 16-24">
+                        <span class="shift-badge">SHIFT <span id="currentShift">-</span></span>
+                    </div>
+                </div>
+            </header>
+

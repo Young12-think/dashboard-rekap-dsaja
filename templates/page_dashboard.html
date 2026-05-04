@@ -1,0 +1,117 @@
+            <div class="page active" id="page-dashboard">
+                <!-- Dynamic Summary Cards -->
+                <section class="summary-cards" id="summaryCards">
+                    <div class="loading-cell">
+                        <div class="loader"></div> Memuat ringkasan...
+                    </div>
+                </section>
+
+                <!-- Production Table -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-weight-scale"></i> Data Timbangan Harian</h2>
+                        <div class="section-actions">
+                            <button class="btn-sm active" id="btnTableView"><i class="fa-solid fa-table"></i>
+                                Tabel</button>
+                            <button class="btn-sm" id="btnChartView"><i class="fa-solid fa-chart-bar"></i>
+                                Grafik</button>
+                        </div>
+                    </div>
+                    <div class="view-panel active" id="tableView">
+                        <div class="table-responsive">
+                            <table class="data-table" id="productionTable">
+                                <thead>
+                                    <tr>
+                                        <th class="sticky-col" rowspan="2">TYPE</th>
+                                        <th colspan="2" class="shift-header s1">SHIFT 1</th>
+                                        <th colspan="2" class="shift-header s2">SHIFT 2</th>
+                                        <th colspan="2" class="shift-header s3">SHIFT 3</th>
+                                        <th colspan="2" class="shift-header today">TODAY</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="sub-header s1">TONASE</th>
+                                        <th class="sub-header s1">RITASE</th>
+                                        <th class="sub-header s2">TONASE</th>
+                                        <th class="sub-header s2">RITASE</th>
+                                        <th class="sub-header s3">TONASE</th>
+                                        <th class="sub-header s3">RITASE</th>
+                                        <th class="sub-header today">TONASE</th>
+                                        <th class="sub-header today">RITASE</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productionTableBody">
+                                    <tr>
+                                        <td colspan="9" class="loading-cell">
+                                            <div class="loader"></div> Memuat data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="view-panel" id="chartView">
+                        <div class="inline-charts-grid">
+                            <div class="inline-chart-box">
+                                <h3>Perbandingan Shift (Tonase)</h3><canvas id="shiftCompareChart"></canvas>
+                            </div>
+                            <div class="inline-chart-box">
+                                <h3>Komposisi Produksi</h3><canvas id="compositionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- po + grapik -->
+                <!---po-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-file-invoice"></i> Monitor PO Limbah Aktif</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="poMonitorTable">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; min-width: 150px;">NOMOR PO</th>
+                                    <th style="text-align:left; min-width: 200px;">ITEM (BARANG)</th>
+                                    <th>TARGET PO (KG)</th>
+                                    <th>TERKIRIM (KG)</th>
+                                    <th>SISA KUOTA (KG)</th>
+                                    <th style="min-width: 150px;">STATUS TERPAKAI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poMonitorBody">
+                                <tr>
+                                    <td colspan="6" class="loading-cell">
+                                        <div class="loader"></div> Memuat Monitor PO...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <!---tren iki-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Tren Tonase (7 Hari)</h2>
+                        <div class="section-actions">
+                            <select id="trendFilter" class="filter-select">
+                                <option value="ALL">Semua Item</option>
+                                <option value="GULA">Gula</option>
+                                <option value="TEBU">Tebu</option>
+                                <option value="MOLASSES">Molasses</option>
+                                <option value="FILTER CAKE">Filter Cake</option>
+                                <option value="FLY ASH">Fly Ash</option>
+                                <option value="BATU BARA">Batu Bara</option>
+                                <option value="SUPPORT">Support Operasional</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="height: 300px; position: relative; width: 100%;">
+                        <canvas id="dashboardTrendChart"></canvas>
+                    </div>
+                </section>
+
+
+
+                <!-- PAGE: Charts -->
+            </div>
