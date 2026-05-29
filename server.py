@@ -41,8 +41,10 @@ def index():
 
 @app.route('/<path:filename>')
 def static_files(filename):
-    # API routes dan login tidak perlu guard
-    if filename.startswith('api/') or filename in ('login', 'login.html'):
+    # API routes, login, favicon, dan folder img tidak perlu guard
+    if (filename.startswith('api/') or 
+        filename.startswith('img/') or 
+        filename in ('login', 'login.html', 'favicon.ico', 'favicon.png')):
         pass
     else:
         guard = require_login()
