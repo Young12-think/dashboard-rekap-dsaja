@@ -1,4 +1,4 @@
-﻿/* static/js/report_tebu.js
+/* static/js/report_tebu.js
  * Dipindahkan dari script.js baris 1899-2294 tanpa perubahan logika.
  */
 
@@ -309,7 +309,7 @@ function renderTableTebuV2(d, td, tdt) {
   const truckRows = [
     ['', 'Engkel',       d.shift1.tipe_engkel,d.shift2.tipe_engkel,d.shift3.tipe_engkel,td.tipe_engkel,tdt.tipe_engkel,''],
     ['', 'Fuso',         d.shift1.tipe_fuso,  d.shift2.tipe_fuso,  d.shift3.tipe_fuso,  td.tipe_fuso,  tdt.tipe_fuso,  ''],
-    ['', 'Double Truck', d.shift1.tipe_double,d.shift2.tipe_double,d.shift3.tipe_double,td.tipe_double,tdt.tipe_double,''],
+    ['', 'Mini Bus/Pick Up/L300', d.shift1.tipe_double,d.shift2.tipe_double,d.shift3.tipe_double,td.tipe_double,tdt.tipe_double,''],
   ];
 
   let html = mainRows.map((r, i) => {

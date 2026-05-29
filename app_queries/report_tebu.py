@@ -9,9 +9,9 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
         SELECT Shift, COUNT(DISTINCT NoSystem) as ritase,
                SUM(COALESCE(Qty_sblm_Rafaksi, Qty_Netto, 0)) as netto_sebelum,
                SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
-               SUM(CASE WHEN Kendaraan = 'ENGKEL' THEN 1 ELSE 0 END) as tipe_engkel,
-               SUM(CASE WHEN Kendaraan = 'FUSO' THEN 1 ELSE 0 END) as tipe_fuso,
-               SUM(CASE WHEN Kendaraan = 'DOUBLE TRUCK' THEN 1 ELSE 0 END) as tipe_double
+               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
+               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
+               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
         FROM data_timbang
         WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
           AND ItemName LIKE '%TEBU%'
@@ -24,9 +24,9 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
             SELECT COUNT(DISTINCT NoSystem) as ritase,
                    SUM(COALESCE(Qty_sblm_Rafaksi, Qty_Netto, 0)) as netto_sebelum,
                    SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
-                   SUM(CASE WHEN Kendaraan = 'ENGKEL' THEN 1 ELSE 0 END) as tipe_engkel,
-                   SUM(CASE WHEN Kendaraan = 'FUSO' THEN 1 ELSE 0 END) as tipe_fuso,
-                   SUM(CASE WHEN Kendaraan = 'DOUBLE TRUCK' THEN 1 ELSE 0 END) as tipe_double
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
             FROM data_timbang
             WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
               AND ItemName LIKE '%TEBU%'
@@ -37,9 +37,9 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
             SELECT COUNT(DISTINCT NoSystem) as ritase,
                    SUM(COALESCE(Qty_sblm_Rafaksi, Qty_Netto, 0)) as netto_sebelum,
                    SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
-                   SUM(CASE WHEN Kendaraan = 'ENGKEL' THEN 1 ELSE 0 END) as tipe_engkel,
-                   SUM(CASE WHEN Kendaraan = 'FUSO' THEN 1 ELSE 0 END) as tipe_fuso,
-                   SUM(CASE WHEN Kendaraan = 'DOUBLE TRUCK' THEN 1 ELSE 0 END) as tipe_double
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
             FROM data_timbang
             WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') <= %s
               AND ItemName LIKE '%TEBU%'

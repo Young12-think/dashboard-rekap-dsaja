@@ -26,6 +26,7 @@ from .daily_reports import (
     get_daily_transfer_gula,
 )
 from .report_tebu import get_report_tebu
+from .report_blabak import get_blabak_report
 from .analytics import get_analytics_data, get_shift_productivity_data, get_top_transportir_data, get_history_insights_data
 
 __all__ = [
@@ -49,6 +50,8 @@ __all__ = [
     'get_daily_transfer_gula',
     # tebu report
     'get_report_tebu',
+    # blabak report
+    'get_blabak_report',
     # analytics
     'get_analytics_data',
     'get_shift_productivity_data',

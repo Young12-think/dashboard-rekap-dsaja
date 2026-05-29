@@ -1,4 +1,4 @@
-﻿/* static/js/report_daily.js
+/* static/js/report_daily.js
  * Dipindahkan dari script.js baris 2332-2916 tanpa perubahan logika.
  */
 
@@ -433,7 +433,7 @@ function renderCane(data) {
   const trucks = [
     { label:'ENGKLE',           keyToday: data?.today?.tipe_engkel, keyTodate: data?.todate?.tipe_engkel },
     { label:'FUSO',             keyToday: data?.today?.tipe_fuso,   keyTodate: data?.todate?.tipe_fuso   },
-    { label:'MINIBUS / PICKUP', keyToday: data?.today?.tipe_double, keyTodate: data?.todate?.tipe_double },
+    { label:'MINIBUS / PICKUP / L300', keyToday: data?.today?.tipe_double, keyTodate: data?.todate?.tipe_double },
   ];
  
   let truckHtml = '';

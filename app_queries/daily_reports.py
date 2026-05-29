@@ -309,8 +309,8 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             SUM(ABS(COALESCE(COALESCE(t.Qty_sblm_Rafaksi, t.Qty_Netto), 0))) AS netto_sebelum,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%' THEN t.NoSystem END) AS tipe_engkel,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%' THEN t.NoSystem END) AS tipe_fuso,
-            /* JURUS SAKTI: Cari Minibus atau Pickup */
-            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' THEN t.NoSystem END) AS tipe_double
+            /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
         FROM data_timbang t
         WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'
@@ -328,8 +328,8 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             SUM(ABS(COALESCE(COALESCE(t.Qty_sblm_Rafaksi, t.Qty_Netto), 0))) AS netto_sebelum,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%' THEN t.NoSystem END) AS tipe_engkel,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%' THEN t.NoSystem END) AS tipe_fuso,
-            /* JURUS SAKTI: Cari Minibus atau Pickup */
-            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' THEN t.NoSystem END) AS tipe_double
+            /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
         FROM data_timbang t
         WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'

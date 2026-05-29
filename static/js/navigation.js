@@ -117,6 +117,7 @@ function switchPage(page) {
     else if (page === 'report_tebu') title = 'Report Tebu';
     else if (page === 'report_limbah') title = 'Report Limbah';
     else if (page === 'report_asugar') title = 'Report A Sugar';
+    else if (page === 'report_blabak') title = 'Report Blabak';
     document.getElementById('pageTitle').textContent = title;
 
     if (page === 'charts') loadHistoryCharts();

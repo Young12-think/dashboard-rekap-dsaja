@@ -473,6 +473,23 @@ def api_daily_all():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # =============================================
+# API: BLABAK (Weightbridge Daily Report)
+# =============================================
+@app.route('/api/report-blabak')
+def api_report_blabak():
+    date_str   = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    rekap_from = request.args.get('rekap_from', '').strip() or None
+    try:
+        data = queries.get_blabak_report(date_str, rekap_from)
+        if data is None:
+            return jsonify({"status": "error", "message": "Database error"}), 500
+        return jsonify({"status": "success", "date": date_str, "data": data})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-blabak: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# =============================================
 if __name__ == '__main__':
     print("=" * 50)
     print("  REKAP DSAJA - Production Dashboard")
