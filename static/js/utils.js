@@ -27,6 +27,14 @@ function fmtDate(s) {
     const m = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return `${d.getDate()} ${m[d.getMonth()]}`;
 }
+function fmtMinutes(totalMinutes) {
+    if (!totalMinutes || isNaN(totalMinutes)) return '0 Menit';
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = Math.round(totalMinutes % 60);
+    if (hrs > 0 && mins > 0) return `${hrs} Jam ${mins} Menit`;
+    if (hrs > 0) return `${hrs} Jam`;
+    return `${mins} Menit`;
+}
 function z(v) { return (!v || v === 0) ? 'zero-val' : ''; }
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); charts[id] = null; } }
 function errRow(cols, msg) { return `<tr><td colspan="${cols}" class="loading-cell"><div class="error-state"><i class="fa-solid fa-circle-exclamation"></i><p>${msg}</p></div></td></tr>`; }

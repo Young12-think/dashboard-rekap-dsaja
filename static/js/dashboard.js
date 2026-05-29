@@ -228,10 +228,21 @@ async function loadHistoryCharts() {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: { ...TOOLTIP, callbacks: { label: c => ` Waktu Proses: ${c.raw} menit` } }
+                tooltip: { ...TOOLTIP, callbacks: { label: c => ` Waktu Proses: ${fmtMinutes(c.raw)}` } }
             },
             scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(48,54,61,0.4)' }, ticks: { font: { size: 10 } } },
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: 'rgba(48,54,61,0.4)' }, 
+                    ticks: { 
+                        font: { size: 10 },
+                        callback: v => {
+                            const hrs = Math.floor(v / 60);
+                            const mins = Math.round(v % 60);
+                            return hrs > 0 ? `${hrs}j ${mins}m` : `${mins}m`;
+                        }
+                    } 
+                },
                 x: { grid: { display: false }, ticks: { font: { size: 10 } } }
             }
         }
@@ -325,7 +336,7 @@ async function loadAnalytics() {
         data: {
             labels: tatData.map(r => `Shift ${r.shift}`),
             datasets: [{
-                label: 'Rata-rata Waktu (Menit)',
+                label: 'Rata-rata Waktu Proses',
                 data: tatData.map(r => r.avg_minutes),
                 backgroundColor: COLORS[1].bg,
                 borderColor: COLORS[1].border,
@@ -335,10 +346,90 @@ async function loadAnalytics() {
         },
         options: {
             responsive: true,
-            plugins: { tooltip: TOOLTIP },
-            scales: { y: { beginAtZero: true, title: { display: true, text: 'Menit' } }, x: { grid: { display: false } } }
+            plugins: { 
+                tooltip: {
+                    ...TOOLTIP,
+                    callbacks: { label: c => ` ${c.dataset.label}: ${fmtMinutes(c.raw)}` }
+                }
+            },
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    title: { display: false },
+                    ticks: {
+                        callback: v => {
+                            const hrs = Math.floor(v / 60);
+                            const mins = Math.round(v % 60);
+                            return hrs > 0 ? `${hrs}j ${mins}m` : `${mins}m`;
+                        }
+                    }
+                }, 
+                x: { grid: { display: false } } 
+            }
         }
     });
+
+    // 2.5 TAT Hourly per Item
+    const tatHourlyData = d.data.tat_hourly_item || [];
+    destroyChart('tatHourlyItemChart');
+    if (tatHourlyData.length > 0) {
+        const hours = tatHourlyData.map(r => r.hour);
+        const itemKeysSet = new Set();
+        tatHourlyData.forEach(r => Object.keys(r).forEach(k => { if (k !== 'hour') itemKeysSet.add(k); }));
+        const itemKeys = Array.from(itemKeysSet);
+        
+        const hDatasets = itemKeys.map((item, idx) => {
+            const data = tatHourlyData.map(r => r[item] || 0);
+            const c = COLORS[idx % COLORS.length];
+            return {
+                label: item,
+                data: data,
+                borderColor: c.border,
+                backgroundColor: c.bg,
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: c.border,
+                pointBorderColor: '#0d1117',
+                pointBorderWidth: 2
+            };
+        });
+
+        const canvasEl = document.getElementById('tatHourlyItemChart');
+        if (canvasEl) {
+            charts.tatHourlyItemChart = new Chart(canvasEl.getContext('2d'), {
+                type: 'line',
+                data: { labels: hours, datasets: hDatasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { usePointStyle: true, padding: 12, font: { size: 10 } } },
+                        tooltip: {
+                            ...TOOLTIP,
+                            callbacks: { label: c => ` ${c.dataset.label}: ${fmtMinutes(c.raw)}` }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(48,54,61,0.2)' }, 
+                            ticks: {
+                                callback: v => {
+                                    const hrs = Math.floor(v / 60);
+                                    const mins = Math.round(v % 60);
+                                    return hrs > 0 ? `${hrs}j ${mins}m` : `${mins}m`;
+                                }
+                            }
+                        },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
+                    }
+                }
+            });
+        }
+    }
 
     // 3. Tara Anomalies Table
     const anomalies = d.data.tara_anomalies || [];
@@ -550,7 +641,373 @@ async function renderTopTransportir() {
 // =============================================
 // DASHBOARD BARU: TREN & PO MONITOR
 // =============================================
-async function loadDashboardTrend() {
+async function loadDashboardAvgTrend(showLoader = false) {
+    if (showLoader) {
+        destroyChart('dashboardAvgTrendChart');
+        const canvas = document.getElementById('dashboardAvgTrendChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '13px Inter, sans-serif';
+            ctx.fillStyle = '#8b949e';
+            ctx.textAlign = 'center';
+            ctx.fillText('Memuat data...', canvas.width / 2, canvas.height / 2);
+        }
+    }
+    // Ambil nilai filter dari dropdown
+    const filterVal = document.getElementById('trendAvgFilter')?.value || 'ALL';
+
+    // ★ PERBAIKAN: Kirim tanggal aktif dari kalender agar data mundur dari tanggal yang benar
+    const d = await api(`/api/production/history?days=7&date=${currentDate}`);
+    if (!d || d.status !== 'success' || !d.data || d.data.length === 0) return;
+
+    // Kelompokkan data per tanggal
+    const byDate = {};
+    d.data.forEach(r => {
+        const tgl = r.tanggal || r.date || '';  // handle kedua kemungkinan field name
+        if (!tgl) return;
+        if (!byDate[tgl]) byDate[tgl] = [];
+        byDate[tgl].push(r);
+    });
+    const dates = Object.keys(byDate).sort();
+    if (dates.length === 0) return;
+
+    // ★ Normalisasi: gunakan field ItemName (huruf campuran dari DB) — fallback ke 'type'
+    const getItemName = (r) => r.ItemName || r.itemname || r.type || '';
+
+    // Fungsi pencocokan item ke tipe filter
+    const matchFilter = (itemName, fv) => {
+        if (!fv || fv === 'ALL') return true;
+        const n = (itemName || '').toUpperCase();
+        if (fv === 'GULA')        return n.includes('GULA');
+        if (fv === 'TEBU')        return n.includes('TEBU');
+        if (fv === 'MOLASSES')    return n.includes('MOLASSE');
+        if (fv === 'FILTER CAKE') return n.includes('FILTER CAKE') || n.includes('BLOTONG');
+        if (fv === 'FLY ASH')     return n.includes('FLY ASH') || n.includes('FLYASH');
+        if (fv === 'BATU BARA')   return n.includes('BATU BARA') || n.includes('BATUBARA');
+        if (fv === 'SUPPORT')     return n.includes('SUPPORT') || n.includes('SOLAR') || n.includes('SACK');
+        return n.includes(fv);
+    };
+
+    // Warna sesuai filter yang dipilih
+    const colorMap = {
+        'ALL':         { line: '#58a6ff', bg: 'rgba(88,166,255,0.15)'  },
+        'GULA':        { line: '#f0c000', bg: 'rgba(240,192,0,0.12)'   },
+        'TEBU':        { line: '#3fb950', bg: 'rgba(63,185,80,0.12)'   },
+        'MOLASSES':    { line: '#e67e22', bg: 'rgba(230,126,34,0.12)'  },
+        'FILTER CAKE': { line: '#39d2c0', bg: 'rgba(57,210,192,0.12)' },
+        'FLY ASH':     { line: '#f85149', bg: 'rgba(248,81,73,0.12)'  },
+        'BATU BARA':   { line: '#a1887f', bg: 'rgba(161,136,127,0.12)'},
+        'SUPPORT':     { line: '#bc8cff', bg: 'rgba(188,140,255,0.12)'},
+    };
+    const color = colorMap[filterVal] || colorMap['ALL'];
+
+    const labelMap = {
+        'ALL': 'Rata-rata Semua Item', 'GULA': 'Gula', 'TEBU': 'Tebu',
+        'MOLASSES': 'Molasses', 'FILTER CAKE': 'Filter Cake',
+        'FLY ASH': 'Fly Ash', 'BATU BARA': 'Batu Bara', 'SUPPORT': 'Support'
+    };
+
+    // ★ Buat datasets: jika ALL → satu line per material unik; jika filter spesifik → satu line total
+    let datasets = [];
+
+    if (filterVal === 'ALL') {
+        // Kumpulkan semua material unik (dikelompokkan ke kategori besar)
+        const MATERIAL_GROUPS = [
+            { key: 'TEBU',        label: 'Tebu',          match: n => n.includes('TEBU'),                                         colorIdx: 1 },
+            { key: 'GULA',        label: 'Gula',          match: n => n.includes('GULA'),                                         colorIdx: 2 },
+            { key: 'FILTER CAKE', label: 'Filter Cake',   match: n => n.includes('FILTER CAKE') || n.includes('BLOTONG'),         colorIdx: 5 },
+            { key: 'FLY ASH',     label: 'Fly Ash',       match: n => n.includes('FLY ASH') || n.includes('FLYASH'),              colorIdx: 6 },
+            { key: 'MOLASSES',    label: 'Molasses',      match: n => n.includes('MOLASSE'),                                      colorIdx: 4 },
+            { key: 'BATU BARA',   label: 'Batu Bara',     match: n => n.includes('BATU BARA') || n.includes('BATUBARA'),          colorIdx: 7 },
+            { key: 'SUPPORT',     label: 'Support',       match: n => n.includes('SUPPORT') || n.includes('SOLAR') || n.includes('SACK'), colorIdx: 3 },
+        ];
+
+        // Cek grup mana yang punya data
+        const activeGroups = MATERIAL_GROUPS.filter(g => {
+            return dates.some(dt =>
+                byDate[dt].some(r => g.match((getItemName(r) || '').toUpperCase()))
+            );
+        });
+
+        datasets = activeGroups.map(g => {
+            const data = dates.map(dt => {
+                const filtered = byDate[dt].filter(r => g.match((getItemName(r) || '').toUpperCase()));
+                const tTon = filtered.reduce((s, r) => s + (r.total_tonase || 0), 0);
+                const tRit = filtered.reduce((s, r) => s + (r.total_ritase || 0), 0);
+                return tRit > 0 ? (tTon / tRit) : 0;
+            });
+            const c = COLORS[g.colorIdx % COLORS.length];
+            return {
+                label: g.label,
+                data,
+                borderColor: c.border,
+                backgroundColor: c.bg,
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: c.border,
+                pointBorderColor: '#0d1117',
+                pointBorderWidth: 2
+            };
+        });
+    } else {
+        // Filter spesifik → satu line total
+        const data = dates.map(dt => {
+            const filtered = byDate[dt].filter(r => matchFilter(getItemName(r), filterVal));
+            const tTon = filtered.reduce((s, r) => s + (r.total_tonase || 0), 0);
+            const tRit = filtered.reduce((s, r) => s + (r.total_ritase || 0), 0);
+            return tRit > 0 ? (tTon / tRit) : 0;
+        });
+        datasets = [{
+            label: labelMap[filterVal] || filterVal,
+            data: data,
+            borderColor: color.line,
+            backgroundColor: color.bg,
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: color.line,
+            pointBorderColor: '#0d1117',
+            pointBorderWidth: 2
+        }];
+    }
+
+    const chartId = 'dashboardAvgTrendChart';
+    if (!showLoader && charts[chartId]) {
+        charts[chartId].data.labels = dates.map(fmtDate);
+        charts[chartId].data.datasets = datasets;
+        charts[chartId].update('none');
+        return;
+    }
+
+    destroyChart(chartId);
+    const ctx = document.getElementById(chartId).getContext('2d');
+    charts[chartId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates.map(fmtDate),
+            datasets: datasets
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, position: 'top', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+                tooltip: {
+                    ...TOOLTIP,
+                    callbacks: {
+                        label: c => ` ${c.dataset.label}: ${fmt(c.raw.toFixed(2))} KG`
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(48,54,61,0.2)' }, ticks: { callback: v => fmt(v) } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+async function loadDashboardTatTrend(showLoader = false) {
+    if (showLoader) {
+        destroyChart('dashboardTatTrendChart');
+        const canvas = document.getElementById('dashboardTatTrendChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '13px Inter, sans-serif';
+            ctx.fillStyle = '#8b949e';
+            ctx.textAlign = 'center';
+            ctx.fillText('Memuat data...', canvas.width / 2, canvas.height / 2);
+        }
+    }
+    // Ambil nilai filter dari dropdown
+    const filterVal = document.getElementById('trendTatFilter')?.value || 'ALL';
+
+    // ★ PERBAIKAN: Kirim tanggal aktif dari kalender agar data mundur dari tanggal yang benar
+    const d = await api(`/api/production/history?days=7&date=${currentDate}`);
+    if (!d || d.status !== 'success' || !d.data || d.data.length === 0) return;
+
+    // Kelompokkan data per tanggal
+    const byDate = {};
+    d.data.forEach(r => {
+        const tgl = r.tanggal || r.date || '';  // handle kedua kemungkinan field name
+        if (!tgl) return;
+        if (!byDate[tgl]) byDate[tgl] = [];
+        byDate[tgl].push(r);
+    });
+    const dates = Object.keys(byDate).sort();
+    if (dates.length === 0) return;
+
+    // ★ Normalisasi: gunakan field ItemName (huruf campuran dari DB) — fallback ke 'type'
+    const getItemName = (r) => r.ItemName || r.itemname || r.type || '';
+
+    // Fungsi pencocokan item ke tipe filter
+    const matchFilter = (itemName, fv) => {
+        if (!fv || fv === 'ALL') return true;
+        const n = (itemName || '').toUpperCase();
+        if (fv === 'GULA')        return n.includes('GULA');
+        if (fv === 'TEBU')        return n.includes('TEBU');
+        if (fv === 'MOLASSES')    return n.includes('MOLASSE');
+        if (fv === 'FILTER CAKE') return n.includes('FILTER CAKE') || n.includes('BLOTONG');
+        if (fv === 'FLY ASH')     return n.includes('FLY ASH') || n.includes('FLYASH');
+        if (fv === 'BATU BARA')   return n.includes('BATU BARA') || n.includes('BATUBARA');
+        if (fv === 'SUPPORT')     return n.includes('SUPPORT') || n.includes('SOLAR') || n.includes('SACK');
+        return n.includes(fv);
+    };
+
+    // Warna sesuai filter yang dipilih
+    const colorMap = {
+        'ALL':         { line: '#58a6ff', bg: 'rgba(88,166,255,0.15)'  },
+        'GULA':        { line: '#f0c000', bg: 'rgba(240,192,0,0.12)'   },
+        'TEBU':        { line: '#3fb950', bg: 'rgba(63,185,80,0.12)'   },
+        'MOLASSES':    { line: '#e67e22', bg: 'rgba(230,126,34,0.12)'  },
+        'FILTER CAKE': { line: '#39d2c0', bg: 'rgba(57,210,192,0.12)' },
+        'FLY ASH':     { line: '#f85149', bg: 'rgba(248,81,73,0.12)'  },
+        'BATU BARA':   { line: '#a1887f', bg: 'rgba(161,136,127,0.12)'},
+        'SUPPORT':     { line: '#bc8cff', bg: 'rgba(188,140,255,0.12)'},
+    };
+    const color = colorMap[filterVal] || colorMap['ALL'];
+
+    const labelMap = {
+        'ALL': 'Rata-rata TAT Semua Item', 'GULA': 'Gula', 'TEBU': 'Tebu',
+        'MOLASSES': 'Molasses', 'FILTER CAKE': 'Filter Cake',
+        'FLY ASH': 'Fly Ash', 'BATU BARA': 'Batu Bara', 'SUPPORT': 'Support'
+    };
+
+    // ★ Buat datasets: jika ALL → satu line per material unik; jika filter spesifik → satu line total
+    let datasets = [];
+
+    if (filterVal === 'ALL') {
+        // Kumpulkan semua material unik (dikelompokkan ke kategori besar)
+        const MATERIAL_GROUPS = [
+            { key: 'TEBU',        label: 'Tebu',          match: n => n.includes('TEBU'),                                         colorIdx: 1 },
+            { key: 'GULA',        label: 'Gula',          match: n => n.includes('GULA'),                                         colorIdx: 2 },
+            { key: 'FILTER CAKE', label: 'Filter Cake',   match: n => n.includes('FILTER CAKE') || n.includes('BLOTONG'),         colorIdx: 5 },
+            { key: 'FLY ASH',     label: 'Fly Ash',       match: n => n.includes('FLY ASH') || n.includes('FLYASH'),              colorIdx: 6 },
+            { key: 'MOLASSES',    label: 'Molasses',      match: n => n.includes('MOLASSE'),                                      colorIdx: 4 },
+            { key: 'BATU BARA',   label: 'Batu Bara',     match: n => n.includes('BATU BARA') || n.includes('BATUBARA'),          colorIdx: 7 },
+            { key: 'SUPPORT',     label: 'Support',       match: n => n.includes('SUPPORT') || n.includes('SOLAR') || n.includes('SACK'), colorIdx: 3 },
+        ];
+
+        // Cek grup mana yang punya data
+        const activeGroups = MATERIAL_GROUPS.filter(g => {
+            return dates.some(dt =>
+                byDate[dt].some(r => g.match((getItemName(r) || '').toUpperCase()))
+            );
+        });
+
+        datasets = activeGroups.map(g => {
+            const data = dates.map(dt => {
+                const filtered = byDate[dt].filter(r => g.match((getItemName(r) || '').toUpperCase()));
+                const tSum = filtered.reduce((s, r) => s + (r.sum_tat || 0), 0);
+                const tCount = filtered.reduce((s, r) => s + (r.count_tat || 0), 0);
+                return tCount > 0 ? (tSum / tCount) : 0;
+            });
+            const c = COLORS[g.colorIdx % COLORS.length];
+            return {
+                label: g.label,
+                data,
+                borderColor: c.border,
+                backgroundColor: c.bg,
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: c.border,
+                pointBorderColor: '#0d1117',
+                pointBorderWidth: 2
+            };
+        });
+    } else {
+        // Filter spesifik → satu line total
+        const data = dates.map(dt => {
+            const filtered = byDate[dt].filter(r => matchFilter(getItemName(r), filterVal));
+            const tSum = filtered.reduce((s, r) => s + (r.sum_tat || 0), 0);
+            const tCount = filtered.reduce((s, r) => s + (r.count_tat || 0), 0);
+            return tCount > 0 ? (tSum / tCount) : 0;
+        });
+        datasets = [{
+            label: labelMap[filterVal] || filterVal,
+            data: data,
+            borderColor: color.line,
+            backgroundColor: color.bg,
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: color.line,
+            pointBorderColor: '#0d1117',
+            pointBorderWidth: 2
+        }];
+    }
+
+    const chartId = 'dashboardTatTrendChart';
+    if (!showLoader && charts[chartId]) {
+        charts[chartId].data.labels = dates.map(fmtDate);
+        charts[chartId].data.datasets = datasets;
+        charts[chartId].update('none');
+        return;
+    }
+
+    destroyChart(chartId);
+    const ctx = document.getElementById(chartId).getContext('2d');
+    charts[chartId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates.map(fmtDate),
+            datasets: datasets
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, position: 'top', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+                tooltip: {
+                    ...TOOLTIP,
+                    callbacks: {
+                        label: c => ` ${c.dataset.label}: ${fmtMinutes(c.raw)}`
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: 'rgba(48,54,61,0.2)' }, 
+                    ticks: { 
+                        callback: v => {
+                            const hrs = Math.floor(v / 60);
+                            const mins = Math.round(v % 60);
+                            return hrs > 0 ? `${hrs}j ${mins}m` : `${mins}m`;
+                        }
+                    } 
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+async function loadDashboardTrend(showLoader = false) {
+    if (showLoader) {
+        destroyChart('dashboardTrendChart');
+        const canvas = document.getElementById('dashboardTrendChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '13px Inter, sans-serif';
+            ctx.fillStyle = '#8b949e';
+            ctx.textAlign = 'center';
+            ctx.fillText('Memuat data...', canvas.width / 2, canvas.height / 2);
+        }
+    }
     // Ambil nilai filter dari dropdown
     const filterVal = document.getElementById('trendFilter')?.value || 'ALL';
 
@@ -672,9 +1129,17 @@ async function loadDashboardTrend() {
         }];
     }
 
-    destroyChart('dashboardTrendChart');
-    const ctx = document.getElementById('dashboardTrendChart').getContext('2d');
-    charts.dashboardTrendChart = new Chart(ctx, {
+    const chartId = 'dashboardTrendChart';
+    if (!showLoader && charts[chartId]) {
+        charts[chartId].data.labels = dates.map(fmtDate);
+        charts[chartId].data.datasets = datasets;
+        charts[chartId].update('none');
+        return;
+    }
+
+    destroyChart(chartId);
+    const ctx = document.getElementById(chartId).getContext('2d');
+    charts[chartId] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: dates.map(fmtDate),

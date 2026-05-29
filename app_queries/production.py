@@ -91,16 +91,65 @@ def get_history_data(date_str, days=7):
         start_dt = end_dt - timedelta(days=days)
         sql = """
             SELECT STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') AS tanggal,
-                   ItemName AS ItemName, SUM(COALESCE(Qty_Netto, 0)) AS total_tonase, COUNT(*) AS total_ritase
+                   ItemName AS ItemName, Qty_Netto,
+                   Tanggal_Masuk, Jam_Masuk, Tanggal_Keluar, Jam_Keluar
             FROM data_timbang
             WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
-            GROUP BY tanggal, ItemName ORDER BY tanggal ASC, ItemName ASC
         """
-        data = dec(query(sql, (date_str, days, date_str)))
-        if data:
-            for row in data:
-                if row.get('tanggal'): row['tanggal'] = str(row['tanggal'])
-        return {"start_date": start_dt.strftime('%Y-%m-%d'), "end_date": end_dt.strftime('%Y-%m-%d'), "data": data or []}
+        records = dec(query(sql, (date_str, days, date_str)))
+        
+        aggregated = {}
+        if records:
+            for r in records:
+                tgl = str(r.get('tanggal')) if r.get('tanggal') else None
+                if not tgl: continue
+                item = r.get('ItemName')
+                key = (tgl, item)
+                
+                if key not in aggregated:
+                    aggregated[key] = {'total_tonase': 0, 'total_ritase': 0, 'tat_list': []}
+                
+                aggregated[key]['total_tonase'] += float(r.get('Qty_Netto') or 0)
+                aggregated[key]['total_ritase'] += 1
+
+                # TAT calculation
+                tgl_m = r.get("Tanggal_Masuk", "")
+                jm = r.get("Jam_Masuk", "")
+                tgl_k = r.get("Tanggal_Keluar", "")
+                jk = r.get("Jam_Keluar", "")
+                
+                if tgl_m and jm and tgl_k and jk:
+                    try:
+                        date_m = tgl_m.split(" ")[0]
+                        fmt_m = "%d/%m/%y %H:%M:%S" if len(date_m.split('/')[-1]) == 2 else "%d/%m/%Y %H:%M:%S"
+                        dt_m = datetime.strptime(f"{date_m} {jm}", fmt_m)
+
+                        date_k = tgl_k.split(" ")[0]
+                        fmt_k = "%d/%m/%y %H:%M:%S" if len(date_k.split('/')[-1]) == 2 else "%d/%m/%Y %H:%M:%S"
+                        dt_k = datetime.strptime(f"{date_k} {jk}", fmt_k)
+
+                        tat_min = (dt_k - dt_m).total_seconds() / 60.0
+                        if 0 <= tat_min <= 10080: # Max 7 days
+                            aggregated[key]['tat_list'].append(tat_min)
+                    except:
+                        pass
+                        
+        data = []
+        for (tgl, item), val in aggregated.items():
+            avg_tat = sum(val['tat_list']) / len(val['tat_list']) if val['tat_list'] else 0
+            data.append({
+                'tanggal': tgl,
+                'ItemName': item,
+                'total_tonase': val['total_tonase'],
+                'total_ritase': val['total_ritase'],
+                'avg_tat': avg_tat,
+                'sum_tat': sum(val['tat_list']),
+                'count_tat': len(val['tat_list'])
+            })
+        
+        data = sorted(data, key=lambda x: (x['tanggal'], x['ItemName'] or ""))
+        
+        return {"start_date": start_dt.strftime('%Y-%m-%d'), "end_date": end_dt.strftime('%Y-%m-%d'), "data": data}
     except Exception as e:
         import traceback; traceback.print_exc()
         return None

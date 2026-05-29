@@ -3,6 +3,8 @@ from flask_cors import CORS
 from datetime import datetime
 import secrets
 import hashlib
+from waitress import serve
+
 
 import app_queries as queries
 
@@ -477,4 +479,4 @@ if __name__ == '__main__':
     print("  DB: timbangan / timbang_data")
     print("  http://localhost:8000")
     print("=" * 50)
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    serve(app, host='0.0.0.0', port=8000, threads=6)

@@ -1,8 +1,16 @@
-from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
+import os, re
 from pathlib import Path
 from dotenv import load_dotenv
-import os, re
+
+# ==================== SETTING PORTABLE BROWSER ====================
+# Force Playwright untuk mengunduh & menggunakan browser dari dalam folder project ini
+PROJECT_DIR = Path(__file__).resolve().parent
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(PROJECT_DIR / "playwright_browsers")
+# ==================================================================
+
+import asyncio
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 
 load_dotenv()
 BASE = os.getenv("BASE_URL", "").rstrip("/")
@@ -141,6 +149,13 @@ def get_cy_total_truck(headless: bool = True):
     """
     if not BASE or not USER or not PASS:
         return None # Require credentials
+
+    # Pastikan thread memiliki event loop sendiri (Solusi untuk Flask/Waitress di thread sekunder)
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
     with sync_playwright() as p:
         ctx_kwargs = {}

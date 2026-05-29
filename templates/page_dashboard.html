@@ -89,6 +89,28 @@
                         </table>
                     </div>
                 </section>
+                <!---tren rata-rata netto-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-solid fa-scale-balanced"></i> Rata-rata Berat Netto (7 Hari)</h2>
+                        <div class="section-actions">
+                            <select id="trendAvgFilter" class="filter-select">
+                                <option value="ALL">Semua Item</option>
+                                <option value="GULA">Gula</option>
+                                <option value="TEBU">Tebu</option>
+                                <option value="MOLASSES">Molasses</option>
+                                <option value="FILTER CAKE">Filter Cake</option>
+                                <option value="FLY ASH">Fly Ash</option>
+                                <option value="BATU BARA">Batu Bara</option>
+                                <option value="SUPPORT">Support Operasional</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="height: 300px; position: relative; width: 100%;">
+                        <canvas id="dashboardAvgTrendChart"></canvas>
+                    </div>
+                </section>
+
                 <!---tren iki-->
                 <section class="section-card">
                     <div class="section-header">
@@ -108,6 +130,28 @@
                     </div>
                     <div style="height: 300px; position: relative; width: 100%;">
                         <canvas id="dashboardTrendChart"></canvas>
+                    </div>
+                </section>
+
+                <!---tren tat-->
+                <section class="section-card">
+                    <div class="section-header">
+                        <h2><i class="fa-regular fa-clock"></i> Rata-rata Waktu Proses / TAT (7 Hari)</h2>
+                        <div class="section-actions">
+                            <select id="trendTatFilter" class="filter-select">
+                                <option value="ALL">Semua Item</option>
+                                <option value="GULA">Gula</option>
+                                <option value="TEBU">Tebu</option>
+                                <option value="MOLASSES">Molasses</option>
+                                <option value="FILTER CAKE">Filter Cake</option>
+                                <option value="FLY ASH">Fly Ash</option>
+                                <option value="BATU BARA">Batu Bara</option>
+                                <option value="SUPPORT">Support Operasional</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="height: 300px; position: relative; width: 100%;">
+                        <canvas id="dashboardTatTrendChart"></canvas>
                     </div>
                 </section>
 

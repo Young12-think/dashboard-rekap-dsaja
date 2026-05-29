@@ -13,7 +13,12 @@ db_config.py
 
 # Playwright / Scraper state (cookies/auth)
 rmi_storage_state.json
+playwright_browsers/
 
 # Old/Backup files (optional, remove if you want them tracked)
 _old_queries.py
 _old_script.js
+
+#file
+ngrok.exe
+token ngrox.txt

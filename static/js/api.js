@@ -51,7 +51,7 @@ async function loadAll(showLoader = false) {
         const tbody = document.getElementById('productionTableBody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Sinkronisasi database...</p></td></tr>';
     }
-    await Promise.all([loadSummary(), loadProduction(), loadDashboardTrend(), loadPOMonitor(), loadReportLimbah(), loadReportTebu()]);
+    await Promise.all([loadSummary(), loadProduction(), loadDashboardTrend(showLoader), loadDashboardAvgTrend(showLoader), loadDashboardTatTrend(showLoader), loadPOMonitor(), loadReportLimbah(), loadReportTebu()]);
     if (currentPage === 'charts') {
         loadHistoryCharts();
     }

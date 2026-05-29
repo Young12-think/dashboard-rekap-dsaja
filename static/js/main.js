@@ -28,7 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => loadAll(), REFRESH_MS);
     // Init trend filter dropdown
     const trendSel = document.getElementById('trendFilter');
-    if (trendSel) trendSel.addEventListener('change', () => loadDashboardTrend());
+    if (trendSel) trendSel.addEventListener('change', () => loadDashboardTrend(true));
+    const trendAvgSel = document.getElementById('trendAvgFilter');
+    if (trendAvgSel) trendAvgSel.addEventListener('change', () => loadDashboardAvgTrend(true));
+    const trendTatSel = document.getElementById('trendTatFilter');
+    if (trendTatSel) trendTatSel.addEventListener('change', () => loadDashboardTatTrend(true));
     document.getElementById('refreshBtn').addEventListener('click', () => {
         const b = document.getElementById('refreshBtn');
         b.classList.add('spinning');

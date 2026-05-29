@@ -39,6 +39,7 @@ def get_analytics_data(date_str):
     # Proses Data
     hours_count = {f"{h:02d}:00": 0 for h in range(24)}
     tat_by_shift = {"1": [], "2": [], "3": []}
+    tat_by_hour_item = {f"{h:02d}:00": {} for h in range(24)}
     
     truck_tara_today = {}
     
@@ -75,8 +76,8 @@ def get_analytics_data(date_str):
                 
             tat_minutes = (dt_k - dt_m).total_seconds() / 60.0
             
-            # Abaikan yang negatif atau lebih dari 24 jam (biasanya salah input tanggal)
-            if 0 <= tat_minutes <= 1440:
+            # Abaikan yang negatif atau lebih dari 7 hari (10080 menit) untuk filter anomali ekstrim
+            if 0 <= tat_minutes <= 10080:
                 # Tentukan shift berdasarkan jam keluar
                 h_keluar = dt_k.hour
                 if 0 <= h_keluar < 8: shift = "1"
@@ -84,6 +85,22 @@ def get_analytics_data(date_str):
                 else: shift = "3"
                 
                 tat_by_shift[shift].append(tat_minutes)
+                
+                # TAT per jam per item
+                hour_str = f"{h_keluar:02d}:00"
+                item_name = (row.get("ItemName") or row.get("Type") or "-").upper()
+                # normalisasi item name
+                if "TEBU" in item_name: item_name = "TEBU"
+                elif "GULA" in item_name: item_name = "GULA"
+                elif "FILTER CAKE" in item_name or "BLOTONG" in item_name: item_name = "FILTER CAKE"
+                elif "FLY ASH" in item_name or "FLYASH" in item_name: item_name = "FLY ASH"
+                elif "MOLASSE" in item_name: item_name = "MOLASSES"
+                elif "BATU BARA" in item_name or "BATUBARA" in item_name: item_name = "BATU BARA"
+                elif "SUPPORT" in item_name or "SOLAR" in item_name or "SACK" in item_name: item_name = "SUPPORT"
+                
+                if item_name not in tat_by_hour_item[hour_str]:
+                    tat_by_hour_item[hour_str][item_name] = []
+                tat_by_hour_item[hour_str][item_name].append(tat_minutes)
         except Exception as e:
             pass
             
@@ -106,6 +123,14 @@ def get_analytics_data(date_str):
         arr = tat_by_shift[s]
         avg = sum(arr)/len(arr) if arr else 0
         tat_trend_data.append({"shift": s, "avg_minutes": round(avg, 1), "count": len(arr)})
+        
+    # Format TAT Hourly Item
+    tat_hourly_item_list = []
+    for h in sorted(tat_by_hour_item.keys()):
+        hour_data = {"hour": h}
+        for item, tat_list in tat_by_hour_item[h].items():
+            hour_data[item] = round(sum(tat_list)/len(tat_list), 1) if tat_list else 0
+        tat_hourly_item_list.append(hour_data)
         
     # Hitung Anomali Tara
     # Truk yang nimbang lebih dari 1 kali hari ini dan selisih taranya > 100kg
@@ -132,6 +157,7 @@ def get_analytics_data(date_str):
     return {
         "peak_hours": peak_hours_data,
         "tat_trend": tat_trend_data,
+        "tat_hourly_item": tat_hourly_item_list,
         "tara_anomalies": anomalies
     }
 
@@ -209,7 +235,7 @@ def get_history_insights_data(date_str, days=7):
                     dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%Y %H:%M:%S")
 
                 tat_min = (dt_k - dt_m).total_seconds() / 60.0
-                if 0 <= tat_min <= 1440: # Max 24 hours to filter anomalies
+                if 0 <= tat_min <= 10080: # Max 7 days to filter anomalies
                     d["tat_list"].append(tat_min)
             except:
                 pass
@@ -307,7 +333,7 @@ def get_shift_productivity_data(date_str):
                 dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%Y %H:%M:%S")
 
             tat_min = (dt_k - dt_m).total_seconds() / 60.0
-            if 0 <= tat_min <= 1440:
+            if 0 <= tat_min <= 10080:
                 sd["tat_list"].append(tat_min)
         except:
             pass
