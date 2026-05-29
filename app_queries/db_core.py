@@ -28,10 +28,15 @@ def get_db_pool():
 def get_db():
     pool = get_db_pool()
     if pool:
-        try:
-            return pool.get_connection()
-        except Exception as e:
-            print(f"[DB ERROR] Connection failed: {e}")
+        for attempt in range(3):
+            try:
+                return pool.get_connection()
+            except Exception as e:
+                if attempt < 2:
+                    import time
+                    time.sleep(0.3)  # Tunggu sebentar, mungkin koneksi lain segera selesai
+                else:
+                    print(f"[DB ERROR] Connection failed after 3 attempts: {e}")
     return None
 
 # =============================================
