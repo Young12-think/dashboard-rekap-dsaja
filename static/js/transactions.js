@@ -1,4 +1,4 @@
-﻿/* static/js/transactions.js
+/* static/js/transactions.js
  * Dipindahkan dari script.js baris 474-545, 679-1416 tanpa perubahan logika.
  */
 
@@ -196,6 +196,9 @@ async function loadTransactionData(typeKey) {
         tbody.innerHTML = emptyRow(colCount, `Tidak ada data yang cocok.`);
         return;
     }
+
+    // Simpan data ke variabel global agar Export Excel bisa mengaksesnya
+    txAllData = d.data;
 
     // Tampilkan data matang dari Server
     renderTransactionSummary(typeKey, d.summary);
