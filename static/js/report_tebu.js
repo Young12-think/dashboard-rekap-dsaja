@@ -239,7 +239,7 @@ function renderLaporanTebu() {
 
   const sc = SHIFT_CONF[S.shift];
   const sd = d[`shift${S.shift}`];
-  const tdt= d.todate;
+  const tdt= d[`todate_shift${S.shift}`] || d.todate;
   const cy = S.caneYard;
   const target = S.target;
   const startGiling = S.startDate || S.laporanDate;
@@ -333,7 +333,8 @@ function renderTableTebuV2(d, td, tdt) {
 
 function renderWATebuV2(sc, sd, tdt, cy) {
   const lapTgl  = fmtDateShort(S.laporanDate);
-  const startTgl= fmtDateShort(S.rekapFrom) || '—';
+  const startGiling = S.startDate || S.laporanDate;
+  const startTgl= fmtDateShort(startGiling);
   const endTgl  = fmtDateShort(S.rekapTo);
 
   // Unified WA format
@@ -369,17 +370,29 @@ window.copyWA = function(which) {
   const txt = window._waFull;
   if (!txt) { showToastTebu('Generate report dulu!', '#ef4444'); return; }
 
-  navigator.clipboard.writeText(txt)
-    .then(() => showToastTebu('✓ Teks WA berhasil disalin!'))
-    .catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = txt;
-      document.body.appendChild(ta);
-      ta.select();
+  const copyFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
       document.execCommand('copy');
-      document.body.removeChild(ta);
       showToastTebu('✓ Teks WA berhasil disalin!');
-    });
+    } catch (err) {
+      alert('Gagal menyalin teks.');
+    }
+    document.body.removeChild(ta);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt)
+      .then(() => showToastTebu('✓ Teks WA berhasil disalin!'))
+      .catch(() => copyFallback());
+  } else {
+    copyFallback();
+  }
 };
 
 function showToastTebu(msg, bg) {

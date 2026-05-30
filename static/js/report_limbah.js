@@ -1,4 +1,4 @@
-﻿/* static/js/report_limbah.js
+/* static/js/report_limbah.js
  * Dipindahkan dari script.js baris 1756-1897, 2296-2326 tanpa perubahan logika.
  */
 
@@ -80,6 +80,7 @@ async function loadReportLimbah() {
 }
 
 // Handler untuk tombol copy
+// Handler untuk tombol copy
 function initReportButtons() {
     const btnImg = document.getElementById('btnCopyReportImg');
     const btnText = document.getElementById('btnCopyReportText');
@@ -96,15 +97,25 @@ function initReportButtons() {
                 // Gunakan backgroundColor hitam agar mirip design aslinya
                 const canvas = await html2canvas(captureArea, { backgroundColor: '#0d1117' });
                 canvas.toBlob(blob => {
-                    const item = new ClipboardItem({ "image/png": blob });
-                    navigator.clipboard.write([item]).then(() => {
-                        btnImg.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
+                    const fallbackDownload = () => {
+                        window.downloadBlob(blob, 'report_limbah.png');
+                        btnImg.innerHTML = '<i class="fa-solid fa-download"></i> Diunduh!';
                         setTimeout(() => btnImg.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar', 2000);
-                    }).catch(e => {
-                        console.error('Clipboard write error', e);
-                        alert('Gagal menyalin gambar ke clipboard. Pastikan browser mendukung (misal: HTTPS/localhost).');
-                        btnImg.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar';
-                    });
+                        alert('Browser memblokir salin gambar di koneksi HTTP biasa. Gambar otomatis diunduh ke perangkat Anda!');
+                    };
+
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        navigator.clipboard.write([item]).then(() => {
+                            btnImg.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
+                            setTimeout(() => btnImg.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar', 2000);
+                        }).catch(e => {
+                            console.error('Clipboard write error', e);
+                            fallbackDownload();
+                        });
+                    } else {
+                        fallbackDownload();
+                    }
                 });
             } catch (err) {
                 console.error(err);
@@ -137,10 +148,20 @@ function initReportButtons() {
                 text += `*TOTAL*   : *${tds[6].innerText || '-'} Rit* / *${tds[7].innerText || '-'} Kg*\n\n`;
             });
 
-            navigator.clipboard.writeText(text).then(() => {
+            const successAction = () => {
                 btnText.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
                 setTimeout(() => btnText.innerHTML = '<i class="fa-solid fa-copy"></i> Salin Teks WA', 2000);
-            }).catch(e => alert('Gagal menyalin text.'));
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(successAction).catch(e => {
+                    if (window.copyTextFallback(text)) successAction();
+                    else alert('Gagal menyalin text.');
+                });
+            } else {
+                if (window.copyTextFallback(text)) successAction();
+                else alert('Gagal menyalin text.');
+            }
         });
     }
 }
@@ -160,15 +181,25 @@ async function captureToClipboard(elemId, btnId, origHtml) {
     try {
         const canvas = await html2canvas(area, { backgroundColor: '#0d1219' });
         canvas.toBlob(blob => {
-            const item = new ClipboardItem({ "image/png": blob });
-            navigator.clipboard.write([item]).then(() => {
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
+            const fallbackDownload = () => {
+                window.downloadBlob(blob, elemId + '.png');
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Diunduh!';
                 setTimeout(() => btn.innerHTML = origHtml, 2000);
-            }).catch(e => {
-                console.error(e);
-                alert('Gagal menyalin gambar ke clipboard.');
-                btn.innerHTML = origHtml;
-            });
+                alert('Browser memblokir salin gambar di koneksi HTTP biasa. Gambar otomatis diunduh ke perangkat Anda!');
+            };
+
+            if (navigator.clipboard && navigator.clipboard.write) {
+                const item = new ClipboardItem({ "image/png": blob });
+                navigator.clipboard.write([item]).then(() => {
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
+                    setTimeout(() => btn.innerHTML = origHtml, 2000);
+                }).catch(e => {
+                    console.error(e);
+                    fallbackDownload();
+                });
+            } else {
+                fallbackDownload();
+            }
         });
     } catch (err) {
         console.error(err);
@@ -176,3 +207,30 @@ async function captureToClipboard(elemId, btnId, origHtml) {
         btn.innerHTML = origHtml;
     }
 }
+
+// Global helpers untuk download blob dan copy fallback
+window.downloadBlob = function(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+window.copyTextFallback = function(txt) {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+        ok = document.execCommand('copy');
+    } catch (err) {}
+    document.body.removeChild(ta);
+    return ok;
+};

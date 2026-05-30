@@ -220,39 +220,38 @@ async function copyBlabakImage() {
       logging: false,
     });
 
-    // Convert canvas to blob
-    const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob(b => {
-        if (b) resolve(b);
-        else reject(new Error('Gagal membuat blob'));
-      }, 'image/png');
-    });
+    canvas.toBlob(async blob => {
+      if (!blob) {
+        blabakToast('Gagal membuat blob gambar', '#ef4444');
+        return;
+      }
 
-    // Write to clipboard
-    await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blob })
-    ]);
+      const fallbackDownload = () => {
+        const link = document.createElement('a');
+        link.download = `blabak_report_${document.getElementById('blabakReportDate').value}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        blabakToast('⚠️ Koneksi HTTP non-aman. Gambar otomatis diunduh!', '#f59e0b');
+      };
 
-    blabakToast('✅ Gambar disalin ke clipboard! Paste (Ctrl+V) di WhatsApp/Telegram.', '#2e7d32');
+      if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          blabakToast('✅ Gambar disalin ke clipboard! Paste (Ctrl+V) di WhatsApp/Telegram.', '#2e7d32');
+        } catch (clipErr) {
+          console.error(clipErr);
+          fallbackDownload();
+        }
+      } else {
+        fallbackDownload();
+      }
+    }, 'image/png');
+
   } catch (err) {
     console.error('[BLABAK COPY ERROR]', err);
-
-    // Fallback: download file
-    try {
-      const canvas = await html2canvas(reportArea, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = `blabak_report_${document.getElementById('blabakReportDate').value}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      blabakToast('Clipboard tidak didukung. File didownload.', '#f59e0b');
-    } catch (e2) {
-      blabakToast('Gagal menyalin gambar: ' + err.message, '#ef4444');
-    }
+    blabakToast('Gagal memproses gambar: ' + err.message, '#ef4444');
   }
 }
 
