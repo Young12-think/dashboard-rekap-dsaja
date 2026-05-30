@@ -371,19 +371,11 @@ window.copyWA = function(which) {
   if (!txt) { showToastTebu('Generate report dulu!', '#ef4444'); return; }
 
   const copyFallback = () => {
-    const ta = document.createElement('textarea');
-    ta.value = txt;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand('copy');
+    if (window.copyTextFallback(txt)) {
       showToastTebu('✓ Teks WA berhasil disalin!');
-    } catch (err) {
+    } else {
       alert('Gagal menyalin teks.');
     }
-    document.body.removeChild(ta);
   };
 
   if (navigator.clipboard && navigator.clipboard.writeText) {

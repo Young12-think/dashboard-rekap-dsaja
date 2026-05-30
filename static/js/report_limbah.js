@@ -223,14 +223,42 @@ window.downloadBlob = function(blob, filename) {
 window.copyTextFallback = function(txt) {
     const ta = document.createElement('textarea');
     ta.value = txt;
+    ta.setAttribute('readonly', ''); // Cegah keyboard mobile muncul
     ta.style.position = 'fixed';
     ta.style.left = '-9999px';
+    ta.style.top = '0';
+    ta.style.width = '2em';
+    ta.style.height = '2em';
+    ta.style.padding = '0';
+    ta.style.border = 'none';
+    ta.style.outline = 'none';
+    ta.style.boxShadow = 'none';
+    ta.style.background = 'transparent';
+    
     document.body.appendChild(ta);
+    
+    // Simpan selection yang aktif sebelum copy
+    const selected = document.getSelection().rangeCount > 0 
+        ? document.getSelection().getRangeAt(0) 
+        : false;
+        
     ta.select();
+    ta.setSelectionRange(0, txt.length); // Seleksi teks secara aman
+    
     let ok = false;
     try {
         ok = document.execCommand('copy');
-    } catch (err) {}
+    } catch (err) {
+        console.error('execCommand copy error', err);
+    }
+    
     document.body.removeChild(ta);
+    
+    // Kembalikan selection awal agar tidak terkunci
+    if (selected) {
+        document.getSelection().removeAllRanges();
+        document.getSelection().addRange(selected);
+    }
+    
     return ok;
 };
