@@ -140,6 +140,7 @@ const TRANSACTION_TYPES = {
             { key: 'shift', label: 'Shift' },
             { key: 'nomor_po', label: 'No. PO' },
             { key: 'itemname', label: 'Item' },
+            { key: 'remarks', label: 'Keterangan' },
         ]
     },
     support: {

@@ -69,17 +69,28 @@ if !errorlevel! neq 0 (
 )
 echo [OK] Browser Playwright siap.
 
-:: ── STEP 6: Jalankan Server ────────────────────────
+:: ── STEP 6: Jalankan Server & SSH Tunnel ────────────────────────
 echo.
 echo ===================================================
-echo   APLIKASI SIAP! Buka http://localhost:8000
+echo   APLIKASI SIAP!
+echo   Akses via VPS : http://157.15.40.39:8080
+echo   Akses Lokal    : http://localhost:8000
 echo   Tekan Ctrl+C untuk menghentikan server.
 echo ===================================================
 echo.
-.venv\Scripts\python.exe server.py
+
+:: Menjalankan SSH Tunnel otomatis di jendela CMD terpisah
+:: ── STEP 6: Jalankan Server & SSH Tunnel ────────────────────────
+:: Jalankan SSH di background (menggunakan /c agar jendela langsung menutup setelah SSH aktif)
+start "SSH Tunnel - Rekap DSaja" cmd /c "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
+
+:: Jalankan Server Python utama dan rekam semua log ke server_debug.log
+.venv\Scripts\python.exe server.py > server_debug.log 2>&1
 echo.
+
 color 0e
-echo [INFO] Server telah berhenti. (Exit Code: !errorlevel!)
+echo [INFO] Server telah berhenti.
+(Exit Code: !errorlevel!)
 goto :FAIL
 
 :FAIL

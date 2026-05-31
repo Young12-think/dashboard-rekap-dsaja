@@ -48,14 +48,67 @@ function toggleTheme() {
 }
 
 /* ---- Load Active User Info ---- */
+window.currentUserRole = 'viewer'; // Global role default
+
 async function loadUserInfo() {
     try {
         const d = await api('/api/me');
-        const el = document.getElementById('sidebarUsername');
-        if (el && d && d.status === 'success') {
-            el.textContent = d.username || '—';
+        const elUsername = document.getElementById('sidebarUsername');
+        const elRole = document.querySelector('.sidebar-user-info .user-role');
+        const elMenuUser = document.getElementById('menuUserManagement');
+
+        if (d && d.status === 'success') {
+            window.currentUserRole = d.role || 'viewer';
+            
+            if (elUsername) elUsername.textContent = d.username || '—';
+            
+            if (elRole) {
+                if (d.role === 'admin') {
+                    elRole.textContent = 'Administrator';
+                } else if (d.role === 'viewer_report_only') {
+                    elRole.textContent = 'Viewer Laporan';
+                } else {
+                    elRole.textContent = 'Viewer Standard';
+                }
+            }
+            
+            if (elMenuUser) {
+                elMenuUser.style.display = d.role === 'admin' ? 'block' : 'none';
+            }
+
+            // Atur visibilitas menu via CSS class (tanpa flash/delay)
+            if (d.role === 'viewer_report_only') {
+                document.body.classList.add('role-viewer-report-only');
+                // Alihkan ke report_daily secara otomatis jika saat ini berada di dashboard
+                if (currentPage === 'dashboard') {
+                    switchPage('report_daily');
+                }
+            } else {
+                document.body.classList.remove('role-viewer-report-only');
+            }
+
+            // Tandai role sudah dikonfirmasi → CSS akan menampilkan menu yang sesuai
+            document.body.classList.add('role-loaded');
+
+            // Halaman Kelola User: load data jika user adalah admin dan saat ini di halaman tersebut
+            if (d.role === 'admin' && typeof loadUsersList === 'function' && currentPage === 'user_management') {
+                loadUsersList();
+            }
+        } else {
+            // Kalau gagal auth, tetap set role-loaded agar menu muncul (fallback)
+            document.body.classList.add('role-loaded');
         }
+    } catch(_) {
+        // Error → tetap tampilkan menu (fallback untuk admin)
+        document.body.classList.add('role-loaded');
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/logout', { method: 'POST' });
     } catch(_) {}
+    window.location.href = '/login';
 }
 
 function initNav() {
@@ -88,6 +141,16 @@ function initNav() {
 }
 
 function switchPage(page) {
+    // Client-side route guard
+    if (page === 'user_management' && window.currentUserRole !== 'admin') {
+        page = 'dashboard';
+    }
+
+    // Viewer Report Only route guard (tidak bisa mengakses menu Dashboard, Grafik, Transaksi)
+    if (window.currentUserRole === 'viewer_report_only' && (page === 'dashboard' || page === 'charts' || page === 'transactions')) {
+        page = 'report_daily';
+    }
+
     currentPage = page;
     document.querySelectorAll('.sidebar-nav > ul > li[data-page]').forEach(l =>
         l.classList.toggle('active', l.dataset.page === page));
@@ -118,11 +181,15 @@ function switchPage(page) {
     else if (page === 'report_limbah') title = 'Report Limbah';
     else if (page === 'report_asugar') title = 'Report A Sugar';
     else if (page === 'report_blabak') title = 'Report Blabak';
+    else if (page === 'user_management') title = 'Kelola Pengguna';
     document.getElementById('pageTitle').textContent = title;
 
     if (page === 'charts') loadHistoryCharts();
     if (page === 'vendors') loadVendorDetail();
     if (page === 'transactions' && currentTxType) loadTransactionData(currentTxType);
+    if (page === 'user_management') {
+        if (typeof loadUsersList === 'function') loadUsersList();
+    }
 }
 
 function initSidebar() {

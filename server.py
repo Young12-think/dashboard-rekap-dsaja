@@ -18,6 +18,9 @@ PUBLIC_ROUTES = {'/login', '/login.html', '/api/health', '/api/login'}
 def is_logged_in():
     return session.get('user') is not None
 
+def is_admin():
+    return session.get('role') == 'admin'
+
 def require_login():
     """Return redirect response jika belum login, else None."""
     if not is_logged_in():
@@ -241,6 +244,11 @@ def api_get_po_stock():
 # API BARU: Untuk menerima perintah Tutup Paksa PO dari Browser
 @app.route('/api/po-close', methods=['POST'])
 def api_close_po_stock():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak. Khusus Admin!"}), 403
+
     body = request.get_json()
     if not body or 'nomor_po' not in body:
         return jsonify({"status": "error", "message": "Missing nomor_po"}), 400
@@ -251,6 +259,11 @@ def api_close_po_stock():
 
 @app.route('/api/po-stock', methods=['POST'])
 def api_save_po_stock():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak. Khusus Admin!"}), 403
+
     body = request.get_json()
     if not body or 'nomor_po' not in body or 'qty_po' not in body:
         return jsonify({"status": "error", "message": "Missing nomor_po or qty_po"}), 400
@@ -341,11 +354,13 @@ def api_login():
 
     if user:
         session['user'] = user['username']
+        session['role'] = user['role']
         session.permanent = False
         token = secrets.token_urlsafe(32)
         return jsonify({
             "status": "success",
             "username": user['username'],
+            "role": user['role'],
             "token": token
         })
     else:
@@ -362,7 +377,58 @@ def api_logout():
 def api_me():
     if not is_logged_in():
         return jsonify({"status": "error", "message": "Not authenticated"}), 401
-    return jsonify({"status": "success", "username": session.get('user')})
+    return jsonify({
+        "status": "success", 
+        "username": session.get('user'),
+        "role": session.get('role', 'viewer')
+    })
+
+# =============================================
+# API: Admin User Management
+# =============================================
+@app.route('/api/admin/users', methods=['GET'])
+def api_admin_get_users():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak"}), 403
+    
+    users = queries.get_all_users()
+    return jsonify({"status": "success", "data": users})
+
+@app.route('/api/admin/users', methods=['POST'])
+def api_admin_add_user():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak"}), 403
+        
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({"status": "error", "message": "Invalid request"}), 400
+        
+    username = body.get('username')
+    password = body.get('password')
+    role = body.get('role', 'viewer')
+    
+    ok, msg = queries.add_user(username, password, role)
+    if not ok:
+        return jsonify({"status": "error", "message": msg}), 400
+        
+    return jsonify({"status": "success", "message": msg})
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def api_admin_delete_user(user_id):
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak"}), 403
+        
+    ok, msg = queries.delete_user(user_id)
+    if not ok:
+        return jsonify({"status": "error", "message": msg}), 400
+        
+    return jsonify({"status": "success", "message": msg})
 
 # =============================================
 # DAILY REPORT ENDPOINTS

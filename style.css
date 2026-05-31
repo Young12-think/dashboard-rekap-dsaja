@@ -314,6 +314,33 @@ body::before {
     list-style: none;
 }
 
+/* ── Hide role-dependent menus until role is confirmed ── */
+/* Prevents flash of menus for restricted users */
+#menuDashboard,
+#menuCharts,
+#transactionMenu {
+    display: none !important;
+}
+body.role-loaded #menuDashboard,
+body.role-loaded #menuCharts,
+body.role-loaded #transactionMenu {
+    display: block !important;
+}
+/* For viewer_report_only: override back to hidden even after role-loaded */
+body.role-viewer-report-only #menuDashboard,
+body.role-viewer-report-only #menuCharts,
+body.role-viewer-report-only #transactionMenu {
+    display: none !important;
+}
+/* Hide main-content until role confirmed → prevents dashboard flash */
+.main-content {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+body.role-loaded .main-content {
+    opacity: 1;
+}
+
 .nav-section-title {
     font-size: 0.65rem;
     font-weight: 700;

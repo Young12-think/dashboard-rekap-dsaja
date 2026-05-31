@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────
 
 from .db_core import get_db, query, dec, check_db_health
-from .auth import verify_login, ensure_users_table, hash_password
+from .auth import verify_login, ensure_users_table, hash_password, get_all_users, add_user, delete_user
 from .po_management import (
     get_po_stocks, save_po_stock, close_po_stock,
     get_distinct_po_numbers, get_po_monitor_data,
@@ -33,7 +33,7 @@ __all__ = [
     # db
     'get_db', 'query', 'dec', 'check_db_health',
     # auth
-    'verify_login', 'ensure_users_table', 'hash_password',
+    'verify_login', 'ensure_users_table', 'hash_password', 'get_all_users', 'add_user', 'delete_user',
     # po
     'get_po_stocks', 'save_po_stock', 'close_po_stock',
     'get_distinct_po_numbers', 'get_po_monitor_data', 'ensure_po_stock_table',

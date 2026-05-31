@@ -13,10 +13,10 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-section-title">MENU UTAMA</li>
-                    <li class="active" data-page="dashboard">
+                    <li class="active" data-page="dashboard" id="menuDashboard">
                         <a href="#"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
                     </li>
-                    <li data-page="charts">
+                    <li data-page="charts" id="menuCharts">
                         <a href="#"><i class="fa-solid fa-chart-column"></i><span>Grafik</span></a>
                     </li>
                     <li data-page="vendors" style="display:none"><!-- Hidden: belum dibutuhkan -->
@@ -45,6 +45,9 @@
                             <li data-page="report_asugar"><a href="#"><i class="fa-solid fa-candy-cane"></i><span>A Sugar</span></a></li>
                             <li data-page="report_blabak"><a href="#"><i class="fa-solid fa-scale-balanced"></i><span>Blabak</span></a></li>
                         </ul>
+                    </li>
+                    <li data-page="user_management" id="menuUserManagement" style="display: none;">
+                        <a href="#"><i class="fa-solid fa-users-gear" style="color: #bc8cff;"></i><span>Kelola User</span></a>
                     </li>
                 </ul>
             </nav>

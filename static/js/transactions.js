@@ -336,23 +336,25 @@ function buildTransactionFilters(typeKey) {
             txCurrentPage = 0;
             const editBtn = document.getElementById('btnEditPO');
             const closeBtn = document.getElementById('btnClosePO');
-            if (editBtn) editBtn.style.display = currentPOFilter ? 'inline-flex' : 'none';
-            if (closeBtn) closeBtn.style.display = currentPOFilter ? 'inline-flex' : 'none';
+            const isUserAdmin = (window.currentUserRole === 'admin');
+            if (editBtn) editBtn.style.display = (currentPOFilter && isUserAdmin) ? 'inline-flex' : 'none';
+            if (closeBtn) closeBtn.style.display = (currentPOFilter && isUserAdmin) ? 'inline-flex' : 'none';
             loadTransactionData(typeKey);
         });
         
         const editBtn = document.getElementById('btnEditPO');
         const closeBtn = document.getElementById('btnClosePO');
+        const isUserAdmin = (window.currentUserRole === 'admin');
         
         if (editBtn) {
-            editBtn.style.display = currentPOFilter ? 'inline-flex' : 'none';
+            editBtn.style.display = (currentPOFilter && isUserAdmin) ? 'inline-flex' : 'none';
             editBtn.addEventListener('click', () => {
                 if (currentPOFilter) openEditPOModal(currentPOFilter);
             });
         }
         
         if (closeBtn) {
-            closeBtn.style.display = currentPOFilter ? 'inline-flex' : 'none';
+            closeBtn.style.display = (currentPOFilter && isUserAdmin) ? 'inline-flex' : 'none';
             closeBtn.addEventListener('click', async () => {
                 if (currentPOFilter) {
                     if (confirm(`Yakin ingin MENUTUP / FINISH PO ${currentPOFilter}?\nPO ini akan dihapus dari daftar dropdown dan monitor aktif.`)) {

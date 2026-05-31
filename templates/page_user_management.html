@@ -1,0 +1,155 @@
+<div class="page" id="page-user_management">
+    <section class="section-card">
+        <div class="section-header">
+            <h2><i class="fa-solid fa-users-gear" style="color: #bc8cff;"></i> Kelola Pengguna Dashboard</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;">Halaman khusus Administrator untuk mendaftarkan, melihat, dan memvalidasi akses akun pengguna.</p>
+        </div>
+
+        <div class="user-management-grid" style="display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 24px; margin-top: 20px;">
+            <!-- Kiri: Form Pendaftaran User Baru -->
+            <div class="user-card-glass" style="background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(12px);">
+                <h3 style="font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 20px; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user-plus" style="color: var(--accent);"></i> Registrasi Akun Baru
+                </h3>
+                
+                <form id="addUserForm" autocomplete="off" novalidate>
+                    <!-- Username -->
+                    <div class="form-group" style="margin-bottom: 18px; position: relative;">
+                        <label class="form-label" style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Username</label>
+                        <div class="input-wrap" style="position: relative;">
+                            <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                            <input type="text" id="newUsername" class="form-input" placeholder="Masukkan username baru..." style="padding-left: 38px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: rgba(13,17,23,0.6);" required>
+                        </div>
+                        <span id="usernameFeedback" style="font-size: 0.7rem; display: block; margin-top: 4px; color: var(--danger); min-height: 15px;"></span>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group" style="margin-bottom: 18px;">
+                        <label class="form-label" style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Password</label>
+                        <div class="input-wrap" style="position: relative;">
+                            <i class="fa-solid fa-lock" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                            <input type="password" id="newPassword" class="form-input" placeholder="Buat password baru..." style="padding-left: 38px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: rgba(13,17,23,0.6);" required>
+                        </div>
+                        
+                        <!-- Real-time Password Strength Meter -->
+                        <div id="passwordStrengthWrap" style="margin-top: 10px; display: none;">
+                            <div style="background: rgba(255,255,255,0.08); border-radius: 4px; height: 5px; width: 100%; overflow: hidden; position: relative;">
+                                <div id="passwordStrengthBar" style="height: 100%; width: 0%; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+                            </div>
+                            <span id="passwordFeedback" style="font-size: 0.7rem; display: block; margin-top: 5px; color: var(--text-muted);">Masukkan password...</span>
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label class="form-label" style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Role / Hak Akses</label>
+                        <select id="newRole" class="form-input" style="padding: 10px 12px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: rgba(13,17,23,0.6); cursor: pointer; color: var(--text);">
+                            <option value="viewer_report_only" style="background: var(--bg-base); color: var(--text);">Viewer Laporan (Hanya Tampil Menu Report)</option>
+                            <option value="viewer" style="background: var(--bg-base); color: var(--text);">Viewer Standard (Semua Menu - Read Only)</option>
+                            <option value="admin" style="background: var(--bg-base); color: var(--text);">Admin (Akses Penuh / Pengelola)</option>
+                        </select>
+                    </div>
+
+                    <!-- Button submit -->
+                    <button type="submit" class="btn-gen" id="btnRegisterUser" style="width: 100%; padding: 12px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; box-shadow: 0 4px 14px rgba(188, 140, 255, 0.25); border-radius: 8px; font-family: 'Sora', sans-serif;">
+                        <i class="fa-solid fa-user-plus"></i> Daftarkan Pengguna
+                    </button>
+                </form>
+            </div>
+
+            <!-- Kanan: Tabel Pengguna Terdaftar -->
+            <div class="user-card-glass" style="background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(12px);">
+                <h3 style="font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 20px; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-users" style="color: var(--accent2);"></i> Akun Pengguna Aktif
+                </h3>
+
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                    <table class="data-table" id="usersListTable" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">No</th>
+                                <th class="tleft">Username</th>
+                                <th>Role</th>
+                                <th>Tanggal Dibuat</th>
+                                <th style="width: 80px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersListBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Memuat data pengguna...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    /* Styling khusus Kelola User */
+    .user-card-glass {
+        box-shadow: 
+            0 0 0 1px rgba(188,140,255,0.04),
+            0 12px 36px rgba(0,0,0,0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .user-card-glass:hover {
+        box-shadow: 
+            0 0 0 1px rgba(188,140,255,0.08),
+            0 16px 48px rgba(0,0,0,0.4);
+    }
+    
+    .role-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .role-badge.admin {
+        background: rgba(188, 140, 255, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(188, 140, 255, 0.3);
+    }
+    
+    .role-badge.viewer {
+        background: rgba(57, 210, 192, 0.15);
+        color: var(--accent2);
+        border: 1px solid rgba(57, 210, 192, 0.3);
+    }
+    
+    .btn-delete-user {
+        background: rgba(248, 81, 73, 0.12);
+        color: var(--danger);
+        border: 1px solid rgba(248, 81, 73, 0.3);
+        padding: 5px 9px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-delete-user:hover {
+        background: var(--danger);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(248, 81, 73, 0.3);
+        transform: translateY(-1px);
+    }
+    
+    .btn-delete-user:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: rgba(255,255,255,0.05);
+        color: var(--text-muted);
+        border-color: transparent;
+        box-shadow: none;
+        transform: none;
+    }
+</style>
