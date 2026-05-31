@@ -72,9 +72,7 @@ def get_blabak_report(date_str, rekap_from=None):
                     SUM(ABS(COALESCE(t.Qty_Netto, 0)))  AS netto,
                     COUNT(DISTINCT t.NoSystem)      AS ritase
                 FROM data_timbang t
-                WHERE STR_TO_DATE(
-                    SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y'
-                ) = %s
+                WHERE t.Tanggal_Keluar_Clean = %s
                 AND {cdef['where']}
                 GROUP BY t.Shift
             """
@@ -111,7 +109,7 @@ def get_blabak_report(date_str, rekap_from=None):
                 COUNT(DISTINCT t.NoSystem)                         AS ritase,
                 SUM(ABS(COALESCE(t.Qty_Netto, 0)))                 AS netto
             FROM data_timbang t
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
+            WHERE t.Tanggal_Keluar_Clean = %s
               AND t.ItemName LIKE '%TEBU%'
             GROUP BY t.Shift
         """
@@ -123,7 +121,7 @@ def get_blabak_report(date_str, rekap_from=None):
                 COUNT(DISTINCT t.NoSystem)                         AS ritase,
                 SUM(ABS(COALESCE(t.Qty_Netto, 0)))                 AS netto
             FROM data_timbang t
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+            WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
               AND t.ItemName LIKE '%TEBU%'
         """
 
@@ -182,7 +180,7 @@ def get_blabak_report(date_str, rekap_from=None):
                     THEN t.NoSystem END) AS tipe_fuso,
                 COUNT(DISTINCT t.NoSystem) AS total
             FROM data_timbang t
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
+            WHERE t.Tanggal_Keluar_Clean = %s
               AND t.ItemName LIKE '%TEBU%'
         """
 
@@ -202,7 +200,7 @@ def get_blabak_report(date_str, rekap_from=None):
                     THEN t.NoSystem END) AS tipe_fuso,
                 COUNT(DISTINCT t.NoSystem) AS total
             FROM data_timbang t
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+            WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
               AND t.ItemName LIKE '%TEBU%'
         """
 

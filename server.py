@@ -3,10 +3,51 @@ from flask_cors import CORS
 from datetime import datetime
 import secrets
 import hashlib
+import logging
+import sys
+import os
 from waitress import serve
 
 
 import app_queries as queries
+
+# ─── LOGGING SETUP ─────────────────────────────────────────
+LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server_debug.log')
+
+# Format log yang informatif
+log_format = logging.Formatter(
+    '[%(asctime)s] %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# File handler (tulis ke server_debug.log, max 5MB x 3 backup)
+from logging.handlers import RotatingFileHandler
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+file_handler.setFormatter(log_format)
+file_handler.setLevel(logging.INFO)
+
+# Console handler (stdout — agar terlihat juga jika ada CMD terbuka)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(log_format)
+console_handler.setLevel(logging.INFO)
+
+# Root logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Redirect print() ke logging juga
+class PrintToLogger:
+    def write(self, msg):
+        msg = msg.strip()
+        if msg:
+            logger.info(msg)
+    def flush(self):
+        pass
+
+sys.stdout = PrintToLogger()
+sys.stderr = PrintToLogger()
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = secrets.token_hex(32)  # Random secret key setiap restart

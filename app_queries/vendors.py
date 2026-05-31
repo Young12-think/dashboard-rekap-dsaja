@@ -14,7 +14,7 @@ def get_vendor_data(date_str):
             COUNT(*) AS today_rit,
             SUM(COALESCE(Qty_Netto,0)) AS today_kg
         FROM data_timbang
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
+        WHERE Tanggal_Keluar_Clean = %s
           AND CardName IS NOT NULL AND CardName != ''
         GROUP BY CardName ORDER BY today_kg DESC
     """

@@ -22,3 +22,7 @@ _old_script.js
 #file
 ngrok.exe
 token ngrox.txt
+
+# Server logs (runtime)
+server_debug.log
+server_debug.log.*

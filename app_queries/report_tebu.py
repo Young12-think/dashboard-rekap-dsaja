@@ -13,7 +13,7 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
                COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
         FROM data_timbang
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+        WHERE Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND ItemName LIKE '%TEBU%'
         GROUP BY Shift
     """
@@ -28,8 +28,8 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
             FROM data_timbang
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') >= %s
-              AND STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') < %s
+            WHERE Tanggal_Keluar_Clean >= %s
+              AND Tanggal_Keluar_Clean < %s
               AND ItemName LIKE '%TEBU%'
         """
         res_prior = dec(query(sql_prior, (rekap_from, rekap_to))) or []
@@ -42,7 +42,7 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
             FROM data_timbang
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') < %s
+            WHERE Tanggal_Keluar_Clean < %s
               AND ItemName LIKE '%TEBU%'
         """
         res_prior = dec(query(sql_prior, (rekap_to,))) or []

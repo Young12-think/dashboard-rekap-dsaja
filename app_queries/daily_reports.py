@@ -47,7 +47,7 @@ def get_daily_delivery(date_from, date_to):
                 Jam_Keluar,
                 COALESCE(Remarks, '') AS Remarks
             FROM data_timbang
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+            WHERE Tanggal_Keluar_Clean BETWEEN %s AND %s
             AND (
                 UPPER(ItemName) LIKE '%SUGAR%' OR UPPER(ItemName) LIKE '%GULA%' OR
                 UPPER(ItemName) LIKE '%MOLASSE%' OR UPPER(ItemName) LIKE '%TETES%' OR
@@ -219,9 +219,7 @@ def get_daily_support(date_from, date_to):
             /* JURUS SAKTI: Ganti GROUP_CONCAT jadi MAX biar MySQL gak muntah (Error 500) */
             MAX(COALESCE(t.Remarks, ''))                        AS remarks
         FROM data_timbang t
-        WHERE STR_TO_DATE(
-                SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y'
-              ) BETWEEN %s AND %s
+        WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND LOWER(COALESCE(t.Type, '')) LIKE CONCAT('%', 'support', '%')
           AND t.ItemName IS NOT NULL AND TRIM(t.ItemName) != ''
         GROUP BY
@@ -271,9 +269,7 @@ def get_daily_limbah(date_from, date_to):
             COUNT(DISTINCT t.NoSystem)                          AS truck,
             MAX(COALESCE(t.Remarks, ''))                        AS remarks
         FROM data_timbang t
-        WHERE STR_TO_DATE(
-                SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y'
-              ) BETWEEN %s AND %s
+        WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND (
               t.ItemName LIKE '%FILTER CAKE%'
            OR t.ItemName LIKE '%BLOTONG%'
@@ -312,7 +308,7 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
         FROM data_timbang t
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+        WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'
         GROUP BY t.Shift
     """
@@ -331,7 +327,7 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
         FROM data_timbang t
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s
+        WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'
     """
 
@@ -397,9 +393,7 @@ def get_daily_transfer_gula(date_from, date_to):
             COUNT(DISTINCT t.NoSystem)                          AS truck,
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS spt_total
         FROM data_timbang t
-        WHERE STR_TO_DATE(
-                SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y'
-              ) BETWEEN %s AND %s
+        WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND t.ItemName LIKE '%GULA%'
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
           AND (
@@ -420,9 +414,7 @@ def get_daily_transfer_gula(date_from, date_to):
             COUNT(DISTINCT t.NoSystem)                          AS todate_truck,
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS todate_netto
         FROM data_timbang t
-        WHERE STR_TO_DATE(
-                SUBSTRING_INDEX(t.Tanggal_Keluar, ' ', 1), '%d/%m/%Y'
-              ) <= %s
+        WHERE t.Tanggal_Keluar_Clean <= %s
           AND t.ItemName LIKE '%GULA%'
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
           AND (

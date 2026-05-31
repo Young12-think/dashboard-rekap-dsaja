@@ -7,7 +7,7 @@ def get_production_data(date_str):
         WITH TicketCounts AS (
             SELECT NoSystem, COUNT(*) as jml_tiket
             FROM data_timbang
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
+            WHERE Tanggal_Keluar_Clean = %s
             GROUP BY NoSystem
         )
         SELECT
@@ -31,7 +31,7 @@ def get_production_data(date_str):
             COUNT(DISTINCT t1.NoSystem) AS today_ritase
         FROM data_timbang t1
         JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(t1.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
+        WHERE t1.Tanggal_Keluar_Clean = %s
           AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1
         ORDER BY CASE WHEN MAX(t1.ItemName) LIKE '%TEBU%' THEN 1 WHEN MAX(t1.ItemName) LIKE '%GULA%' THEN 2 WHEN MAX(t1.ItemName) LIKE '%FILTER CAKE%' OR MAX(t1.ItemName) LIKE '%BLOTONG%' THEN 3 WHEN MAX(t1.ItemName) LIKE '%FLY ASH%' OR MAX(t1.ItemName) LIKE '%FLYASH%' THEN 4 ELSE 5 END ASC, 1 ASC
@@ -57,13 +57,13 @@ def get_production_data(date_str):
 
 def get_summary_data(date_str):
     sql = """
-        WITH TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM data_timbang WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s GROUP BY NoSystem)
+        WITH TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM data_timbang WHERE Tanggal_Keluar_Clean = %s GROUP BY NoSystem)
         SELECT
             CASE WHEN t1.ItemName LIKE '%GULA%' THEN 'TOTAL GULA KRISTAL PUTIH' WHEN t1.ItemName LIKE '%TEBU%' THEN 'TEBU' WHEN t1.ItemName LIKE '%FILTER CAKE%' OR t1.ItemName LIKE '%BLOTONG%' THEN 'FILTER CAKE' WHEN t1.ItemName LIKE '%FLY ASH%' OR t1.ItemName LIKE '%FLYASH%' THEN 'FLY ASH' ELSE t1.ItemName END AS type,
             SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN COALESCE(t1.Qty_SPMSPB, 0) ELSE COALESCE(t1.Qty_Netto, 0) / tc.jml_tiket END) AS total_tonase,
             COUNT(DISTINCT t1.NoSystem) AS total_ritase
         FROM data_timbang t1 JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(t1.Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
+        WHERE t1.Tanggal_Keluar_Clean = %s AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1 ORDER BY total_tonase DESC
     """
     data = dec(query(sql, (date_str, date_str)))
@@ -90,11 +90,11 @@ def get_history_data(date_str, days=7):
         end_dt = datetime.strptime(date_str, '%Y-%m-%d')
         start_dt = end_dt - timedelta(days=days)
         sql = """
-            SELECT STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') AS tanggal,
+            SELECT Tanggal_Keluar_Clean AS tanggal,
                    ItemName AS ItemName, Qty_Netto,
                    Tanggal_Masuk, Jam_Masuk, Tanggal_Keluar, Jam_Keluar
             FROM data_timbang
-            WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
+            WHERE Tanggal_Keluar_Clean BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
         """
         records = dec(query(sql, (date_str, days, date_str)))
         
@@ -161,7 +161,7 @@ def get_recent_data(date_str, limit=50):
                Tanggal_Masuk AS tanggal_masuk, Berat_Masuk AS berat_masuk, Jam_Masuk AS jam_masuk,
                Tanggal_Keluar AS tanggal_keluar, Berat_Keluar AS berat_keluar, Jam_Keluar AS jam_keluar,
                Shift AS shift, Remarks AS remarks
-        FROM data_timbang WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s ORDER BY id DESC LIMIT %s
+        FROM data_timbang WHERE Tanggal_Keluar_Clean = %s ORDER BY id DESC LIMIT %s
     """
     data = dec(query(sql, (date_str, limit)))
     if data:

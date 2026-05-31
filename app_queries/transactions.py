@@ -38,14 +38,14 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
         date_clause = "1=1"
         final_params = tuple(params)
     else:
-        date_clause = "STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s"
+        date_clause = "Tanggal_Keluar_Clean BETWEEN %s AND %s"
         final_params = tuple([date_from, date_to] + params)
 
     sql = f"""
         SELECT * FROM data_timbang
         WHERE {date_clause}
           AND ({filter_sql}) {po_clause} {search_clause}
-        ORDER BY STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') ASC, Jam_Keluar ASC
+        ORDER BY Tanggal_Keluar_Clean ASC, Jam_Keluar ASC
     """
     all_data = dec(query(sql, final_params)) or []
 
@@ -145,7 +145,7 @@ def get_support_vendors(item_filter=None, date_from=None, date_to=None):
     params = ['%support operasional%', '%supporting operational%', '%support operational%']
     date_clause = ""
     if date_from and date_to:
-        date_clause = "AND STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN %s AND %s"
+        date_clause = "AND Tanggal_Keluar_Clean BETWEEN %s AND %s"
         params.extend([date_from, date_to])
     item_clause = ""
     if item_filter:
