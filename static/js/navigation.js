@@ -181,12 +181,30 @@ function switchPage(page) {
     else if (page === 'report_limbah') title = 'Report Limbah';
     else if (page === 'report_asugar') title = 'Report A Sugar';
     else if (page === 'report_blabak') title = 'Report Blabak';
+    else if (page === 'report_others') title = 'Report Others';
     else if (page === 'user_management') title = 'Kelola Pengguna';
     document.getElementById('pageTitle').textContent = title;
 
     if (page === 'charts') loadHistoryCharts();
     if (page === 'vendors') loadVendorDetail();
     if (page === 'transactions' && currentTxType) loadTransactionData(currentTxType);
+    if (page === 'report_others') loadOthersItemsDropdown();
+
+    // Daily Report: Admin Only — blokir user non-admin
+    if (page === 'report_daily') {
+        const blocked = document.getElementById('dailyReportBlocked');
+        const content = document.getElementById('dailyReportContent');
+        if (blocked && content) {
+            if (window.currentUserRole !== 'admin') {
+                blocked.style.display = 'block';
+                content.style.display = 'none';
+            } else {
+                blocked.style.display = 'none';
+                content.style.display = '';
+            }
+        }
+    }
+
     if (page === 'user_management') {
         if (typeof loadUsersList === 'function') loadUsersList();
     }

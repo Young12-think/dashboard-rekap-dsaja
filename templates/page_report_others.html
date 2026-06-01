@@ -1,0 +1,133 @@
+            <div class="page" id="page-report_others">
+                <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
+
+                    <!-- BLOK 1: FILTER -->
+                    <div style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
+                      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#78909c,#546e7a);"></div>
+
+                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <!-- Kiri: judul + filter -->
+                        <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
+                          <div style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#78909c; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-boxes-stacked"></i> Others Daily Report
+                          </div>
+
+                          <!-- Dropdown Item -->
+                          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                              <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase;">Pilih Item</label>
+                              <select class="fp-input" id="othersReportItem" style="max-width:280px; padding:7px 10px; font-size:.82rem;">
+                                <option value="">-- Pilih Item --</option>
+                              </select>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                              <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase;">Tanggal Laporan</label>
+                              <input type="date" class="fp-input" id="othersReportDate" style="max-width:180px; padding:7px 10px; font-size:.82rem;">
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                              <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase;">Tanggal Mulai TODATE</label>
+                              <input type="date" class="fp-input" id="othersReportTodateFrom" style="max-width:180px; padding:7px 10px; font-size:.82rem;">
+                            </div>
+                          </div>
+
+                          <p style="font-size:.6rem; color:var(--t3); margin:0;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
+                            Pilih item & tanggal → <b>Generate</b>. Data TODATE dihitung dari "Tanggal Mulai TODATE" s/d tanggal laporan.
+                          </p>
+                        </div>
+                        <!-- Kanan: Tombol -->
+                        <div style="display:flex; gap:8px; align-items:flex-end;">
+                          <button class="btn-gen" id="btnGenOthers" onclick="generateOthersReport()" style="font-size:0.78rem; padding:9px 18px;">
+                            <i class="fa-solid fa-rotate"></i> Generate
+                          </button>
+                          <button class="btn-gen" onclick="copyOthersImage()" style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#2e7d32,#1b5e20); box-shadow:0 4px 14px rgba(46,125,50,.25);">
+                            <i class="fa-solid fa-copy"></i> Salin Gambar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- BLOK 2: REPORT TABLE -->
+                    <div style="margin:0; padding:0 0 40px;">
+
+                      <!-- EMPTY STATE -->
+                      <div id="othersEmptyState" style="text-align:center; padding:60px 20px; color:#8b949e;">
+                        <i class="fa-solid fa-boxes-stacked" style="font-size:3rem; color:#c8cdd4; margin-bottom:16px; display:block;"></i>
+                        <h3 style="margin:0 0 8px; color:var(--t1);">Others Daily Report</h3>
+                        <p style="margin:0; font-size:.85rem;">Pilih item dan tanggal di atas lalu klik <strong>Generate</strong> untuk membuat laporan</p>
+                      </div>
+
+                      <!-- REPORT CONTENT (hidden until generated) -->
+                      <div id="othersContent" style="display:none;">
+                        <div id="othersReportArea" style="background:#fff; padding:0; border:2px solid #000; display:inline-block; min-width:100%; box-sizing:border-box;">
+
+                          <!-- ═══ TABEL REPORT OTHERS ═══ -->
+                          <table id="othersMainTable" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:'Inter',sans-serif; font-size:.78rem; color:#000;">
+
+                            <!-- FIXED COLUMN WIDTHS via <colgroup> -->
+                            <colgroup>
+                              <col style="width:10%;"><!-- SHIFT1 RIT -->
+                              <col style="width:10%;"><!-- SHIFT1 KG -->
+                              <col style="width:10%;"><!-- SHIFT2 RIT -->
+                              <col style="width:10%;"><!-- SHIFT2 KG -->
+                              <col style="width:10%;"><!-- SHIFT3 RIT -->
+                              <col style="width:10%;"><!-- SHIFT3 KG -->
+                              <col style="width:10%;"><!-- TODAY RIT -->
+                              <col style="width:10%;"><!-- TODAY KG -->
+                              <col style="width:10%;"><!-- TODATE RIT -->
+                              <col style="width:10%;"><!-- TODATE KG -->
+                            </colgroup>
+
+                            <!-- ── HEADER: DATE ── -->
+                            <thead>
+                              <tr>
+                                <th colspan="10" style="text-align:left; padding:8px 12px; font-weight:700; font-size:.82rem; border:none; background:#000; color:#f0c000; font-family:'Orbitron','Inter',sans-serif; letter-spacing:2px;">
+                                  <span id="othersDateDisplay">--/--/----</span>
+                                </th>
+                              </tr>
+                              <!-- ITEM NAME ROW -->
+                              <tr>
+                                <th colspan="10" style="background:#FFFF00; text-align:center; padding:8px; border:1px solid #000; font-weight:900; font-size:1rem; color:#000; letter-spacing:1px;">
+                                  <span id="othersItemDisplay">—</span>
+                                </th>
+                              </tr>
+                              <!-- SHIFT GROUP HEADERS -->
+                              <tr>
+                                <th colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">SHIFT 1</th>
+                                <th colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">SHIFT 2</th>
+                                <th colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">SHIFT 3</th>
+                                <th colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">TODAY</th>
+                                <th colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">TODATE</th>
+                              </tr>
+                              <!-- RIT / KG SUB-HEADERS -->
+                              <tr>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">RIT</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">KG</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">RIT</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">KG</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">RIT</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">KG</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">RIT</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">KG</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">RIT</th>
+                                <th style="border:1px solid #000; padding:5px 6px; font-weight:700; text-align:center; background:#FFFF00; color:#000;">KG</th>
+                              </tr>
+                            </thead>
+
+                            <!-- ── DATA ROW (JS populated) ── -->
+                            <tbody id="othersDataBody"></tbody>
+
+                          </table>
+
+                        </div><!-- /othersReportArea -->
+                      </div><!-- /othersContent -->
+
+                    </div>
+
+                    <!-- Toast -->
+                    <div class="toast" id="othersToast">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span id="othersToastMsg">Berhasil!</span>
+                    </div>
+                </div>
+            </div><!-- /page-report_others -->

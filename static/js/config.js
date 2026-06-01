@@ -215,6 +215,30 @@ const TRANSACTION_TYPES = {
             { key: 'berat_rata2_karung', label: 'Toleransi', format: 'decimal' },
             { key: 'kode_produksi', label: 'Kode Produksi' },
         ]
+    },
+    others: {
+        label: 'Others',
+        icon: 'fa-boxes-stacked',
+        color: '#78909c',
+        filters: [],
+        hasItemFilter: true,
+        itemFilterOptions: [{ label: 'Semua Item', value: '' }],
+        columns: [
+            { key: 'tanggal_masuk', label: 'Tgl Masuk' },
+            { key: 'jam_masuk', label: 'Jam' },
+            { key: 'berat_masuk', label: 'Tara', format: 'number' },
+            { key: 'tanggal_keluar', label: 'Tgl Keluar' },
+            { key: 'jam_keluar', label: 'Jam' },
+            { key: 'berat_keluar', label: 'Bruto', format: 'number' },
+            { key: 'qty_netto', label: 'Netto KG', format: 'number', bold: true },
+            { key: 'nomor_spmspb', label: 'No SPM' },
+            { key: 'nopol', label: 'Polisi' },
+            { key: 'supir', label: 'Sopir' },
+            { key: 'cardname', label: 'Customer' },
+            { key: 'shift', label: 'Shift' },
+            { key: 'itemname', label: 'Item' },
+            { key: 'remarks', label: 'Keterangan' },
+        ]
     }
 };
 

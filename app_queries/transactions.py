@@ -4,13 +4,18 @@ from datetime import datetime
 from .db_core import dec, query
 
 def get_transaction_data(date_from, date_to, item_filters, po_filter=None, search_term=None,
-                         limit=100, offset=0, tx_key='', support_item=None, support_vendor=None):
-    if not item_filters and tx_key != 'support':
+                         limit=100, offset=0, tx_key='', support_item=None, support_vendor=None,
+                         others_item=None):
+    if not item_filters and tx_key != 'support' and tx_key != 'others':
         return {"total_rows": 0, "summary": {}, "data": []}
 
     params = []
 
-    if tx_key == 'support':
+    if tx_key == 'others':
+        filter_sql = "LOWER(COALESCE(Type, '')) = 'others'"
+        if others_item:
+            filter_sql += " AND TRIM(ItemName) = %s"; params.append(others_item.strip())
+    elif tx_key == 'support':
         filter_sql = "(LOWER(Type) LIKE %s OR LOWER(Type) LIKE %s OR LOWER(Type) LIKE %s)"
         params.extend(['%support operasional%', '%supporting operational%', '%support operational%'])
         if support_item:
@@ -162,5 +167,22 @@ def get_support_vendors(item_filter=None, date_from=None, date_to=None):
     seen = set(); result = []
     for r in data:
         name = r['CardName'].strip(); key = ' '.join(name.upper().split())
+        if key not in seen: seen.add(key); result.append(name)
+    return result
+
+
+def get_others_items():
+    """Ambil daftar DISTINCT ItemName dari data_timbang WHERE Type = 'others'."""
+    sql = """
+        SELECT DISTINCT TRIM(ItemName) AS ItemName FROM data_timbang
+        WHERE LOWER(COALESCE(Type, '')) = 'others'
+          AND ItemName IS NOT NULL AND TRIM(ItemName) != ''
+        ORDER BY TRIM(ItemName) ASC
+    """
+    data = query(sql)
+    if not data: return []
+    seen = set(); result = []
+    for r in data:
+        name = r['ItemName'].strip(); key = ' '.join(name.upper().split())
         if key not in seen: seen.add(key); result.append(name)
     return result

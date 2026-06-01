@@ -254,6 +254,8 @@ def api_transactions():
     # Parameter khusus support (dikirim terpisah agar tidak kena split koma)
     support_item = request.args.get('support_item', '').strip() or None
     support_vendor = request.args.get('support_vendor', '').strip() or None
+    # Parameter khusus others
+    others_item = request.args.get('others_item', '').strip() or None
 
     filters = [f.strip() for f in item_type.split(',') if f.strip()]
 
@@ -261,7 +263,8 @@ def api_transactions():
         date_from, date_to, filters, po_filter, search_term,
         limit, offset, tx_key,
         support_item=support_item,
-        support_vendor=support_vendor
+        support_vendor=support_vendor,
+        others_item=others_item
     )
     if result is None:
         return jsonify({"status": "error", "message": "Database error"}), 500
@@ -360,6 +363,34 @@ def api_support_vendors():
         return jsonify({"status": "success", "data": vendors or []})
     except Exception as e:
         print(f"[API ERROR] /api/support-vendors: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# =============================================
+# API: Others Items & Report
+# =============================================
+@app.route('/api/others-items', methods=['GET'])
+def api_others_items():
+    try:
+        items = queries.get_others_items()
+        return jsonify({"status": "success", "data": items or []})
+    except Exception as e:
+        print(f"[API ERROR] /api/others-items: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/report-others')
+def api_report_others():
+    date_str    = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    itemname    = request.args.get('itemname', '').strip()
+    todate_from = request.args.get('todate_from', '').strip() or None
+    if not itemname:
+        return jsonify({"status": "error", "message": "Parameter itemname wajib diisi"}), 400
+    try:
+        data = queries.get_others_report(date_str, itemname, todate_from)
+        if data is None:
+            return jsonify({"status": "error", "message": "Database error"}), 500
+        return jsonify({"status": "success", "date": date_str, "data": data})
+    except Exception as e:
+        print(f"[API ERROR] /api/report-others: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # =============================================

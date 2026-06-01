@@ -170,12 +170,32 @@ async function loadTransactionData(typeKey) {
         await refreshSupportVendors(currentLimbahFilter);
     }
 
+    // 👇 3B. AMBIL ITEM DARI DATABASE (Khusus Others)
+    if (typeKey === 'others') {
+        const res = await api('/api/others-items');
+        if (res && res.status === 'success') {
+            const options = [{ label: 'Semua Item', value: '' }];
+            res.data.forEach(itemName => {
+                options.push({ label: itemName, value: itemName });
+            });
+            TRANSACTION_TYPES.others.itemFilterOptions = options;
+            const itemSelect = document.getElementById('othersItemFilter');
+            if (itemSelect) {
+                itemSelect.innerHTML = options.map(opt => {
+                    const sel = currentLimbahFilter === opt.value ? 'selected' : '';
+                    return `<option value="${opt.value}" ${sel} title="${opt.value}">${opt.label}</option>`;
+                }).join('');
+            }
+        }
+    }
+
     // 👇 4. BANGUN URL API
     // Support: kirim filter item via param `support_item` (bukan via `type`) agar tidak kena split koma
     let url = `/api/transactions?tx_key=${typeKey}&type=${encodeURIComponent(filters.join(','))}&date_from=${txDateFrom}&date_to=${txDateTo}`;
     if (typeKey === 'limbah' && currentPOFilter) url += `&po=${encodeURIComponent(currentPOFilter)}`;
     if (typeKey === 'support' && currentLimbahFilter) url += `&support_item=${encodeURIComponent(currentLimbahFilter)}`;
     if (typeKey === 'support' && currentSupportVendor) url += `&support_vendor=${encodeURIComponent(currentSupportVendor)}`;
+    if (typeKey === 'others' && currentLimbahFilter) url += `&others_item=${encodeURIComponent(currentLimbahFilter)}`;
     
     const keyword = document.getElementById('txSearchKeyword')?.value || '';
     if (keyword) url += `&search=${encodeURIComponent(keyword)}`;
@@ -242,8 +262,8 @@ function buildTransactionFilters(typeKey) {
         html += `<div class="transaction-filter-bar limbah-filters">`;
 
         if (config.hasItemFilter) {
-            // Support pakai id='supportItemFilter', Limbah pakai id='limbahItemFilter'
-            const filterId = typeKey === 'support' ? 'supportItemFilter' : 'limbahItemFilter';
+            // Support pakai id='supportItemFilter', Others pakai id='othersItemFilter', Limbah pakai id='limbahItemFilter'
+            const filterId = typeKey === 'support' ? 'supportItemFilter' : (typeKey === 'others' ? 'othersItemFilter' : 'limbahItemFilter');
             html += `<div class="filter-group">
                 <span class="filter-label"><i class="fa-solid fa-box"></i> Item:</span>
                 <select class="filter-select" id="${filterId}">`;
@@ -311,11 +331,20 @@ function buildTransactionFilters(typeKey) {
         });
     }
 
-    // Item filter: Limbah
-    if (config.hasItemFilter && typeKey !== 'support') {
+    // Item filter: Limbah (bukan support, bukan others)
+    if (config.hasItemFilter && typeKey !== 'support' && typeKey !== 'others') {
         document.getElementById('limbahItemFilter').addEventListener('change', e => {
             currentLimbahFilter = e.target.value;
             currentPOFilter = '';
+            txCurrentPage = 0;
+            loadTransactionData(typeKey);
+        });
+    }
+
+    // Item filter: Others
+    if (config.hasItemFilter && typeKey === 'others') {
+        document.getElementById('othersItemFilter').addEventListener('change', e => {
+            currentLimbahFilter = e.target.value;
             txCurrentPage = 0;
             loadTransactionData(typeKey);
         });

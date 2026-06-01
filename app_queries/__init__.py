@@ -18,6 +18,7 @@ from .production import (
 from .transactions import (
     get_transaction_data,
     get_support_items, get_support_vendors,
+    get_others_items,
 )
 from .vendors import get_vendor_data
 from .daily_reports import (
@@ -27,6 +28,7 @@ from .daily_reports import (
 )
 from .report_tebu import get_report_tebu
 from .report_blabak import get_blabak_report
+from .report_others import get_others_report
 from .analytics import get_analytics_data, get_shift_productivity_data, get_top_transportir_data, get_history_insights_data
 
 __all__ = [
@@ -41,7 +43,7 @@ __all__ = [
     'get_production_data', 'get_summary_data', 'get_types',
     'get_history_data', 'get_recent_data',
     # transactions
-    'get_transaction_data', 'get_support_items', 'get_support_vendors',
+    'get_transaction_data', 'get_support_items', 'get_support_vendors', 'get_others_items',
     # vendors
     'get_vendor_data',
     # daily reports
@@ -52,6 +54,8 @@ __all__ = [
     'get_report_tebu',
     # blabak report
     'get_blabak_report',
+    # others report
+    'get_others_report',
     # analytics
     'get_analytics_data',
     'get_shift_productivity_data',
