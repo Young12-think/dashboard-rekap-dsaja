@@ -636,4 +636,4 @@ if __name__ == '__main__':
     print("  DB: timbangan / timbang_data")
     print("  http://localhost:8000")
     print("=" * 50)
-    serve(app, host='0.0.0.0', port=8000, threads=6)
+    serve(app, host='0.0.0.0', port=8000, threads=16)

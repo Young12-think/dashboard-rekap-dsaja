@@ -261,12 +261,19 @@ body::before {
     color: var(--text-secondary);
     font-size: 1.3rem;
     cursor: pointer;
-    padding: 8px;
+    padding: 10px;
     border-radius: var(--radius-sm);
     transition: var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
 }
 
-.sidebar-close:hover {
+.sidebar-close:hover,
+.sidebar-close:active {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.05);
 }
@@ -1054,18 +1061,21 @@ body.light-mode .sidebar-user-info {
 
 /* Sidebar overlay for mobile */
 .sidebar-overlay {
-    display: none;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
     z-index: 99;
     opacity: 0;
-    transition: opacity var(--transition-normal);
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--transition-normal), visibility var(--transition-normal);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .sidebar-overlay.active {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* =============================================
@@ -1113,9 +1123,14 @@ body.light-mode .sidebar-user-info {
     transition: var(--transition-fast);
     align-items: center;
     justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    position: relative;
+    z-index: 51;
 }
 
-.hamburger:hover {
+.hamburger:hover,
+.hamburger:active {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.06);
 }

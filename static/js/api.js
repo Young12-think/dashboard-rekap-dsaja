@@ -44,16 +44,32 @@ async function apiFetch(path) {
   return r.json();
 }
 
+let _loadAllRunning = false;
 async function loadAll(showLoader = false) {
-    if (showLoader) {
-        const sc = document.getElementById('summaryCards');
-        if (sc) sc.innerHTML = '<div style="padding:40px; text-align:center; width:100%; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Memuat data...</p></div>';
-        const tbody = document.getElementById('productionTableBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Sinkronisasi database...</p></td></tr>';
+    // Guard: cegah loadAll() berjalan tumpang tindih
+    if (_loadAllRunning) return;
+    _loadAllRunning = true;
+
+    try {
+        if (showLoader) {
+            const sc = document.getElementById('summaryCards');
+            if (sc) sc.innerHTML = '<div style="padding:40px; text-align:center; width:100%; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Memuat data...</p></div>';
+            const tbody = document.getElementById('productionTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Sinkronisasi database...</p></td></tr>';
+        }
+
+        // Batch 1: Data utama dashboard
+        await Promise.all([loadSummary(), loadProduction(), loadDashboardTrend(showLoader), loadDashboardAvgTrend(showLoader)]);
+        // Batch 2: Data pelengkap (jeda agar server tidak kewalahan)
+        await Promise.all([loadDashboardTatTrend(showLoader), loadPOMonitor(), loadReportLimbah(), loadReportTebu()]);
+
+        if (currentPage === 'charts') {
+            loadHistoryCharts();
+        }
+        checkHealth();
+    } catch(e) {
+        console.error('[loadAll] Error:', e);
+    } finally {
+        _loadAllRunning = false;
     }
-    await Promise.all([loadSummary(), loadProduction(), loadDashboardTrend(showLoader), loadDashboardAvgTrend(showLoader), loadDashboardTatTrend(showLoader), loadPOMonitor(), loadReportLimbah(), loadReportTebu()]);
-    if (currentPage === 'charts') {
-        loadHistoryCharts();
-    }
-    checkHealth();
 }

@@ -112,8 +112,23 @@ async function logout() {
 }
 
 function initNav() {
+    // Guard untuk mencegah touchend + click double-fire di mobile
+    let _lastTouchTime = 0;
+    function guardedHandler(fn) {
+        return function(e) {
+            const now = Date.now();
+            if (e.type === 'touchend') {
+                _lastTouchTime = now;
+                e.preventDefault();
+            } else if (e.type === 'click' && (now - _lastTouchTime) < 500) {
+                return; // Skip click karena sudah dihandle oleh touchend
+            }
+            fn.call(this, e);
+        };
+    }
+
     document.querySelectorAll('.sidebar-nav li[data-page]').forEach(li => {
-        li.addEventListener('click', e => {
+        function handleNav(e) {
             e.preventDefault();
             e.stopPropagation();
             if (li.dataset.txtype) {
@@ -129,14 +144,20 @@ function initNav() {
             }
             switchPage(li.dataset.page);
             closeSidebar();
-        });
+        }
+        const guarded = guardedHandler(handleNav);
+        li.addEventListener('click', guarded);
+        li.addEventListener('touchend', guarded, { passive: false });
     });
     document.querySelectorAll('.submenu-toggle').forEach(btn => {
-        btn.addEventListener('click', e => {
+        function handleToggle(e) {
             e.preventDefault();
             e.stopPropagation();
             btn.closest('.has-submenu').classList.toggle('expanded');
-        });
+        }
+        const guarded = guardedHandler(handleToggle);
+        btn.addEventListener('click', guarded);
+        btn.addEventListener('touchend', guarded, { passive: false });
     });
 }
 
@@ -217,8 +238,24 @@ function initSidebar() {
     const closeBtn = document.getElementById('sidebarClose');
     const overlay = document.getElementById('sidebarOverlay');
 
-    // Desktop & Mobile Toggle
-    hamburger.addEventListener('click', () => {
+    // Guard untuk mencegah touchend + click double-fire di mobile
+    let _lastTouch = 0;
+    function guard(fn) {
+        return function(e) {
+            const now = Date.now();
+            if (e.type === 'touchend') {
+                _lastTouch = now;
+                e.preventDefault();
+            } else if (e.type === 'click' && (now - _lastTouch) < 500) {
+                return;
+            }
+            fn.call(this, e);
+        };
+    }
+
+    // Handler function
+    function handleHamburger(e) {
+        e.stopPropagation();
         if (window.innerWidth <= 768) {
             openSidebar();
         } else {
@@ -226,7 +263,17 @@ function initSidebar() {
             mainContent.classList.toggle('sidebar-hidden', isCollapsed);
             localStorage.setItem('rekap_sidebar', isCollapsed ? 'collapsed' : 'open');
         }
-    });
+    }
+
+    function handleClose(e) {
+        e.stopPropagation();
+        closeSidebar();
+    }
+
+    // Desktop & Mobile Toggle — dual event with guard
+    const guardedHamburger = guard(handleHamburger);
+    hamburger.addEventListener('click', guardedHamburger);
+    hamburger.addEventListener('touchend', guardedHamburger, { passive: false });
 
     // Restore saved sidebar state on desktop
     const savedSidebar = localStorage.getItem('rekap_sidebar');
@@ -235,9 +282,12 @@ function initSidebar() {
         mainContent.classList.add('sidebar-hidden');
     }
 
-    // Mobile close
-    closeBtn.addEventListener('click', closeSidebar);
-    overlay.addEventListener('click', closeSidebar);
+    // Mobile close — dual event with guard
+    const guardedClose = guard(handleClose);
+    closeBtn.addEventListener('click', guardedClose);
+    closeBtn.addEventListener('touchend', guardedClose, { passive: false });
+    overlay.addEventListener('click', guardedClose);
+    overlay.addEventListener('touchend', guardedClose, { passive: false });
 }
 function openSidebar() {
     document.getElementById('sidebar').classList.add('open');

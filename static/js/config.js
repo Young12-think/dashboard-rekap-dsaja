@@ -5,7 +5,7 @@ console.log("SCRIPT.JS LOADED v4.2 — MODULAR");
    ============================================= */
 
 const API = window.location.origin;
-const REFRESH_MS = 60000;
+const REFRESH_MS = 90000;
 
 let currentDate = new Date().toISOString().split('T')[0];
 let currentPage = 'dashboard';

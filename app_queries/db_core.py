@@ -7,36 +7,60 @@
 import mysql.connector
 from mysql.connector import pooling
 from decimal import Decimal
+import threading
 
 from db_config import DB_CONFIG
 
 # =============================================
-# Connection Pool
+# Connection Pool (thread-safe)
 # =============================================
+_pool_lock = threading.Lock()
 db_pool = None
 
 def get_db_pool():
     global db_pool
     if db_pool is None:
-        try:
-            db_pool = mysql.connector.pooling.MySQLConnectionPool(**DB_CONFIG)
-        except Exception as e:
-            print(f"[DB ERROR] Pool creation failed: {e}")
-            return None
+        with _pool_lock:
+            if db_pool is None:  # double-check inside lock
+                try:
+                    db_pool = mysql.connector.pooling.MySQLConnectionPool(**DB_CONFIG)
+                except Exception as e:
+                    print(f"[DB ERROR] Pool creation failed: {e}")
+                    return None
     return db_pool
+
+def _reset_pool():
+    """Force recreate the pool (called on fatal pool errors)."""
+    global db_pool
+    with _pool_lock:
+        db_pool = None
+    print("[DB INFO] Pool reset — will recreate on next request")
 
 def get_db():
     pool = get_db_pool()
-    if pool:
-        for attempt in range(3):
-            try:
-                return pool.get_connection()
-            except Exception as e:
-                if attempt < 2:
-                    import time
-                    time.sleep(0.3)  # Tunggu sebentar, mungkin koneksi lain segera selesai
-                else:
-                    print(f"[DB ERROR] Connection failed after 3 attempts: {e}")
+    if not pool:
+        return None
+    for attempt in range(3):
+        try:
+            conn = pool.get_connection()
+            # Pastikan koneksi masih hidup
+            conn.ping(reconnect=True, attempts=1, delay=0)
+            return conn
+        except mysql.connector.errors.PoolError as e:
+            # Pool exhausted — tunggu lalu coba lagi
+            if attempt < 2:
+                import time
+                time.sleep(0.5 * (attempt + 1))
+            else:
+                print(f"[DB ERROR] Pool exhausted after 3 attempts: {e}")
+                _reset_pool()  # Reset pool agar request berikutnya bisa buat pool baru
+        except Exception as e:
+            if attempt < 2:
+                import time
+                time.sleep(0.3)
+            else:
+                print(f"[DB ERROR] Connection failed after 3 attempts: {e}")
+                _reset_pool()
     return None
 
 # =============================================
@@ -56,7 +80,10 @@ def query(sql, params=None, one=False):
         print(f"[DB ERROR] {e}")
         return None
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 # =============================================
 # Decimal → float converter
@@ -78,5 +105,9 @@ def check_db_health():
     conn = get_db()
     db_status = "connected" if conn else "disconnected"
     if conn:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            pass
     return db_status
+
