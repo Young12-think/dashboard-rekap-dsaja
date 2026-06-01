@@ -50,7 +50,7 @@ def process_html():
             if line_num == start:
                 # get original indentation
                 indent = len(line) - len(line.lstrip())
-                new_index_lines.append(f"{' ' * indent}{{%% include '{filename}' %%}}\n")
+                new_index_lines.append(f"{' ' * indent}{{% include '{filename}' %}}\n")
                 skip_until = end
                 inserted_include = True
                 break
