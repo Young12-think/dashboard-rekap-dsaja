@@ -84,13 +84,25 @@ echo.
 :: Jalankan SSH di background (menggunakan /c agar jendela langsung menutup setelah SSH aktif)
 start "SSH Tunnel - Rekap DSaja" cmd /c "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
 
-:: Jalankan Server Python utama dan rekam semua log ke server_debug.log
-.venv\Scripts\python.exe server.py > server_debug.log 2>&1
+:: Matikan proses yang menempati port 8000 (server lama) tanpa membunuh python lain
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING" 2^>nul') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+timeout /t 1 /nobreak >nul
+
+:: Hapus file log lama yang mungkin terkunci
+del /f /q server_debug.log >nul 2>&1
+
+:: Jalankan Server Python utama (output tampil di layar DAN ke file log)
+echo [INFO] Menjalankan server...
+echo.
+.venv\Scripts\python.exe server.py 2>&1 | .venv\Scripts\python.exe -c "import sys; [print(line, end='', flush=True) or open('server_debug.log','a',encoding='utf-8').write(line) for line in sys.stdin]"
 echo.
 
-color 0e
-echo [INFO] Server telah berhenti.
-(Exit Code: !errorlevel!)
+color 0c
+echo ===================================================
+echo [ERROR] Server berhenti! Lihat pesan error di atas.
+echo ===================================================
 goto :FAIL
 
 :FAIL
