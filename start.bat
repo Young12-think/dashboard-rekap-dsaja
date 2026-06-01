@@ -79,24 +79,20 @@ echo   Tekan Ctrl+C untuk menghentikan server.
 echo ===================================================
 echo.
 
-:: Menjalankan SSH Tunnel otomatis di jendela CMD terpisah
-:: ── STEP 6: Jalankan Server & SSH Tunnel ────────────────────────
-:: Jalankan SSH di background (menggunakan /c agar jendela langsung menutup setelah SSH aktif)
-start "SSH Tunnel - Rekap DSaja" cmd /c "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
-
-:: Matikan proses yang menempati port 8000 (server lama) tanpa membunuh python lain
+:: 1. Matikan proses lama yang menempati port 8000 (jika ada) agar tidak bentrok
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING" 2^>nul') do (
     taskkill /F /PID %%a >nul 2>&1
 )
 timeout /t 1 /nobreak >nul
 
-:: Hapus file log lama yang mungkin terkunci
-del /f /q server_debug.log >nul 2>&1
+:: 2. Jalankan SSH dengan /k (Keep Open) agar jendela tunnel tetap hidup menjaga koneksi
+echo [INFO] Membuka jalur SSH Tunnel ke VPS...
+start "SSH Tunnel - Rekap DSaja" cmd /k "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
 
-:: Jalankan Server Python utama (output tampil di layar DAN ke file log)
+:: 3. Jalankan Server Python secara murni dan biarkan sistem internal server.py yang mengurus log!
 echo [INFO] Menjalankan server...
 echo.
-.venv\Scripts\python.exe server.py 2>&1 | .venv\Scripts\python.exe -c "import sys; [print(line, end='', flush=True) or open('server_debug.log','a',encoding='utf-8').write(line) for line in sys.stdin]"
+.venv\Scripts\python.exe server.py
 echo.
 
 color 0c
