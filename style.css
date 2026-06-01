@@ -2918,7 +2918,52 @@ body.light-mode .sidebar-user-info {
     }
 
     .topbar-right {
-        gap: 6px;
+        gap: 6px !important;
+    }
+
+    /* Hide clock and neo mode button on mobile topbar to avoid crowding */
+    .wib-clock-wrap,
+    #neoModeBtn {
+        display: none !important;
+    }
+
+    /* Modal responsiveness tweak */
+    .modal-box {
+        max-width: calc(100% - 24px) !important;
+        margin: 12px;
+    }
+
+    /* Daily Report Document Header mobile styling */
+    .doc-header {
+        grid-template-columns: 1fr !important;
+        text-align: center;
+        gap: 16px !important;
+        padding-bottom: 12px !important;
+        border-bottom: 1px solid #000 !important;
+    }
+
+    .doc-header .logo-area {
+        justify-content: center !important;
+        margin: 0 auto;
+    }
+
+    .doc-header .doc-title-center {
+        margin: 8px 0 !important;
+    }
+
+    .doc-header .doc-title-center h1 {
+        font-size: 1.15rem !important;
+        line-height: 1.4 !important;
+    }
+
+    .doc-header .doc-meta {
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 280px !important;
+    }
+
+    .doc-header .doc-meta table {
+        width: 100% !important;
     }
 }
 

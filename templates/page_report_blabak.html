@@ -1,121 +1,148 @@
-            <div class="page" id="page-report_blabak">
-                <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
+<div class="page" id="page-report_blabak">
+  <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
 
-                    <!-- BLOK 1: FILTER -->
-                    <div style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
-                      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f0c000,#e6a800);"></div>
+    <!-- BLOK 1: FILTER -->
+    <div
+      style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f0c000,#e6a800);">
+      </div>
 
-                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <!-- Kiri: judul + tanggal -->
-                        <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
-                          <div style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#f0c000; display:flex; align-items:center; gap:6px;">
-                            <i class="fa-solid fa-scale-balanced"></i> Weightbridge Daily Report — BLABAK
-                          </div>
-                          <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:2px;">Tanggal Laporan</label>
-                          <input type="date" class="fp-input" id="blabakReportDate" style="max-width:220px; padding:7px 10px; font-size:.82rem;">
-                          <p style="font-size:.6rem; color:var(--t3); margin:0;">
-                            <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
-                            Pilih tanggal → <b>Generate</b>. Klik <b>Salin Gambar</b> untuk copy ke clipboard.
-                          </p>
-                        </div>
-                        <!-- Kanan: Tombol -->
-                        <div style="display:flex; gap:8px; align-items:flex-end;">
-                          <button class="btn-gen" id="btnGenBlabak" onclick="generateBlabakReport()" style="font-size:0.78rem; padding:9px 18px;">
-                            <i class="fa-solid fa-rotate"></i> Generate
-                          </button>
-                          <button class="btn-gen" onclick="copyBlabakImage()" style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#2e7d32,#1b5e20); box-shadow:0 4px 14px rgba(46,125,50,.25);">
-                            <i class="fa-solid fa-copy"></i> Salin Gambar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <!-- Kiri: judul + tanggal -->
+        <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
+          <div
+            style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#f0c000; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-scale-balanced"></i> Weightbridge Daily Report — BLABAK
+          </div>
+          <label
+            style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:2px;">Tanggal
+            Laporan</label>
+          <input type="date" class="fp-input" id="blabakReportDate"
+            style="max-width:220px; padding:7px 10px; font-size:.82rem;">
+          <p style="font-size:.6rem; color:var(--t3); margin:0;">
+            <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
+            Pilih tanggal → <b>Generate</b>. Klik <b>Salin Gambar</b> untuk copy ke clipboard.
+          </p>
+        </div>
+        <!-- Kanan: Tombol -->
+        <div style="display:flex; gap:8px; align-items:flex-end;">
+          <button class="btn-gen" id="btnGenBlabak" onclick="generateBlabakReport()"
+            style="font-size:0.78rem; padding:9px 18px;">
+            <i class="fa-solid fa-rotate"></i> Generate
+          </button>
+          <button class="btn-gen" onclick="copyBlabakImage()"
+            style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#2e7d32,#1b5e20); box-shadow:0 4px 14px rgba(46,125,50,.25);">
+            <i class="fa-solid fa-copy"></i> Salin Gambar
+          </button>
+        </div>
+      </div>
+    </div>
 
-                    <!-- BLOK 2: REPORT TABLE -->
-                    <div style="margin:0; padding:0 0 40px;">
+    <!-- BLOK 2: REPORT TABLE -->
+    <div style="margin:0; padding:0 0 40px;">
 
-                      <!-- EMPTY STATE -->
-                      <div id="blabakEmptyState" style="text-align:center; padding:60px 20px; color:#8b949e;">
-                        <i class="fa-solid fa-scale-balanced" style="font-size:3rem; color:#c8cdd4; margin-bottom:16px; display:block;"></i>
-                        <h3 style="margin:0 0 8px; color:var(--t1);">Weightbridge Daily Report — BLABAK</h3>
-                        <p style="margin:0; font-size:.85rem;">Pilih tanggal di atas lalu klik <strong>Generate</strong> untuk membuat laporan</p>
-                      </div>
+      <!-- EMPTY STATE -->
+      <div id="blabakEmptyState" style="text-align:center; padding:60px 20px; color:#8b949e;">
+        <i class="fa-solid fa-scale-balanced"
+          style="font-size:3rem; color:#c8cdd4; margin-bottom:16px; display:block;"></i>
+        <h3 style="margin:0 0 8px; color:var(--t1);">Weightbridge Daily Report — BLABAK</h3>
+        <p style="margin:0; font-size:.85rem;">Pilih tanggal di atas lalu klik <strong>Generate</strong> untuk membuat
+          laporan</p>
+      </div>
 
-                      <!-- REPORT CONTENT (hidden until generated) -->
-                      <div id="blabakContent" style="display:none;">
-                        <div id="blabakReportArea" style="background:#fff; padding:0; border:2px solid #000; display:inline-block; min-width:100%; box-sizing:border-box;">
+      <!-- REPORT CONTENT (hidden until generated) -->
+      <div id="blabakContent" style="display:none;">
+        <div id="blabakReportArea"
+          style="background:#fff; padding:0; border:2px solid #000; display:inline-block; min-width:100%; box-sizing:border-box;">
 
-                          <!-- ═══ SATU TABEL TUNGGAL ═══ -->
-                          <table id="blabakMainTable" style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:'Inter',sans-serif; font-size:.78rem; color:#000;">
+          <!-- ═══ SATU TABEL TUNGGAL ═══ -->
+          <table id="blabakMainTable"
+            style="width:100%; border-collapse:collapse; table-layout:fixed; font-family:'Inter',sans-serif; font-size:.78rem; color:#000;">
 
-                            <!-- FIXED COLUMN WIDTHS via <colgroup> -->
-                            <colgroup>
-                              <col style="width:18%;"><!-- DESCRIPTION -->
-                              <col style="width:14%;"><!-- SHIFT 1 / PICK UP -->
-                              <col style="width:14%;"><!-- SHIFT 2 / ENGKEL -->
-                              <col style="width:14%;"><!-- SHIFT 3 / FUSO -->
-                              <col style="width:14%;"><!-- TODAY / TOTAL -->
-                              <col style="width:12%;"><!-- RITASE -->
-                              <col style="width:14%;"><!-- REMARK -->
-                            </colgroup>
+            <!-- FIXED COLUMN WIDTHS via <colgroup> -->
+            <colgroup>
+              <col style="width:18%;"><!-- DESCRIPTION -->
+              <col style="width:14%;"><!-- SHIFT 1 / PICK UP -->
+              <col style="width:14%;"><!-- SHIFT 2 / ENGKEL -->
+              <col style="width:14%;"><!-- SHIFT 3 / FUSO -->
+              <col style="width:14%;"><!-- TODAY / TOTAL -->
+              <col style="width:12%;"><!-- RITASE -->
+              <col style="width:14%;"><!-- REMARK -->
+            </colgroup>
 
-                            <!-- ── HEADER: WEIGHTBRIDGE / DAILY REPORT ── -->
-                            <thead>
-                              <tr>
-                                <th colspan="7" style="background:#FFFF00; text-align:center; padding:12px 8px 2px; border:none; border-left:none; border-right:none;">
-                                  <span style="font-size:1.3rem; font-weight:900; color:#000; letter-spacing:2px;">WEIGHTBRIDGE</span>
-                                </th>
-                              </tr>
-                              <tr>
-                                <th colspan="7" style="background:#FFFF00; text-align:center; padding:0 8px 10px; border:none;">
-                                  <span style="font-size:.82rem; font-weight:700; color:#000; letter-spacing:1.5px;">DAILY REPORT</span>
-                                </th>
-                              </tr>
-                              <!-- DATE ROW -->
-                              <tr>
-                                <th colspan="7" style="text-align:left; padding:8px 12px; font-weight:700; font-size:.82rem; border:none; background:#fff;">
-                                  DATE: <span id="blabakDateDisplay">—</span>
-                                </th>
-                              </tr>
-                              <!-- COLUMN HEADERS -->
-                              <tr>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">DESCRIPTION</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">SHIFT 1</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">SHIFT 2</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">SHIFT 3</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">TODAY</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">RITASE</th>
-                                <th style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">REMARK</th>
-                              </tr>
-                            </thead>
+            <!-- ── HEADER: WEIGHTBRIDGE / DAILY REPORT ── -->
+            <thead>
+              <tr>
+                <th colspan="7"
+                  style="background:#FFFF00; text-align:center; padding:12px 8px 2px; border:none; border-left:none; border-right:none;">
+                  <span style="font-size:1.3rem; font-weight:900; color:#000; letter-spacing:2px;">WEIGHTBRIDGE</span>
+                </th>
+              </tr>
+              <!-- DATE ROW -->
+              <tr>
+                <th colspan="7"
+                  style="text-align:left; padding:8px 12px; font-weight:700; font-size:.82rem; border:none; background:#fff;">
+                  DATE: <span id="blabakDateDisplay">—</span>
+                </th>
+              </tr>
+              <!-- COLUMN HEADERS -->
+              <tr>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  DESCRIPTION</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  SHIFT 1</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  SHIFT 2</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  SHIFT 3</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  TODAY</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  RITASE</th>
+                <th
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#fff;">
+                  REMARK</th>
+              </tr>
+            </thead>
 
-                            <!-- ── COMMODITY ROWS (JS populated) ── -->
-                            <tbody id="blabakCommodityBody"></tbody>
+            <!-- ── COMMODITY ROWS (JS populated) ── -->
+            <tbody id="blabakCommodityBody"></tbody>
 
-                            <!-- ── CANE RECEIVED HEADER ── -->
-                            <tbody id="blabakCaneHeader">
-                              <tr>
-                                <td colspan="5" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">CANE RECEIVED</td>
-                                <td colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">TO DATE</td>
-                              </tr>
-                            </tbody>
+            <!-- ── CANE RECEIVED HEADER ── -->
+            <tbody id="blabakCaneHeader">
+              <tr>
+                <td colspan="5"
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">
+                  CANE RECEIVED</td>
+                <td colspan="2"
+                  style="border:1px solid #000; padding:6px 8px; font-weight:800; text-align:center; background:#FFFF00; color:#000;">
+                  TO DATE</td>
+              </tr>
+            </tbody>
 
-                            <!-- ── CANE DATA ROWS (JS populated) ── -->
-                            <tbody id="blabakCaneBody"></tbody>
+            <!-- ── CANE DATA ROWS (JS populated) ── -->
+            <tbody id="blabakCaneBody"></tbody>
 
-                            <!-- ── TRUCK TYPE ROWS (JS populated) ── -->
-                            <tbody id="blabakTruckBody"></tbody>
+            <!-- ── TRUCK TYPE ROWS (JS populated) ── -->
+            <tbody id="blabakTruckBody"></tbody>
 
-                          </table>
+          </table>
 
-                        </div><!-- /blabakReportArea -->
-                      </div><!-- /blabakContent -->
+        </div><!-- /blabakReportArea -->
+      </div><!-- /blabakContent -->
 
-                    </div>
+    </div>
 
-                    <!-- Toast -->
-                    <div class="toast" id="blabakToast">
-                        <i class="fa-solid fa-check-circle"></i>
-                        <span id="blabakToastMsg">Berhasil!</span>
-                    </div>
-                </div>
-            </div><!-- /page-report_blabak -->
+    <!-- Toast -->
+    <div class="toast" id="blabakToast">
+      <i class="fa-solid fa-check-circle"></i>
+      <span id="blabakToastMsg">Berhasil!</span>
+    </div>
+  </div>
+</div><!-- /page-report_blabak -->

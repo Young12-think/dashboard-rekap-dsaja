@@ -217,16 +217,20 @@ function initSidebar() {
     const closeBtn = document.getElementById('sidebarClose');
     const overlay = document.getElementById('sidebarOverlay');
 
-    // Desktop: toggle collapsed state
+    // Desktop & Mobile Toggle
     hamburger.addEventListener('click', () => {
-        const isCollapsed = sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('sidebar-hidden', isCollapsed);
-        localStorage.setItem('rekap_sidebar', isCollapsed ? 'collapsed' : 'open');
+        if (window.innerWidth <= 768) {
+            openSidebar();
+        } else {
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-hidden', isCollapsed);
+            localStorage.setItem('rekap_sidebar', isCollapsed ? 'collapsed' : 'open');
+        }
     });
 
     // Restore saved sidebar state on desktop
     const savedSidebar = localStorage.getItem('rekap_sidebar');
-    if (savedSidebar === 'collapsed') {
+    if (savedSidebar === 'collapsed' && window.innerWidth > 768) {
         sidebar.classList.add('collapsed');
         mainContent.classList.add('sidebar-hidden');
     }

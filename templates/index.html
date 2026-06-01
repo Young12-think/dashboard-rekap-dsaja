@@ -9,15 +9,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>REKAP DSAJA — Dashboard Timbangan</title>
-    <link rel="icon" type="image/png" href="img/favicon.png">
-    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Lexend:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="static/js/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=4.3">
-    <link rel="stylesheet" href="static/css/neo-brutalism.css?v=2.1">
-
+    <link rel="stylesheet" href="style.css?v=3.10">
 </head>
 
 <body>
@@ -25,64 +21,89 @@
 
     <div class="app-container">
         <!-- Sidebar -->
-        {% include 'sidebar.html' %}
+        {%% include 'sidebar.html' %%}
 
         <!-- Main Content -->
         <main class="main-content" id="mainContent">
-            {% include 'topbar.html' %}
+            {%% include 'topbar.html' %%}
 
             <!-- PAGE: Dashboard -->
-            {% include 'page_dashboard.html' %}
-            {% include 'page_charts.html' %}
+            {%% include 'page_dashboard.html' %%}
+            {%% include 'page_charts.html' %%}
 
             <!-- PAGE: Report Limbah -->
-            {% include 'page_report_limbah.html' %}
+            {%% include 'page_report_limbah.html' %%}
 
             <!-- PAGE: Report Tebu -->
-            {% include 'page_report_tebu.html' %}
+            {%% include 'page_report_tebu.html' %%}
 
-            {% include 'page_vendors.html' %}
+            {%% include 'page_vendors.html' %%}
 
-            {% include 'page_transactions.html' %}
+            {%% include 'page_transactions.html' %%}
 
-            {% include 'page_report_daily.html' %}
+            {%% include 'page_report_daily.html' %%}
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    {%% include 'modal_po.html' %%}
+    </div><!-- /paper -->
+    </div><!-- /doc-outer = BLOK 2 -->
 
-            {% include 'page_report_asugar.html' %}
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-check-circle"></i>
+        <span id="toastMsg">Dokumen dibuat!</span>
+    </div>
+    </div><!-- /container 1100px -->
+    </div><!-- /page-report_daily -->
 
-            <!-- PAGE: Report Blabak -->
-            {% include 'page_report_blabak.html' %}
 
-            <!-- PAGE: Report Others -->
-            {% include 'page_report_others.html' %}
 
-            <!-- PAGE: User Management (Admin Only) -->
-            {% include 'page_user_management.html' %}
 
             <!-- Modal: Edit PO Stock -->
-            {% include 'modal_po.html' %}
+            <div class="modal-overlay" id="modalOverlay">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h3><i class="fa-solid fa-pen-to-square"></i> Edit PO Stock</h3>
+                        <button class="modal-close" id="modalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nomor PO</label>
+                            <input type="text" id="modalPoNumber" class="form-input" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Qty PO (KG)</label>
+                            <input type="number" id="modalPoQty" class="form-input" placeholder="Masukkan jumlah PO..."
+                                step="0.01">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" id="modalCancelBtn">Batal</button>
+                        <button class="btn-save" id="modalSaveBtn"><i class="fa-solid fa-check"></i> Simpan</button>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
     <!-- html2canvas untuk Copy Gambar -->
     <script src="html2canvas.min.js"></script>
     
-    <!-- ★ MODULAR JS — urutan penting! config → utils → api → nav → dashboard → tx → reports → main -->
-    <script src="static/js/config.js?v=5.0"></script>
-    <script src="static/js/utils.js?v=5.0"></script>
-    <script src="static/js/api.js?v=5.0"></script>
-    <script src="static/js/navigation.js?v=5.0"></script>
-    <script src="static/js/dashboard.js?v=5.0"></script>
-    <script src="static/js/transactions.js?v=5.0"></script>
-    <script src="static/js/report_limbah.js?v=5.0"></script>
-    <script src="static/js/report_tebu.js?v=5.0"></script>
-    <script src="static/js/report_daily.js?v=5.0"></script>
-    <script src="static/js/report_blabak.js?v=1.0"></script>
-    <script src="static/js/report_others.js?v=1.0"></script>
-    <script src="static/js/user_management.js?v=1.0"></script>
-    <script src="static/js/main.js?v=5.0"></script>
-    <!-- Rename _old_script.js → script.js lalu uncomment baris ini untuk fallback:
-    <script src="script.js?v=4.3"></script> -->
-
+    <!-- Modular Scripts -->
+    <script src="static/js/config.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/navigation.js"></script>
+    <script src="static/js/dashboard.js"></script>
+    <script src="static/js/transactions.js"></script>
+    <script src="static/js/report_limbah.js"></script>
+    <script src="static/js/report_tebu.js"></script>
+    <script src="static/js/report_daily.js"></script>
+    <script src="static/js/report_blabak.js"></script>
+    <script src="static/js/report_others.js"></script>
+    <script src="static/js/user_management.js"></script>
+    <script src="static/js/main.js"></script>
 </body>
 
 </html>
-

@@ -1,322 +1,275 @@
-<div class="page" id="page-report_daily">
-  <!-- BLOCK OVERLAY for non-admin users -->
-  <div id="dailyReportBlocked" style="display:none; text-align:center; padding:80px 30px; color:#8b949e;">
-    <div
-      style="background:var(--bg2); border:1px solid var(--b); border-radius:16px; padding:50px 40px; max-width:500px; margin:0 auto; position:relative; overflow:hidden;">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f59e0b,#ef4444);">
-      </div>
-      <i class="fa-solid fa-lock" style="font-size:3.5rem; color:#f59e0b; margin-bottom:20px; display:block;"></i>
-      <h2 style="margin:0 0 12px; color:var(--t1); font-size:1.3rem;">FITUR INI TIDAK PENTING</h2>
-      <p style="margin:0 0 8px; font-size:.9rem; color:var(--t2);">Halaman <strong>Daily Report</strong> masih dalam
-        tahap pengembangan dan saat ini hanya tersedia untuk <strong>Administrator</strong>.</p>
-      <p style="margin:0; font-size:.78rem; color:var(--t3);"><i class="fa-solid fa-circle-info"
-          style="margin-right:4px;"></i>Silakan kerja sesuai gaji anda saja</p>
-    </div>
+            <div class="page" id="page-report_daily">
+                <!-- ── DAILY REPORT LAYOUT ── -->
+                <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
+
+                    <!-- BLOK 1: FILTER -->
+                    <div style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
+                      <!-- accent bar atas -->
+                      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple));"></div>
+
+                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <!-- Kiri: judul + tanggal -->
+                        <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
+                          <div style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--blue); display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-lines"></i> Pilih Tanggal Laporan
+                          </div>
+                          <label style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:2px;">Tanggal Laporan</label>
+                          <input type="date" class="fp-input" id="dailyReportDate" style="max-width:220px; padding:7px 10px; font-size:.82rem;">
+                          <p style="font-size:.6rem; color:var(--t3); margin:0;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
+                            Pilih tanggal lalu klik <b>Generate</b>. Klik <b>Export PDF</b> untuk mencetak.
+                          </p>
+                        </div>
+                        <!-- Kanan: Tombol -->
+                        <div style="display:flex; gap:8px; align-items:flex-end;">
+                          <button class="btn-gen" id="btnGen" onclick="generateReport()" style="font-size:0.78rem; padding:9px 18px;">
+                            <i class="fa-solid fa-rotate"></i> Generate
+                          </button>
+                          <button class="btn-gen" onclick="printDoc()" style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#e65100,#bf360c); box-shadow:0 4px 14px rgba(230,81,0,.25);">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- BLOK 2: DOCUMENT -->
+                    <div class="doc-outer" style="margin:0; padding:0 0 40px;">
+
+<div class="paper" id="docPaper">
+ 
+  <!-- EMPTY STATE (before generate) -->
+  <div class="empty-doc" id="emptyState">
+    <i class="fa-solid fa-file-chart-column" style="color:#c8cdd4;"></i>
+    <h3>Daily Rekapitulasi Timbang Weightbridge</h3>
+    <p>Pilih tanggal di atas lalu klik <strong>Generate</strong> untuk membuat laporan</p>
+    <p style="margin-top:8px; font-size:.75rem; color:#aab;">Seksi yang tidak memiliki data akan otomatis disembunyikan</p>
   </div>
-
-  <!-- ── DAILY REPORT LAYOUT (actual content) ── -->
-  <div id="dailyReportContent">
-    <div style="max-width:1100px; margin:0 auto; padding:16px 16px 0;">
-
-      <!-- BLOK 1: FILTER -->
-      <div
-        style="background:var(--bg2); border:1px solid var(--b); border-radius:10px; padding:14px 18px; margin-bottom:12px; position:relative; overflow:hidden;">
-        <!-- accent bar atas -->
-        <div
-          style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple));">
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <!-- Kiri: judul + tanggal -->
-          <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;">
-            <div
-              style="font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--blue); display:flex; align-items:center; gap:6px;">
-              <i class="fa-solid fa-file-lines"></i> Pilih Tanggal Laporan
-            </div>
-            <label
-              style="font-size:.6rem; font-weight:600; color:var(--t3); letter-spacing:.8px; text-transform:uppercase; margin-bottom:2px;">Tanggal
-              Laporan</label>
-            <input type="date" class="fp-input" id="dailyReportDate"
-              style="max-width:220px; padding:7px 10px; font-size:.82rem;">
-            <p style="font-size:.6rem; color:var(--t3); margin:0;">
-              <i class="fa-solid fa-circle-info" style="margin-right:3px;"></i>
-              Pilih tanggal lalu klik <b>Generate</b>. Klik <b>Export PDF</b> untuk mencetak.
-            </p>
-          </div>
-          <!-- Kanan: Tombol -->
-          <div style="display:flex; gap:8px; align-items:flex-end;">
-            <button class="btn-gen" id="btnGen" onclick="generateReport()" style="font-size:0.78rem; padding:9px 18px;">
-              <i class="fa-solid fa-rotate"></i> Generate
-            </button>
-            <button class="btn-gen" onclick="printDoc()"
-              style="font-size:0.78rem; padding:9px 18px; background:linear-gradient(135deg,#e65100,#bf360c); box-shadow:0 4px 14px rgba(230,81,0,.25);">
-              <i class="fa-solid fa-file-pdf"></i> Export PDF
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- BLOK 2: DOCUMENT -->
-      <div class="doc-outer" style="margin:0; padding:0 0 40px;">
-
-        <div class="paper" id="docPaper">
-
-          <!-- EMPTY STATE (before generate) -->
-          <div class="empty-doc" id="emptyState">
-            <i class="fa-solid fa-file-chart-column" style="color:#c8cdd4;"></i>
-            <h3>Daily Rekapitulasi Timbang Weightbridge</h3>
-            <p>Pilih tanggal di atas lalu klik <strong>Generate</strong> untuk membuat laporan</p>
-            <p style="margin-top:8px; font-size:.75rem; color:#aab;">Seksi yang tidak memiliki data akan otomatis
-              disembunyikan</p>
-          </div>
-
-          <!-- DOCUMENT (hidden until generated) -->
-          <div id="docContent" style="display:none;">
-
-            <!-- ══════════════════════════════════════════
+ 
+  <!-- DOCUMENT (hidden until generated) -->
+  <div id="docContent" style="display:none;">
+ 
+    <!-- ══════════════════════════════════════════
          DOCUMENT HEADER — matching template exactly
     ═══════════════════════════════════════════ -->
-            <div class="doc-header">
-              <div class="logo-area">
-                <div style="display:flex; align-items:center;">
-                  <img src="/img/daily_logo.png" alt="Logo RMI" style="height: 60px; width: auto;">
-                </div>
-              </div>
-
-              <div class="doc-title-center">
-                <h1>DAILY REKAPITULASI TIMBANG WEIGHTBRIDGE</h1>
-                <div class="doc-date" id="docDateDisplay">—</div>
-              </div>
-
-              <div class="doc-meta">
-                <table>
-                  <tr>
-                    <td>No Dok</td>
-                    <td id="hdrNoDok">F.WB.01.21</td>
-                  </tr>
-                  <tr>
-                    <td>No. Rev</td>
-                    <td id="hdrNoRev">02</td>
-                  </tr>
-                  <tr>
-                    <td>Tgl. Edit</td>
-                    <td id="hdrTglEdit">1 September 2022</td>
-                  </tr>
-                  <tr>
-                    <td>Halaman</td>
-                    <td id="hdrHal">1 dari 1</td>
-                  </tr>
-                </table>
-              </div>
+    <div class="doc-header">
+      <div class="logo-area">
+        <!-- MITR PHOL GROUP Logo -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg width="48" height="36" viewBox="0 0 48 36">
+              <polygon points="8,35 24,4 40,35" fill="#00539B" stroke="#00539B" stroke-width="1"/>
+              <polygon points="14,35 24,12 34,35" fill="#4CAF50" stroke="#4CAF50" stroke-width="1"/>
+              <polyline points="10,28 24,8 38,28" fill="none" stroke="#fff" stroke-width="1.5"/>
+            </svg>
+            <div style="text-align:center; line-height:1.15;">
+              <div style="font-size:.62rem; font-weight:900; color:#00539B; letter-spacing:.5px; font-family:'Arial Black',sans-serif;">MITR PHOL</div>
+              <div style="font-size:.5rem; font-weight:700; color:#00539B; letter-spacing:1.5px;">GROUP</div>
             </div>
-
-            <!-- ═══════════════════════════════════════
+          </div>
+        </div>
+        <!-- RMI Logo -->
+        <div style="display:flex; align-items:center; gap:6px; margin-left:12px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <svg width="40" height="36" viewBox="0 0 40 36">
+              <circle cx="20" cy="16" r="14" fill="none" stroke="#2E7D32" stroke-width="1.5"/>
+              <text x="20" y="14" text-anchor="middle" font-size="8" fill="#C5A028" font-weight="bold" font-family="serif">R</text>
+              <line x1="20" y1="18" x2="20" y2="30" stroke="#2E7D32" stroke-width="1.5"/>
+              <line x1="14" y1="24" x2="20" y2="30" stroke="#4CAF50" stroke-width="1"/>
+              <line x1="26" y1="24" x2="20" y2="30" stroke="#4CAF50" stroke-width="1"/>
+              <line x1="16" y1="20" x2="20" y2="26" stroke="#66BB6A" stroke-width="1"/>
+              <line x1="24" y1="20" x2="20" y2="26" stroke="#66BB6A" stroke-width="1"/>
+            </svg>
+            <div style="text-align:center; line-height:1.1;">
+              <div style="font-size:.45rem; font-weight:700; color:#1565c0; letter-spacing:.3px;">REJOSO MANIS INDO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="doc-title-center">
+        <h1>DAILY REKAPITULASI TIMBANG WEIGHTBRIDGE</h1>
+        <div class="doc-date" id="docDateDisplay">—</div>
+      </div>
+ 
+      <div class="doc-meta">
+        <table>
+          <tr><td>No Dok</td><td id="hdrNoDok">F.WB.01.21</td></tr>
+          <tr><td>No. Rev</td><td id="hdrNoRev">02</td></tr>
+          <tr><td>Tgl. Edit</td><td id="hdrTglEdit">1 September 2022</td></tr>
+          <tr><td>Halaman</td><td id="hdrHal">1 dari 1</td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
          SECTION 1: DELIVERY PRODUCT
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secDelivery">
-              <div class="section-label-bold">DELIVERY PRODUCT</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblDelivery">
-                  <thead>
-                    <tr>
-                      <th rowspan="2" style="width:30px">NO</th>
-                      <th rowspan="2" class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
-                      <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
-                      <th colspan="2" class="group-head">TOTAL</th>
-                      <th rowspan="2" style="min-width:200px;">CUSTOMER / VENDOR</th>
-                      <th rowspan="2" style="min-width:120px;">SPPB</th>
-                      <th class="group-head">BAG</th>
-                      <th rowspan="2" style="min-width:80px;">EVERAGE</th>
-                    </tr>
-                    <tr>
-                      <th>WB RMI</th>
-                      <th>SPT</th>
-                      <th>TRUCK</th>
-                      <th>SPT</th>
-                      <th>QUANTITY</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblDeliveryBody">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- ═══════════════════════════════════════
+    <div class="doc-section" id="secDelivery">
+      <div class="section-label-bold">DELIVERY PRODUCT</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblDelivery">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
+              <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
+              <th colspan="2" class="group-head">TOTAL</th>
+              <th rowspan="2" style="min-width:200px;">CUSTOMER / VENDOR</th>
+              <th rowspan="2" style="min-width:120px;">SPPB</th>
+              <th class="group-head">BAG</th>
+              <th rowspan="2" style="min-width:80px;">EVERAGE</th>
+            </tr>
+            <tr>
+              <th>WB RMI</th>
+              <th>SPT</th>
+              <th>TRUCK</th>
+              <th>SPT</th>
+              <th>QUANTITY</th>
+            </tr>
+          </thead>
+          <tbody id="tblDeliveryBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
          SECTION 2: SUPPORT OPERATIONAL
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secSupport">
-              <div class="section-label-bold">SUPPORT OPERATIONAL</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblSupport">
-                  <thead>
-                    <tr>
-                      <th style="width:30px">NO</th>
-                      <th class="tleft" style="min-width:200px;">NAMA MATERIAL</th>
-                      <th style="min-width:110px;">TOTAL NETTO (KG)</th>
-                      <th style="min-width:60px;">TRUCK</th>
-                      <th style="min-width:180px;">CUSTOMER / VENDOR</th>
-                      <th style="min-width:100px;">PO</th>
-                      <th style="min-width:160px;">REMARKS</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblSupportBody">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- ═══════════════════════════════════════
+    <div class="doc-section" id="secSupport">
+      <div class="section-label-bold">SUPPORT OPERATIONAL</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblSupport">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:200px;">NAMA MATERIAL</th>
+              <th style="min-width:110px;">TOTAL NETTO (KG)</th>
+              <th style="min-width:60px;">TRUCK</th>
+              <th style="min-width:180px;">CUSTOMER / VENDOR</th>
+              <th style="min-width:100px;">PO</th>
+              <th style="min-width:160px;">REMARKS</th>
+            </tr>
+          </thead>
+          <tbody id="tblSupportBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
          SECTION 3: LIMBAH
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secLimbah">
-              <div class="section-label-bold">LIMBAH</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblLimbah">
-                  <thead>
-                    <tr>
-                      <th style="width:30px">NO</th>
-                      <th class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
-                      <th style="min-width:80px;">NAME</th>
-                      <th style="min-width:60px;">TRUCK</th>
-                      <th style="min-width:120px;">TOTAL NETTO (KG)</th>
-                      <th style="min-width:180px;">CUSTOMER / VENDOR</th>
-                      <th style="min-width:100px;">PO</th>
-                      <th style="min-width:160px;">REMARKS</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblLimbahBody">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- ═══════════════════════════════════════
+    <div class="doc-section" id="secLimbah">
+      <div class="section-label-bold">LIMBAH</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblLimbah">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:140px;">NAMA MATERIAL</th>
+              <th style="min-width:80px;">NAME</th>
+              <th style="min-width:60px;">TRUCK</th>
+              <th style="min-width:120px;">TOTAL NETTO (KG)</th>
+              <th style="min-width:180px;">CUSTOMER / VENDOR</th>
+              <th style="min-width:100px;">PO</th>
+              <th style="min-width:160px;">REMARKS</th>
+            </tr>
+          </thead>
+          <tbody id="tblLimbahBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- ═══════════════════════════════════════
          SECTION 4: CANE RECEIVED
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secCane">
-              <div class="section-label-bold">Cane RECEIVED</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblCane">
-                  <thead>
-                    <tr>
-                      <th style="width:30px">NO</th>
-                      <th class="tleft" style="min-width:180px;">KETERANGAN</th>
-                      <th style="min-width:100px;">SHIFT 1</th>
-                      <th style="min-width:100px;">SHIFT 2</th>
-                      <th style="min-width:100px;">SHIFT 3</th>
-                      <th style="min-width:100px;">TODAY</th>
-                      <th style="min-width:100px;">TODATE</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblCaneBody">
-                    <!-- JS populated -->
-                  </tbody>
-                  <tbody id="tblCaneTruckBody">
-                    <!-- JS populated for truck types -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
+    <div class="doc-section" id="secCane">
+      <div class="section-label-bold">Cane RECEIVED</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblCane">
+          <thead>
+            <tr>
+              <th style="width:30px">NO</th>
+              <th class="tleft" style="min-width:180px;">KETERANGAN</th>
+              <th style="min-width:100px;">SHIFT 1</th>
+              <th style="min-width:100px;">SHIFT 2</th>
+              <th style="min-width:100px;">SHIFT 3</th>
+              <th style="min-width:100px;">TODAY</th>
+              <th style="min-width:100px;">TODATE</th>
+            </tr>
+          </thead>
+          <tbody id="tblCaneBody">
+            <!-- JS populated -->
+          </tbody>
+          <tbody id="tblCaneTruckBody">
+            <!-- JS populated for truck types -->
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-            <!-- ═══════════════════════════════════════
+    <!-- ═══════════════════════════════════════
          SECTION 5: TRANSFER GULA
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secTransfer">
-              <div class="section-label-bold">TRANSFER GULA</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblTransfer">
-                  <thead>
-                    <tr>
-                      <th rowspan="2" style="width:30px">NO</th>
-                      <th rowspan="2" class="tleft" style="min-width:160px;">WAREHOUSE BULOG</th>
-                      <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
-                      <th colspan="2" class="group-head">TOTAL</th>
-                      <th colspan="2" class="group-head" style="background:#004d40;">TODATE</th>
-                    </tr>
-                    <tr>
-                      <th>WB RMI</th>
-                      <th>SPT</th>
-                      <th>TRUCK</th>
-                      <th>SPT</th>
-                      <th style="background:#00695c; color:#fff;">TRUCK</th>
-                      <th style="background:#00695c; color:#fff;">NETTO</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblTransferBody">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
+    <div class="doc-section" id="secTransfer">
+      <div class="section-label-bold">TRANSFER GULA</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblTransfer">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:160px;">WAREHOUSE BULOG</th>
+              <th colspan="2" class="group-head">TOTAL NETTO (KG)</th>
+              <th colspan="2" class="group-head">TOTAL</th>
+              <th colspan="2" class="group-head" style="background:#004d40;">TODATE</th>
+            </tr>
+            <tr>
+              <th>WB RMI</th>
+              <th>SPT</th>
+              <th>TRUCK</th>
+              <th>SPT</th>
+              <th style="background:#00695c; color:#fff;">TRUCK</th>
+              <th style="background:#00695c; color:#fff;">NETTO</th>
+            </tr>
+          </thead>
+          <tbody id="tblTransferBody">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-            <!-- ═══════════════════════════════════════
+    <!-- ═══════════════════════════════════════
          SECTION 6: ASUGAR (BAGASSE)
     ════════════════════════════════════════ -->
-            <div class="doc-section" id="secAsugar" style="display:none;">
-              <div class="section-label-bold">BAGASSE</div>
-              <div style="overflow-x:auto;">
-                <table class="doc-table" id="tblAsugar">
-                  <thead>
-                    <tr>
-                      <th rowspan="2" style="width:30px">NO</th>
-                      <th rowspan="2" class="tleft" style="min-width:180px;">KETERANGAN</th>
-                      <th colspan="2" class="group-head">SHIFT 1</th>
-                      <th colspan="2" class="group-head">SHIFT 2</th>
-                      <th colspan="2" class="group-head">SHIFT 3</th>
-                      <th colspan="2" class="group-head" style="background:#004d40;">TOTAL</th>
-                    </tr>
-                    <tr>
-                      <th>RIT</th>
-                      <th>KG</th>
-                      <th>RIT</th>
-                      <th>KG</th>
-                      <th>RIT</th>
-                      <th>KG</th>
-                      <th style="background:#00695c; color:#fff;">RIT</th>
-                      <th style="background:#00695c; color:#fff;">KG</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblAsugarBody">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- ── SIGNATURE (HIDDEN) ── -->
-            <div class="sig-block" id="sigBlock" style="display:none;">
-              <!-- Baris 1: Label -->
-              <div class="sig-row">
-                <div class="sig-item">
-                  <div class="sig-noted">Disiapkan</div>
-                  <div class="sig-line"></div>
-                  <div class="sig-role">WEIGHBRIDGE</div>
-                </div>
-                <div class="sig-item">
-                  <div class="sig-noted">Diketahui Oleh</div>
-                  <div class="sig-line"></div>
-                  <div class="sig-role">SHIFT CHIEF</div>
-                </div>
-                <div class="sig-item">
-                  <div class="sig-noted">Disetujui Oleh</div>
-                  <div class="sig-line"></div>
-                  <div class="sig-role">SECTION HEAD</div>
-                </div>
-              </div>
-            </div>
-
-          </div><!-- /docContent -->
-        </div><!-- /paper -->
-      </div><!-- /doc-outer = BLOK 2 -->
-
-      <div class="toast" id="toast">
-        <i class="fa-solid fa-check-circle"></i>
-        <span id="toastMsg">Dokumen dibuat!</span>
-      </div>
-    </div><!-- /container 1100px -->
-  </div><!-- /dailyReportContent -->
-</div><!-- /page-report_daily -->
+    <div class="doc-section" id="secAsugar" style="display:none;">
+      <div class="section-label-bold">BAGASSE</div>
+      <div style="overflow-x:auto;">
+        <table class="doc-table" id="tblAsugar">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:30px">NO</th>
+              <th rowspan="2" class="tleft" style="min-width:180px;">KETERANGAN</th>
+              <th colspan="2" class="group-head">SHIFT 1</th>
+              <th colspan="2" class="group-head">SHIFT 2</th>
+              <th colspan="2" class="group-head">SHIFT 3</th>
+              <th colspan="2" class="group-head" style="background:#004d40;">TOTAL</th>
+            </tr>
+            <tr>
+              <th>RIT</th>
+              <th>KG</th>
+              <th>RIT</th>
+              <th>KG</th>
+              <th>RIT</th>
+              <th>KG</th>
+              <th style="background:#00695c; color:#fff;">RIT</th>
+              <th style="background:#00695c; color:#fff;">KG</th>
+            </tr>
+          </thead>
+          <tbody id="tblAsugarBody">
+            <!-- JS populated -->
