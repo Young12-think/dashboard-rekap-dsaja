@@ -43,21 +43,11 @@ def get_db():
     for attempt in range(3):
         try:
             conn = pool.get_connection()
-            # Pastikan koneksi masih hidup
-            conn.ping(reconnect=True, attempts=1, delay=0)
             return conn
-        except mysql.connector.errors.PoolError as e:
-            # Pool exhausted — tunggu lalu coba lagi
-            if attempt < 2:
-                import time
-                time.sleep(0.5 * (attempt + 1))
-            else:
-                print(f"[DB ERROR] Pool exhausted after 3 attempts: {e}")
-                _reset_pool()  # Reset pool agar request berikutnya bisa buat pool baru
         except Exception as e:
             if attempt < 2:
                 import time
-                time.sleep(0.3)
+                time.sleep(0.5 * (attempt + 1))
             else:
                 print(f"[DB ERROR] Connection failed after 3 attempts: {e}")
                 _reset_pool()
