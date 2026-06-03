@@ -290,15 +290,36 @@ function initSidebar() {
     overlay.addEventListener('touchend', guardedClose, { passive: false });
 }
 function openSidebar() {
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('sidebarOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    // Save scroll position before locking
+    window._savedScrollY = window.scrollY;
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    // Prevent background scroll on mobile when sidebar is open
+    document.body.classList.add('sidebar-is-open');
+    document.body.style.top = `-${window._savedScrollY}px`;
 }
 function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('active');
-    document.body.style.overflow = '';
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    document.body.classList.remove('sidebar-is-open');
+    document.body.style.top = '';
+    // Restore scroll position
+    if (window._savedScrollY !== undefined) {
+        window.scrollTo(0, window._savedScrollY);
+    }
 }
+
+// Auto-close mobile sidebar when resizing to desktop
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+        closeSidebar();
+    }
+});
+
 
 function initViewToggle() {
     const bT = document.getElementById('btnTableView');
