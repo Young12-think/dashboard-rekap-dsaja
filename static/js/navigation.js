@@ -290,27 +290,14 @@ function initSidebar() {
     overlay.addEventListener('touchend', guardedClose, { passive: false });
 }
 function openSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    // Save scroll position before locking
-    window._savedScrollY = window.scrollY;
-    sidebar.classList.add('open');
-    overlay.classList.add('active');
-    // Prevent background scroll on mobile when sidebar is open
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('active');
     document.body.classList.add('sidebar-is-open');
-    document.body.style.top = `-${window._savedScrollY}px`;
 }
 function closeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
     document.body.classList.remove('sidebar-is-open');
-    document.body.style.top = '';
-    // Restore scroll position
-    if (window._savedScrollY !== undefined) {
-        window.scrollTo(0, window._savedScrollY);
-    }
 }
 
 // Auto-close mobile sidebar when resizing to desktop

@@ -187,10 +187,7 @@ body {
 
 /* Lock scroll when sidebar is open on mobile */
 body.sidebar-is-open {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
+    overflow: hidden !important;
 }
 
 /* Subtle ambient background */
@@ -1084,9 +1081,7 @@ body.light-mode .sidebar-user-info {
 .sidebar-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 40;
     opacity: 0;
     visibility: hidden;
