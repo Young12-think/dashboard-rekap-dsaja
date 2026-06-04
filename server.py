@@ -630,10 +630,297 @@ def api_report_blabak():
 
 
 # =============================================
+# SSH CONFIG
+# =============================================
+import threading
+import time
+import socket
+
+SSH_CONFIG = {
+    'host': '157.15.40.39',
+    'port': 22,
+    'username': 'ubuntu',
+    'password': 'raimu123',
+}
+
+# ── Reverse Tunnel: expose localhost:8000 → VPS:8080 (agar web bisa diakses via VPS) ──
+ENABLE_REVERSE_TUNNEL = True    # Web access via http://157.15.40.39:8080
+REVERSE_TUNNEL_REMOTE_PORT = 8080
+REVERSE_TUNNEL_LOCAL_HOST = '127.0.0.1'
+REVERSE_TUNNEL_LOCAL_PORT = 8000
+
+# ── MySQL Tunnel: localhost:3307 → VPS MySQL:3306 (untuk akses DB langsung) ──
+ENABLE_MYSQL_TUNNEL = False     # Hanya nyalakan saat butuh akses DB remote via Workbench dll
+
+
+# =============================================
+# REVERSE SSH TUNNEL (ssh -R) — Web Access via VPS
+# =============================================
+_reverse_client = None
+_reverse_running = False
+_reverse_lock = threading.Lock()
+_reverse_stop = threading.Event()
+
+def _reverse_forward_channel(chan, local_host, local_port):
+    """Forward satu koneksi dari VPS ke local server."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((local_host, local_port))
+    except Exception:
+        chan.close()
+        return
+
+    def copy(src, dst):
+        try:
+            while True:
+                data = src.recv(8192)
+                if not data:
+                    break
+                dst.sendall(data)
+        except Exception:
+            pass
+        try:
+            dst.close()
+        except Exception:
+            pass
+
+    t1 = threading.Thread(target=copy, args=(chan, sock), daemon=True)
+    t2 = threading.Thread(target=copy, args=(sock, chan), daemon=True)
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+
+def start_reverse_tunnel():
+    """Buka reverse SSH tunnel: VPS:8080 → localhost:8000."""
+    global _reverse_client, _reverse_running
+    import paramiko
+
+    with _reverse_lock:
+        if _reverse_client and _reverse_client.get_transport() and _reverse_client.get_transport().is_active():
+            return True
+
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(
+                SSH_CONFIG['host'], SSH_CONFIG['port'],
+                username=SSH_CONFIG['username'],
+                password=SSH_CONFIG['password'],
+                timeout=15,
+            )
+            transport = client.get_transport()
+            transport.set_keepalive(30)
+            transport.request_port_forward('0.0.0.0', REVERSE_TUNNEL_REMOTE_PORT)
+            _reverse_client = client
+            _reverse_running = True
+
+            logging.info(
+                f"==> [SSH-R] Reverse Tunnel AKTIF: "
+                f"{SSH_CONFIG['host']}:{REVERSE_TUNNEL_REMOTE_PORT} → "
+                f"localhost:{REVERSE_TUNNEL_LOCAL_PORT}"
+            )
+
+            # Thread untuk accept koneksi masuk dari VPS
+            def serve():
+                while _reverse_running:
+                    try:
+                        chan = transport.accept(1)
+                        if chan is None:
+                            if not transport.is_active():
+                                break
+                            continue
+                        t = threading.Thread(
+                            target=_reverse_forward_channel,
+                            args=(chan, REVERSE_TUNNEL_LOCAL_HOST, REVERSE_TUNNEL_LOCAL_PORT),
+                            daemon=True
+                        )
+                        t.start()
+                    except Exception:
+                        if not _reverse_running:
+                            break
+
+            srv = threading.Thread(target=serve, daemon=True, name="ReverseSSH-Serve")
+            srv.start()
+            return True
+
+        except Exception as e:
+            logging.error(f"==> [SSH-R] Reverse Tunnel GAGAL: {e}")
+            _reverse_client = None
+            return False
+
+
+def stop_reverse_tunnel():
+    """Hentikan reverse SSH tunnel."""
+    global _reverse_client, _reverse_running
+    with _reverse_lock:
+        _reverse_running = False
+        if _reverse_client:
+            try:
+                _reverse_client.close()
+            except Exception:
+                pass
+            _reverse_client = None
+    logging.info("==> [SSH-R] Reverse Tunnel ditutup.")
+
+
+def _reverse_tunnel_watchdog():
+    """Watchdog: cek reverse tunnel tiap 15 detik, auto-reconnect."""
+    logging.info("==> [SSH-R] Watchdog aktif...")
+    retry_delay = 5
+
+    while not _reverse_stop.is_set():
+        _reverse_stop.wait(15)
+        if _reverse_stop.is_set():
+            break
+
+        with _reverse_lock:
+            is_alive = (_reverse_client
+                        and _reverse_client.get_transport()
+                        and _reverse_client.get_transport().is_active())
+
+        if not is_alive:
+            logging.warning("==> [SSH-R] Tunnel MATI! Reconnect...")
+            stop_reverse_tunnel()
+            if start_reverse_tunnel():
+                retry_delay = 5
+                logging.info("==> [SSH-R] Reconnect berhasil!")
+            else:
+                logging.error(f"==> [SSH-R] Reconnect gagal. Retry dalam {retry_delay}s...")
+                _reverse_stop.wait(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
+
+    logging.info("==> [SSH-R] Watchdog berhenti.")
+
+
+# =============================================
+# MYSQL SSH TUNNEL (ssh -L) — Opsional
+# =============================================
+_mysql_tunnel = None
+_mysql_lock = threading.Lock()
+_mysql_stop = threading.Event()
+
+def start_mysql_tunnel():
+    """Buka forward tunnel: localhost:3307 → VPS MySQL:3306."""
+    global _mysql_tunnel
+    try:
+        from sshtunnel import SSHTunnelForwarder
+    except ImportError:
+        logging.error("==> [SSH-L] Library 'sshtunnel' belum terinstal!")
+        return False
+
+    with _mysql_lock:
+        if _mysql_tunnel and _mysql_tunnel.is_active:
+            return True
+        if _mysql_tunnel:
+            try:
+                _mysql_tunnel.stop()
+            except Exception:
+                pass
+            _mysql_tunnel = None
+
+        try:
+            _mysql_tunnel = SSHTunnelForwarder(
+                (SSH_CONFIG['host'], SSH_CONFIG['port']),
+                ssh_username=SSH_CONFIG['username'],
+                ssh_password=SSH_CONFIG['password'],
+                remote_bind_address=('127.0.0.1', 3306),
+                local_bind_address=('127.0.0.1', 3307),
+                set_keepalive=30,
+            )
+            _mysql_tunnel.start()
+            logging.info("==> [SSH-L] MySQL Tunnel AKTIF: localhost:3307 → VPS:3306")
+            return True
+        except Exception as e:
+            logging.error(f"==> [SSH-L] MySQL Tunnel GAGAL: {e}")
+            _mysql_tunnel = None
+            return False
+
+
+def stop_mysql_tunnel():
+    global _mysql_tunnel
+    with _mysql_lock:
+        if _mysql_tunnel:
+            try:
+                _mysql_tunnel.stop()
+            except Exception:
+                pass
+            _mysql_tunnel = None
+    logging.info("==> [SSH-L] MySQL Tunnel ditutup.")
+
+
+def _mysql_tunnel_watchdog():
+    logging.info("==> [SSH-L] Watchdog aktif...")
+    retry_delay = 5
+    while not _mysql_stop.is_set():
+        _mysql_stop.wait(15)
+        if _mysql_stop.is_set():
+            break
+        with _mysql_lock:
+            is_alive = _mysql_tunnel and _mysql_tunnel.is_active
+        if not is_alive:
+            logging.warning("==> [SSH-L] Tunnel MATI! Reconnect...")
+            if start_mysql_tunnel():
+                retry_delay = 5
+            else:
+                _mysql_stop.wait(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
+    logging.info("==> [SSH-L] Watchdog berhenti.")
+
+
+# =============================================
+# INIT & SHUTDOWN
+# =============================================
+def init_all_tunnels():
+    """Inisialisasi semua tunnel yang diaktifkan."""
+    if ENABLE_REVERSE_TUNNEL:
+        logging.info("==> [INIT] Memulai Reverse SSH Tunnel (web access via VPS)...")
+        start_reverse_tunnel()
+        threading.Thread(target=_reverse_tunnel_watchdog, daemon=True, name="ReverseSSH-WD").start()
+    else:
+        logging.info("==> [SSH-R] Reverse Tunnel DIMATIKAN.")
+
+    if ENABLE_MYSQL_TUNNEL:
+        logging.info("==> [INIT] Memulai MySQL SSH Tunnel (DB remote)...")
+        start_mysql_tunnel()
+        threading.Thread(target=_mysql_tunnel_watchdog, daemon=True, name="MySQLSSH-WD").start()
+    else:
+        logging.info("==> [SSH-L] MySQL Tunnel DIMATIKAN.")
+
+
+def shutdown_all_tunnels():
+    """Hentikan semua tunnel."""
+    if ENABLE_REVERSE_TUNNEL:
+        _reverse_stop.set()
+        stop_reverse_tunnel()
+    if ENABLE_MYSQL_TUNNEL:
+        _mysql_stop.set()
+        stop_mysql_tunnel()
+
+
+# =============================================
 if __name__ == '__main__':
     print("=" * 50)
     print("  REKAP DSAJA - Production Dashboard")
-    print("  DB: timbangan / timbang_data")
-    print("  http://localhost:8000")
+    print("  DB: MySQL lokal (localhost:3306)")
+    print("  Web Lokal : http://localhost:8000")
+    if ENABLE_REVERSE_TUNNEL:
+        print(f"  Web VPS   : http://{SSH_CONFIG['host']}:{REVERSE_TUNNEL_REMOTE_PORT}")
     print("=" * 50)
-    serve(app, host='0.0.0.0', port=8000, threads=16)
+
+    # ── 1. Nyalakan SSH Tunnels ──
+    init_all_tunnels()
+
+    # ── 2. Jalankan Waitress server ──
+    try:
+        print("==> [INIT] Server Waitress berjalan di port 8000...\n")
+        serve(app, host='0.0.0.0', port=8000, threads=16)
+    except KeyboardInterrupt:
+        print("\n==> [INFO] Server dihentikan oleh user (Ctrl+C)")
+    finally:
+        # ── 3. Shutdown semua tunnel ──
+        shutdown_all_tunnels()
+        print("==> [INFO] Shutdown selesai. Bye!")
+
+

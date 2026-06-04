@@ -69,12 +69,13 @@ if !errorlevel! neq 0 (
 )
 echo [OK] Browser Playwright siap.
 
-:: ── STEP 6: Jalankan Server & SSH Tunnel ────────────────────────
+:: ── STEP 6: Jalankan Server (SSH Tunnel dikelola oleh Python) ─────
 echo.
 echo ===================================================
 echo   APLIKASI SIAP!
 echo   Akses via VPS : http://157.15.40.39:8080
 echo   Akses Lokal    : http://localhost:8000
+echo   SSH Tunnel MySQL dikelola otomatis oleh server.py
 echo   Tekan Ctrl+C untuk menghentikan server.
 echo ===================================================
 echo.
@@ -85,11 +86,10 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING
 )
 timeout /t 1 /nobreak >nul
 
-:: 2. Jalankan SSH dengan /k (Keep Open) agar jendela tunnel tetap hidup menjaga koneksi
-echo [INFO] Membuka jalur SSH Tunnel ke VPS...
-start "SSH Tunnel - Rekap DSaja" cmd /k "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
+:: 2. (OPSIONAL) Reverse SSH — buka komentar jika masih perlu expose ke VPS
+:: start "SSH Reverse Tunnel" cmd /k "ssh -R 0.0.0.0:8080:127.0.0.1:8000 -o ServerAliveInterval=60 ubuntu@157.15.40.39"
 
-:: 3. Jalankan Server Python secara murni dan biarkan sistem internal server.py yang mengurus log!
+:: 3. Jalankan Server Python (SSH Tunnel MySQL sudah di-handle di dalam server.py)
 echo [INFO] Menjalankan server...
 echo.
 .venv\Scripts\python.exe server.py
