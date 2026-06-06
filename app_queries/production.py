@@ -61,7 +61,7 @@ def _dedup_cte():
                      OR
                      LOWER(COALESCE(w.Remarks, '')) LIKE '%%DO%%'
                      OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%spt%%'
+                     LOWER(COALESCE(w.Remarks, '')) LIKE CONCAT('%', 'spt', '%')
                      )
                 THEN 1
                 WHEN w.item_cat IN ('GULA', 'MOLASES')
