@@ -5,6 +5,8 @@
 # ─────────────────────────────────────────────────────────────
 
 from .db_core import dec, query
+from .production import _dedup_cte
+from datetime import datetime, timedelta
 
 
 def get_blabak_report(date_str, rekap_from=None):
@@ -21,6 +23,12 @@ def get_blabak_report(date_str, rekap_from=None):
               → PICK UP/L300, ENGKEL, FUSO/TRONTON per today + todate
     """
     try:
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
+    except ValueError:
+        return None
+
+    try:
         result = {
             'commodities': {},
             'cane': None,
@@ -34,70 +42,82 @@ def get_blabak_report(date_str, rekap_from=None):
             {
                 'key': 'SUGAR',
                 'where': """(
-                    (UPPER(t.ItemName) LIKE '%SUGAR%' OR UPPER(t.ItemName) LIKE '%GULA%')
+                    (UPPER(t.ItemName) LIKE CONCAT('%', 'SUGAR', '%') OR UPPER(t.ItemName) LIKE CONCAT('%', 'GULA', '%'))
                     AND UPPER(COALESCE(t.Type, '')) = 'FINISHED GOODS LOCO'
                 )""",
             },
             {
                 'key': 'MOLLASE',
                 'where': """(
-                    UPPER(t.ItemName) LIKE '%MOLASSE%' OR UPPER(t.ItemName) LIKE '%TETES%'
+                    UPPER(t.ItemName) LIKE CONCAT('%', 'MOLASSE', '%') OR UPPER(t.ItemName) LIKE CONCAT('%', 'TETES', '%')
                 )""",
             },
             {
                 'key': 'BAGGASE',
                 'where': """(
-                    UPPER(t.ItemName) LIKE '%BAGASSE%' OR UPPER(t.ItemName) LIKE '%AMPAS%'
+                    UPPER(t.ItemName) LIKE CONCAT('%', 'BAGASSE', '%') OR UPPER(t.ItemName) LIKE CONCAT('%', 'AMPAS', '%')
                 )""",
             },
             {
                 'key': 'FILTER CAKE',
                 'where': """(
-                    UPPER(t.ItemName) LIKE '%FILTER CAKE%' OR UPPER(t.ItemName) LIKE '%BLOTONG%'
+                    UPPER(t.ItemName) LIKE CONCAT('%', 'FILTER CAKE', '%') OR UPPER(t.ItemName) LIKE CONCAT('%', 'BLOTONG', '%')
                 )""",
             },
             {
                 'key': 'FLYASH',
                 'where': """(
-                    UPPER(t.ItemName) LIKE '%FLY ASH%' OR UPPER(t.ItemName) LIKE '%FLYASH%'
-                    OR UPPER(t.ItemName) LIKE '%BOTTOM ASH%'
+                    UPPER(t.ItemName) LIKE CONCAT('%', 'FLY ASH', '%') OR UPPER(t.ItemName) LIKE CONCAT('%', 'FLYASH', '%')
+                    OR UPPER(t.ItemName) LIKE CONCAT('%', 'BOTTOM ASH', '%')
                 )""",
             },
         ]
 
         for cdef in commodity_defs:
-            sql = f"""
+            sql = _dedup_cte() + f"""
                 SELECT
                     t.Shift                        AS shift,
-                    SUM(ABS(COALESCE(t.Qty_Netto, 0)))  AS netto,
-                    COUNT(DISTINCT t.NoSystem)      AS ritase
-                FROM data_timbang t
+                    SUM(CASE WHEN t.is_dup = 0 THEN 
+                        (CASE WHEN t.item_cat = 'GULA' THEN ABS(COALESCE(t.Qty_SPMSPB, 0)) 
+                              ELSE ABS(COALESCE(t.Qty_Netto, 0)) END)
+                        ELSE 0 END) AS netto,
+                    COUNT(DISTINCT CASE WHEN t.is_dup = 0 THEN t.NoSystem END) AS ritase,
+                    COUNT(t.NoSystem) AS total_spt_raw
+                FROM Cleaned t
                 WHERE t.Tanggal_Keluar_Clean = %s
                 AND {cdef['where']}
                 GROUP BY t.Shift
             """
-            rows = dec(query(sql, (date_str,))) or []
+            rows = dec(query(sql, (lb_start, date_str, date_str))) or []
 
             def empty():
                 return {'netto': 0, 'ritase': 0}
 
             shifts = {1: empty(), 2: empty(), 3: empty()}
             today = empty()
+            total_spt_raw = 0
 
             for r in rows:
                 s = int(r.get('shift') or 0)
                 netto = float(r.get('netto', 0) or 0)
                 ritase = int(r.get('ritase', 0) or 0)
+                total_spt_raw += int(r.get('total_spt_raw', 0) or 0)
                 if s in shifts:
                     shifts[s] = {'netto': netto, 'ritase': ritase}
                 today['netto'] += netto
                 today['ritase'] += ritase
+
+            # Auto-remark if there are duplicates for SUGAR / MOLLASE
+            remark = ""
+            if (cdef['key'] in ('SUGAR', 'MOLLASE')) and (total_spt_raw > today['ritase']):
+                remark = f"{total_spt_raw} SPT"
 
             result['commodities'][cdef['key']] = {
                 'shift1': shifts[1],
                 'shift2': shifts[2],
                 'shift3': shifts[3],
                 'today': today,
+                'remark': remark,
             }
 
         # ═══════════════════════════════════════════════════
@@ -110,7 +130,7 @@ def get_blabak_report(date_str, rekap_from=None):
                 SUM(ABS(COALESCE(t.Qty_Netto, 0)))                 AS netto
             FROM data_timbang t
             WHERE t.Tanggal_Keluar_Clean = %s
-              AND t.ItemName LIKE '%TEBU%'
+              AND t.ItemName LIKE CONCAT('%', 'TEBU', '%')
             GROUP BY t.Shift
         """
 
@@ -122,7 +142,7 @@ def get_blabak_report(date_str, rekap_from=None):
                 SUM(ABS(COALESCE(t.Qty_Netto, 0)))                 AS netto
             FROM data_timbang t
             WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
-              AND t.ItemName LIKE '%TEBU%'
+              AND t.ItemName LIKE CONCAT('%', 'TEBU', '%')
         """
 
         raw_cane_today  = dec(query(sql_cane_today, (date_str,))) or []
@@ -167,41 +187,41 @@ def get_blabak_report(date_str, rekap_from=None):
         sql_truck_today = """
             SELECT
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'MINI', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'PICKUP', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'L300', '%')
                     THEN t.NoSystem END) AS tipe_pickup,
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'ENGK', '%')
                     THEN t.NoSystem END) AS tipe_engkel,
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%TRONTON%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'FUSO', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'TRONTON', '%')
                     THEN t.NoSystem END) AS tipe_fuso,
                 COUNT(DISTINCT t.NoSystem) AS total
             FROM data_timbang t
             WHERE t.Tanggal_Keluar_Clean = %s
-              AND t.ItemName LIKE '%TEBU%'
+              AND t.ItemName LIKE CONCAT('%', 'TEBU', '%')
         """
 
         sql_truck_todate = """
             SELECT
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'MINI', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'PICKUP', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'L300', '%')
                     THEN t.NoSystem END) AS tipe_pickup,
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'ENGK', '%')
                     THEN t.NoSystem END) AS tipe_engkel,
                 COUNT(DISTINCT CASE
-                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%'
-                      OR UPPER(TRIM(t.Kendaraan)) LIKE '%TRONTON%'
+                    WHEN UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'FUSO', '%')
+                      OR UPPER(TRIM(t.Kendaraan)) LIKE CONCAT('%', 'TRONTON', '%')
                     THEN t.NoSystem END) AS tipe_fuso,
                 COUNT(DISTINCT t.NoSystem) AS total
             FROM data_timbang t
             WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
-              AND t.ItemName LIKE '%TEBU%'
+              AND t.ItemName LIKE CONCAT('%', 'TEBU', '%')
         """
 
         raw_truck_today  = dec(query(sql_truck_today, (date_str,))) or []

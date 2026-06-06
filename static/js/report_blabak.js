@@ -122,7 +122,7 @@ function renderBlabakReport(reportDate, data) {
       <td style="${BLK.cell}">${s3.netto ? blabakFmt(s3.netto) : ''}</td>
       <td style="${BLK.cell}">${blabakFmt(td.netto)}</td>
       <td style="${BLK.cell}">${ritaseDisplay}</td>
-      <td style="${BLK.cell} cursor:text;" contenteditable="true" data-remark="${def.key}"></td>
+      <td style="${BLK.cell} cursor:text;" contenteditable="true" data-remark="${def.key}">${c.remark || ''}</td>
     </tr>`;
   });
 
