@@ -55,13 +55,13 @@ def _dedup_cte():
         SELECT w.*,
             CASE
                 WHEN w.item_cat = 'MOLASES'
-                     AND( LOWER(COALESCE(w.Remarks, '')) LIKE '%tambahan%'
+                     AND( LOWER(COALESCE(w.Remarks, '')) LIKE '%%tambahan%%'
                      OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%over%'
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%over%%'
                      OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%DO%'
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%DO%%'
                      OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%spt%'
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%spt%%'
                      )
                 THEN 1
                 WHEN w.item_cat IN ('GULA', 'MOLASES')
