@@ -1,32 +1,38 @@
 # app_queries/analytics.py
+# ─────────────────────────────────────────────────────────────
+# DASHBOARD ANALYTICS: Peak Hours, TAT, Tara Anomali, Shift
+# Productivity, Top Transportir, History Insights.
+# Anti-Dobel SPT: Menggunakan CTE dari production._dedup_cte()
+# ─────────────────────────────────────────────────────────────
 from datetime import datetime, timedelta
-from .db_core import query
+from .db_core import dec, query
+from .production import _dedup_cte
 
 def get_analytics_data(date_str):
     """
     Mengambil data analitik timbangan (Jam Sibuk, TAT, Anomali Tara) untuk satu hari.
     date_str format: YYYY-MM-DD
+    Anti-Dobel: Baris GULA/MOLASES duplikat sudah diexclude via CTE.
     """
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
-        # Tanggal_Masuk & Tanggal_Keluar format in DB: DD/MM/YYYY HH:MM:SS
-        db_date_str = dt.strftime('%d/%m/%Y')
-        db_date_str_short = dt.strftime('%d/%m/%y') # in case using 2 digit year
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
     except ValueError:
         return None
 
-    # Query utama hari ini
-    sql = """
+    # Query utama hari ini — menggunakan CTE dedup + Tanggal_Keluar_Clean
+    sql = _dedup_cte() + """
         SELECT 
-            Type, ItemName, CardName, Nopol, Supir, 
-            Tanggal_Masuk, Jam_Masuk, Berat_Masuk, 
-            Tanggal_Keluar, Jam_Keluar, Berat_Keluar, Qty_Netto
-        FROM data_timbang
-        WHERE (Tanggal_Keluar LIKE %s OR Tanggal_Keluar LIKE %s)
-          AND Jam_Masuk IS NOT NULL AND Jam_Keluar IS NOT NULL
-          AND Berat_Masuk IS NOT NULL AND Berat_Keluar IS NOT NULL
+            t1.Type, t1.ItemName, t1.CardName, t1.Nopol, t1.Supir, 
+            t1.Tanggal_Masuk, t1.Jam_Masuk, t1.Berat_Masuk, 
+            t1.Tanggal_Keluar, t1.Jam_Keluar, t1.Berat_Keluar, t1.Qty_Netto
+        FROM Cleaned t1
+        WHERE t1.Tanggal_Keluar_Clean = %s
+          AND t1.is_dup = 0
+          AND t1.Jam_Masuk IS NOT NULL AND t1.Jam_Keluar IS NOT NULL
+          AND t1.Berat_Masuk IS NOT NULL AND t1.Berat_Keluar IS NOT NULL
     """
-    params = (f"{db_date_str}%", f"{db_date_str_short}%")
+    params = (lb_start, date_str, date_str)
     records = query(sql, params)
     
     if not records:
@@ -166,22 +172,25 @@ def get_history_insights_data(date_str, days=7):
     Mengambil data tren 7 hari terakhir untuk insight historis:
     1. Tren Rata-rata TAT (Turnaround Time) harian
     2. Tren Selisih Berat (Netto vs Dokumen/SPT) harian (Loss/Gain)
+    Anti-Dobel: Baris GULA/MOLASES duplikat sudah diexclude via CTE.
     """
     try:
         end_dt = datetime.strptime(date_str, '%Y-%m-%d')
         start_dt = end_dt - timedelta(days=days)
+        lb_start = (start_dt - timedelta(days=2)).strftime('%Y-%m-%d')
     except ValueError:
         return None
 
-    sql = """
+    sql = _dedup_cte() + """
         SELECT 
-            STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') AS tanggal,
-            Jam_Masuk, Jam_Keluar, Tanggal_Masuk, Tanggal_Keluar,
-            Qty_Netto, Qty_SPMSPB, ItemName
-        FROM data_timbang
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
+            t1.Tanggal_Keluar_Clean AS tanggal,
+            t1.Jam_Masuk, t1.Jam_Keluar, t1.Tanggal_Masuk, t1.Tanggal_Keluar,
+            t1.Qty_Netto, t1.Qty_SPMSPB, t1.ItemName
+        FROM Cleaned t1
+        WHERE t1.Tanggal_Keluar_Clean BETWEEN %s AND %s
+          AND t1.is_dup = 0
     """
-    records = query(sql, (date_str, days, date_str))
+    records = query(sql, (lb_start, date_str, start_dt.strftime('%Y-%m-%d'), date_str))
 
     if not records:
         return {"dates": [], "tat": [], "selisih": []}
@@ -273,24 +282,25 @@ def get_shift_productivity_data(date_str):
     """
     Radar/Spider Chart: Produktivitas multi-dimensi per shift.
     Dimensi: Tonase, Ritase, Kecepatan (1/TAT), Variasi Item.
+    Anti-Dobel: Baris GULA/MOLASES duplikat sudah diexclude via CTE.
     """
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
-        db_date_str = dt.strftime('%d/%m/%Y')
-        db_date_str_short = dt.strftime('%d/%m/%y')
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
     except ValueError:
         return None
 
-    sql = """
+    sql = _dedup_cte() + """
         SELECT 
-            Shift, ItemName, Qty_Netto, NoSystem,
-            Tanggal_Masuk, Jam_Masuk, Tanggal_Keluar, Jam_Keluar
-        FROM data_timbang
-        WHERE (Tanggal_Keluar LIKE %s OR Tanggal_Keluar LIKE %s)
-          AND Shift IS NOT NULL
-          AND Jam_Masuk IS NOT NULL AND Jam_Keluar IS NOT NULL
+            t1.Shift, t1.ItemName, t1.Qty_Netto, t1.NoSystem,
+            t1.Tanggal_Masuk, t1.Jam_Masuk, t1.Tanggal_Keluar, t1.Jam_Keluar
+        FROM Cleaned t1
+        WHERE t1.Tanggal_Keluar_Clean = %s
+          AND t1.is_dup = 0
+          AND t1.Shift IS NOT NULL
+          AND t1.Jam_Masuk IS NOT NULL AND t1.Jam_Keluar IS NOT NULL
     """
-    params = (f"{db_date_str}%", f"{db_date_str_short}%")
+    params = (lb_start, date_str, date_str)
     records = query(sql, params)
 
     if not records:
@@ -394,26 +404,28 @@ def get_shift_productivity_data(date_str):
 def get_top_transportir_data(date_str):
     """
     Top 10 Customer/Transportir berdasarkan tonase dan ritase hari ini.
+    Anti-Dobel: Baris GULA/MOLASES duplikat sudah diexclude via CTE.
     """
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
     except ValueError:
         return None
 
-    sql = """
+    sql = _dedup_cte() + """
         SELECT 
-            TRIM(CardName) AS customer,
-            SUM(ABS(COALESCE(Qty_Netto, 0))) AS total_tonase,
-            COUNT(DISTINCT NoSystem) AS total_ritase
-        FROM data_timbang
-        WHERE STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y') = %s
-          AND CardName IS NOT NULL AND TRIM(CardName) != ''
-        GROUP BY TRIM(CardName)
+            TRIM(t1.CardName) AS customer,
+            SUM(ABS(COALESCE(t1.Qty_Netto, 0))) AS total_tonase,
+            COUNT(DISTINCT t1.NoSystem) AS total_ritase
+        FROM Cleaned t1
+        WHERE t1.Tanggal_Keluar_Clean = %s
+          AND t1.is_dup = 0
+          AND t1.CardName IS NOT NULL AND TRIM(t1.CardName) != ''
+        GROUP BY TRIM(t1.CardName)
         ORDER BY total_tonase DESC
         LIMIT 10
     """
-    from .db_core import dec
-    records = dec(query(sql, (date_str,)))
+    records = dec(query(sql, (lb_start, date_str, date_str)))
 
     if not records:
         return {"data": []}

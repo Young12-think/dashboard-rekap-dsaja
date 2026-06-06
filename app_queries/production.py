@@ -1,13 +1,92 @@
 # app_queries/production.py
+# ─────────────────────────────────────────────────────────────
+# DASHBOARD: Produksi, Summary, History, Recent.
+# Anti-Dobel SPT: CTE + LAG() untuk GULA & MOLASES.
+# ─────────────────────────────────────────────────────────────
 from datetime import datetime, timedelta
 from .db_core import dec, query
 
+
+# =============================================
+# REUSABLE CTE: Anti-Dobel SPT (GULA & MOLASES)
+# =============================================
+def _dedup_cte():
+    """
+    SQL CTE fragment untuk mendeteksi dan menandai baris duplikat
+    (Double SPT) pada item GULA dan MOLASES.
+
+    Membutuhkan 2 parameter %s: (lookback_start_date, lookback_end_date).
+    Menghasilkan virtual table 'Cleaned' dengan kolom tambahan:
+      - item_cat  : 'GULA', 'MOLASES', atau 'OTHER'
+      - full_dt   : TIMESTAMP lengkap (Tanggal_Keluar_Clean + Jam_Keluar)
+      - prev_dt   : Timestamp timbangan sebelumnya dari truk yang sama
+      - is_dup    : 1 = duplikat (harus di-exclude), 0 = data asli
+
+    Logika deteksi:
+      1. GULA: Nopol+Supir+Qty_Netto sama, jarak waktu keluar <= 30 menit
+      2. MOLASES Kasus 1: Sama seperti GULA
+      3. MOLASES Kasus 2: Remarks mengandung 'tambahan' → selalu duplikat
+    """
+    return """WITH RawData AS (
+        SELECT d.*,
+            CASE
+                WHEN UPPER(COALESCE(d.ItemName, '')) LIKE '%GULA%' THEN 'GULA'
+                WHEN UPPER(COALESCE(d.ItemName, '')) LIKE '%MOLASSE%'
+                  OR UPPER(COALESCE(d.ItemName, '')) LIKE '%TETES%'
+                  OR UPPER(COALESCE(d.ItemName, '')) LIKE '%MILASSE%' THEN 'MOLASES'
+                ELSE 'OTHER'
+            END AS item_cat,
+            TIMESTAMP(d.Tanggal_Keluar_Clean, COALESCE(d.Jam_Keluar, '00:00:00')) AS full_dt
+        FROM data_timbang d
+        WHERE d.Tanggal_Keluar_Clean BETWEEN %s AND %s
+    ),
+    WithPrev AS (
+        SELECT r.*,
+            LAG(r.full_dt) OVER (
+                PARTITION BY r.item_cat,
+                             UPPER(TRIM(COALESCE(r.Nopol, ''))),
+                             UPPER(TRIM(COALESCE(r.Supir, ''))),
+                             ABS(COALESCE(r.Qty_Netto, 0))
+                ORDER BY r.full_dt
+            ) AS prev_dt
+        FROM RawData r
+    ),
+    Cleaned AS (
+        SELECT w.*,
+            CASE
+                WHEN w.item_cat = 'MOLASES'
+                     AND( LOWER(COALESCE(w.Remarks, '')) LIKE '%tambahan%'
+                     OR
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%over%'
+                     OR
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%DO%'
+                     OR
+                     LOWER(COALESCE(w.Remarks, '')) LIKE '%spt%'
+                     )
+                THEN 1
+                WHEN w.item_cat IN ('GULA', 'MOLASES')
+                     AND TRIM(COALESCE(w.Nopol, '')) != ''
+                     AND w.prev_dt IS NOT NULL
+                     AND TIMESTAMPDIFF(MINUTE, w.prev_dt, w.full_dt) <= 30
+                THEN 1
+                ELSE 0
+            END AS is_dup
+        FROM WithPrev w
+    )"""
+
+
 def get_production_data(date_str):
-    sql = """
-        WITH TicketCounts AS (
+    try:
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
+    except ValueError:
+        return []
+
+    sql = _dedup_cte() + """,
+        TicketCounts AS (
             SELECT NoSystem, COUNT(*) as jml_tiket
-            FROM data_timbang
-            WHERE Tanggal_Keluar_Clean = %s
+            FROM Cleaned
+            WHERE Tanggal_Keluar_Clean = %s AND is_dup = 0
             GROUP BY NoSystem
         )
         SELECT
@@ -29,14 +108,15 @@ def get_production_data(date_str):
             COUNT(DISTINCT CASE WHEN t1.Shift=3 THEN t1.NoSystem END) AS shift3_ritase,
             SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN COALESCE(t1.Qty_SPMSPB,0) ELSE COALESCE(t1.Qty_Netto,0)/tc.jml_tiket END) AS today_tonase,
             COUNT(DISTINCT t1.NoSystem) AS today_ritase
-        FROM data_timbang t1
+        FROM Cleaned t1
         JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
         WHERE t1.Tanggal_Keluar_Clean = %s
+          AND t1.is_dup = 0
           AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1
         ORDER BY CASE WHEN MAX(t1.ItemName) LIKE '%TEBU%' THEN 1 WHEN MAX(t1.ItemName) LIKE '%GULA%' THEN 2 WHEN MAX(t1.ItemName) LIKE '%FILTER CAKE%' OR MAX(t1.ItemName) LIKE '%BLOTONG%' THEN 3 WHEN MAX(t1.ItemName) LIKE '%FLY ASH%' OR MAX(t1.ItemName) LIKE '%FLYASH%' THEN 4 ELSE 5 END ASC, 1 ASC
     """
-    data = dec(query(sql, (date_str, date_str)))
+    data = dec(query(sql, (lb_start, date_str, date_str, date_str)))
     if not data:
         return []
     fc_sub = {"type": "➡️ TOTAL TODAY FILTER CAKE", "shift1_tonase": 0, "shift1_ritase": 0, "shift2_tonase": 0, "shift2_ritase": 0, "shift3_tonase": 0, "shift3_ritase": 0, "today_tonase": 0, "today_ritase": 0}
@@ -56,17 +136,23 @@ def get_production_data(date_str):
     return data
 
 def get_summary_data(date_str):
-    sql = """
-        WITH TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM data_timbang WHERE Tanggal_Keluar_Clean = %s GROUP BY NoSystem)
+    try:
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
+        lb_start = (dt - timedelta(days=2)).strftime('%Y-%m-%d')
+    except ValueError:
+        return None
+
+    sql = _dedup_cte() + """,
+        TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM Cleaned WHERE Tanggal_Keluar_Clean = %s AND is_dup = 0 GROUP BY NoSystem)
         SELECT
             CASE WHEN t1.ItemName LIKE '%GULA%' THEN 'TOTAL GULA KRISTAL PUTIH' WHEN t1.ItemName LIKE '%TEBU%' THEN 'TEBU' WHEN t1.ItemName LIKE '%FILTER CAKE%' OR t1.ItemName LIKE '%BLOTONG%' THEN 'FILTER CAKE' WHEN t1.ItemName LIKE '%FLY ASH%' OR t1.ItemName LIKE '%FLYASH%' THEN 'FLY ASH' ELSE t1.ItemName END AS type,
             SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN COALESCE(t1.Qty_SPMSPB, 0) ELSE COALESCE(t1.Qty_Netto, 0) / tc.jml_tiket END) AS total_tonase,
             COUNT(DISTINCT t1.NoSystem) AS total_ritase
-        FROM data_timbang t1 JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
-        WHERE t1.Tanggal_Keluar_Clean = %s AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
+        FROM Cleaned t1 JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
+        WHERE t1.Tanggal_Keluar_Clean = %s AND t1.is_dup = 0 AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1 ORDER BY total_tonase DESC
     """
-    data = dec(query(sql, (date_str, date_str)))
+    data = dec(query(sql, (lb_start, date_str, date_str, date_str)))
     if data is None: return None
     summary = {}
     if data:
@@ -89,14 +175,17 @@ def get_history_data(date_str, days=7):
     try:
         end_dt = datetime.strptime(date_str, '%Y-%m-%d')
         start_dt = end_dt - timedelta(days=days)
-        sql = """
+        lb_start = (start_dt - timedelta(days=2)).strftime('%Y-%m-%d')
+
+        sql = _dedup_cte() + """
             SELECT Tanggal_Keluar_Clean AS tanggal,
-                   ItemName AS ItemName, Qty_Netto,
-                   Tanggal_Masuk, Jam_Masuk, Tanggal_Keluar, Jam_Keluar
-            FROM data_timbang
-            WHERE Tanggal_Keluar_Clean BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
+                   t1.ItemName AS ItemName, t1.Qty_Netto,
+                   t1.Tanggal_Masuk, t1.Jam_Masuk, t1.Tanggal_Keluar, t1.Jam_Keluar
+            FROM Cleaned t1
+            WHERE t1.Tanggal_Keluar_Clean BETWEEN %s AND %s
+              AND t1.is_dup = 0
         """
-        records = dec(query(sql, (date_str, days, date_str)))
+        records = dec(query(sql, (lb_start, date_str, start_dt.strftime('%Y-%m-%d'), date_str)))
         
         aggregated = {}
         if records:
