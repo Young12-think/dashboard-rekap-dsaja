@@ -637,10 +637,10 @@ import time
 import socket
 
 SSH_CONFIG = {
-    'host': '157.15.40.39',
-    'port': 22,
-    'username': 'ubuntu',
-    'password': 'raimu123',
+    'host': 'yourip',
+    'port': yourport,
+    'username': 'username',
+    'password': 'password',
 }
 
 # ── Reverse Tunnel: expose localhost:8000 → VPS:8080 (agar web bisa diakses via VPS) ──
