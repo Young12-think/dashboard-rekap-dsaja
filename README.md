@@ -121,8 +121,15 @@ RMI_PASS= password
 MODULE_NAME=Crushing Monitor
 TARGET_PATH=/crushingmonitor/MDC
 ```
-
-
+**edited your credential ssh in server.py
+```
+SSH_CONFIG = {
+    'host': 'yourip',
+    'port': yourport,
+    'username': 'username',
+    'password': 'password',
+}
+```
 **1. Buat virtual environment & install dependensi**
 
 ```bash
