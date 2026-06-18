@@ -537,6 +537,16 @@ function renderTransactionPage(typeKey) {
 
             let val = row[col.key];
 
+            // === FORMAT KHUSUS TOLERANSI ===
+            if (col.key === 'berat_rata2_karung' && val !== null && val !== undefined && val !== '') {
+                let numVal = parseFloat(String(val).replace(',', '.'));
+                if (!isNaN(numVal)) {
+                    if (numVal >= 1000) numVal = numVal / 100;
+                    val = numVal.toFixed(2).replace('.', ','); // Format 50,24
+                }
+                return `<td class="">${val}</td>`;
+            }
+
             if (col.key === 'qty_netto' && val !== null && val !== undefined && val !== '') {
                 val = Math.abs(parseFloat(val) || 0);
             }
@@ -676,6 +686,16 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
             // === TAMBAHKAN 3 BARIS INI: Ubah Koma jadi Titik Khusus Nomor PO ===
             if (col.key === 'nomor_po' && val) {
                 val = String(val).replace(/,/g, '.');
+            }
+
+            // === FORMAT KHUSUS TOLERANSI ===
+            if (col.key === 'berat_rata2_karung' && val !== null && val !== undefined && val !== '') {
+                let numVal = parseFloat(String(val).replace(',', '.'));
+                if (!isNaN(numVal)) {
+                    if (numVal >= 1000) numVal = numVal / 100;
+                    val = numVal.toFixed(2).replace('.', ','); // Format 50,24
+                }
+                return `<td class="">${val}</td>`;
             }
 
             if (col.key === 'qty_netto' && val !== null && val !== undefined && val !== '') {

@@ -72,12 +72,34 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
     def parse_time(tgl, jam):
         if not jam: return 0
         try:
-            dp = tgl.split(' ')[0]
-            if '/' in dp:
-                p = dp.split('/')
-                if len(p)==3: dp = f"{p[2]}-{p[1]}-{p[0]}"
-            dt = datetime.strptime(f"{dp} {jam}", "%Y-%m-%d %H:%M:%S")
-            return dt.timestamp() * 1000
+            from datetime import timedelta as td
+            # ─── Parse date part (handles datetime/date objects AND strings) ───
+            if hasattr(tgl, 'year'):  # datetime or date object
+                year, month, day = tgl.year, tgl.month, tgl.day
+            elif isinstance(tgl, str) and tgl.strip():
+                dp = tgl.strip().split(' ')[0]
+                if '/' in dp:
+                    p = dp.split('/')
+                    if len(p) == 3: dp = f"{p[2]}-{p[1]}-{p[0]}"
+                d = datetime.strptime(dp, "%Y-%m-%d")
+                year, month, day = d.year, d.month, d.day
+            else:
+                return 0
+            # ─── Parse time part (handles timedelta, time objects, and strings) ───
+            if isinstance(jam, td):
+                total_sec = int(jam.total_seconds())
+                h, m, s = total_sec // 3600, (total_sec % 3600) // 60, total_sec % 60
+            elif hasattr(jam, 'hour'):  # time object
+                h, m, s = jam.hour, jam.minute, jam.second
+            elif isinstance(jam, str) and jam.strip():
+                parts = jam.strip().split(':')
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 else 0
+                s = int(float(parts[2])) if len(parts) > 2 else 0
+            else:
+                return 0
+            dt_obj = datetime(year, month, day, h, m, s)
+            return dt_obj.timestamp() * 1000
         except: return 0
 
     for r in all_data:

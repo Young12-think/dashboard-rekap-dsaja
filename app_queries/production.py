@@ -143,6 +143,31 @@ def get_production_data(date_str):
             FROM Cleaned
             WHERE Tanggal_Keluar_Clean = %s AND is_dup = 0
             GROUP BY NoSystem
+        ),
+        /* GULA: Ambil SEMUA Qty_SPMSPB (termasuk is_dup=1) karena tiap SPT punya tonase SPM sendiri */
+        AllGulaSpb AS (
+            SELECT
+                CASE
+                    WHEN ItemName LIKE '%%GULA KRISTAL PUTIH (BIRU)%%' THEN 'GULA KRISTAL PUTIH (BIRU)'
+                    WHEN ItemName LIKE '%%GULA KRISTAL PUTIH (MERAH)%%' THEN 'GULA KRISTAL PUTIH (MERAH)'
+                    ELSE ItemName
+                END AS gula_type,
+                Shift,
+                COALESCE(Qty_SPMSPB, 0) AS spb_val
+            FROM Cleaned
+            WHERE Tanggal_Keluar_Clean = %s
+              AND item_cat = 'GULA'
+              AND ItemName IS NOT NULL AND ItemName != ''
+        ),
+        GulaSpbTotals AS (
+            SELECT
+                gula_type,
+                SUM(CASE WHEN Shift = 1 THEN spb_val ELSE 0 END) AS gula_shift1,
+                SUM(CASE WHEN Shift = 2 THEN spb_val ELSE 0 END) AS gula_shift2,
+                SUM(CASE WHEN Shift = 3 THEN spb_val ELSE 0 END) AS gula_shift3,
+                SUM(spb_val) AS gula_total
+            FROM AllGulaSpb
+            GROUP BY gula_type
         )
         SELECT
             CASE
@@ -155,23 +180,32 @@ def get_production_data(date_str):
                     CONCAT('FLY ASH (PO: ', COALESCE(NULLIF(REPLACE(t1.Nomor_PO, ',', '.'), ''), 'KOSONG'), ')')
                 ELSE t1.ItemName
             END AS type,
-            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN (CASE WHEN t1.Shift=1 THEN COALESCE(t1.Qty_SPMSPB,0) ELSE 0 END) ELSE (CASE WHEN t1.Shift=1 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) AS shift1_tonase,
+            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN 0 ELSE (CASE WHEN t1.Shift=1 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) +
+                COALESCE(MAX(gs.gula_shift1), 0) AS shift1_tonase,
             COUNT(DISTINCT CASE WHEN t1.Shift=1 THEN t1.NoSystem END) AS shift1_ritase,
-            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN (CASE WHEN t1.Shift=2 THEN COALESCE(t1.Qty_SPMSPB,0) ELSE 0 END) ELSE (CASE WHEN t1.Shift=2 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) AS shift2_tonase,
+            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN 0 ELSE (CASE WHEN t1.Shift=2 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) +
+                COALESCE(MAX(gs.gula_shift2), 0) AS shift2_tonase,
             COUNT(DISTINCT CASE WHEN t1.Shift=2 THEN t1.NoSystem END) AS shift2_ritase,
-            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN (CASE WHEN t1.Shift=3 THEN COALESCE(t1.Qty_SPMSPB,0) ELSE 0 END) ELSE (CASE WHEN t1.Shift=3 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) AS shift3_tonase,
+            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN 0 ELSE (CASE WHEN t1.Shift=3 THEN COALESCE(t1.Qty_Netto,0)/tc.jml_tiket ELSE 0 END) END) +
+                COALESCE(MAX(gs.gula_shift3), 0) AS shift3_tonase,
             COUNT(DISTINCT CASE WHEN t1.Shift=3 THEN t1.NoSystem END) AS shift3_ritase,
-            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN COALESCE(t1.Qty_SPMSPB,0) ELSE COALESCE(t1.Qty_Netto,0)/tc.jml_tiket END) AS today_tonase,
+            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN 0 ELSE COALESCE(t1.Qty_Netto,0)/tc.jml_tiket END) +
+                COALESCE(MAX(gs.gula_total), 0) AS today_tonase,
             COUNT(DISTINCT t1.NoSystem) AS today_ritase
         FROM Cleaned t1
         JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
+        LEFT JOIN GulaSpbTotals gs ON gs.gula_type = CASE
+                WHEN t1.ItemName LIKE '%GULA KRISTAL PUTIH (BIRU)%' THEN 'GULA KRISTAL PUTIH (BIRU)'
+                WHEN t1.ItemName LIKE '%GULA KRISTAL PUTIH (MERAH)%' THEN 'GULA KRISTAL PUTIH (MERAH)'
+                ELSE NULL
+            END
         WHERE t1.Tanggal_Keluar_Clean = %s
           AND t1.is_dup = 0
           AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1
         ORDER BY CASE WHEN MAX(t1.ItemName) LIKE '%TEBU%' THEN 1 WHEN MAX(t1.ItemName) LIKE '%GULA%' THEN 2 WHEN MAX(t1.ItemName) LIKE '%FILTER CAKE%' OR MAX(t1.ItemName) LIKE '%BLOTONG%' THEN 3 WHEN MAX(t1.ItemName) LIKE '%FLY ASH%' OR MAX(t1.ItemName) LIKE '%FLYASH%' THEN 4 ELSE 5 END ASC, 1 ASC
     """
-    data = dec(query(sql, (lb_start, date_str, date_str, date_str)))
+    data = dec(query(sql, (lb_start, date_str, date_str, date_str, date_str)))
     if not data:
         return []
     fc_sub = {"type": "➡️ TOTAL TODAY FILTER CAKE", "shift1_tonase": 0, "shift1_ritase": 0, "shift2_tonase": 0, "shift2_ritase": 0, "shift3_tonase": 0, "shift3_ritase": 0, "today_tonase": 0, "today_ritase": 0}
@@ -198,16 +232,27 @@ def get_summary_data(date_str):
         return None
 
     sql = _dedup_cte() + """,
-        TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM Cleaned WHERE Tanggal_Keluar_Clean = %s AND is_dup = 0 GROUP BY NoSystem)
+        TicketCounts AS (SELECT NoSystem, COUNT(*) as jml_tiket FROM Cleaned WHERE Tanggal_Keluar_Clean = %s AND is_dup = 0 GROUP BY NoSystem),
+        /* GULA: Ambil SEMUA Qty_SPMSPB (termasuk is_dup=1) */
+        AllGulaSpb AS (
+            SELECT SUM(COALESCE(Qty_SPMSPB, 0)) AS total_spb
+            FROM Cleaned
+            WHERE Tanggal_Keluar_Clean = %s AND item_cat = 'GULA'
+              AND ItemName IS NOT NULL AND ItemName != ''
+        )
         SELECT
             CASE WHEN t1.ItemName LIKE '%GULA%' THEN 'TOTAL GULA KRISTAL PUTIH' WHEN t1.ItemName LIKE '%TEBU%' THEN 'TEBU' WHEN t1.ItemName LIKE '%FILTER CAKE%' OR t1.ItemName LIKE '%BLOTONG%' THEN 'FILTER CAKE' WHEN t1.ItemName LIKE '%FLY ASH%' OR t1.ItemName LIKE '%FLYASH%' THEN 'FLY ASH' ELSE t1.ItemName END AS type,
-            SUM(CASE WHEN t1.ItemName LIKE '%GULA%' THEN COALESCE(t1.Qty_SPMSPB, 0) ELSE COALESCE(t1.Qty_Netto, 0) / tc.jml_tiket END) AS total_tonase,
+            CASE 
+                WHEN MAX(CASE WHEN t1.ItemName LIKE '%GULA%' THEN 1 ELSE 0 END) = 1 
+                THEN (SELECT total_spb FROM AllGulaSpb)
+                ELSE SUM(COALESCE(t1.Qty_Netto, 0) / tc.jml_tiket)
+            END AS total_tonase,
             COUNT(DISTINCT t1.NoSystem) AS total_ritase
         FROM Cleaned t1 JOIN TicketCounts tc ON t1.NoSystem = tc.NoSystem
         WHERE t1.Tanggal_Keluar_Clean = %s AND t1.is_dup = 0 AND t1.ItemName IS NOT NULL AND t1.ItemName != ''
         GROUP BY 1 ORDER BY total_tonase DESC
     """
-    data = dec(query(sql, (lb_start, date_str, date_str, date_str)))
+    data = dec(query(sql, (lb_start, date_str, date_str, date_str, date_str)))
     if data is None: return None
     summary = {}
     if data:
