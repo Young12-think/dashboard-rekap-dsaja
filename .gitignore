@@ -9,8 +9,7 @@ __pycache__/
 *.pyc
 
 # Database configuration (credentials)
-db_config.py
-
+# db_config.py is no longer ignored because it safely uses .env
 # Playwright / Scraper state (cookies/auth)
 rmi_storage_state.json
 playwright_browsers/

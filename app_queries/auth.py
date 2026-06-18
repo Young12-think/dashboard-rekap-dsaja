@@ -217,3 +217,44 @@ def delete_user(user_id: int) -> tuple:
         return False, "Gagal menghapus user."
     finally:
         conn.close()
+
+def change_password(user_id: int, new_password: str) -> tuple:
+    """
+    Ganti password user berdasarkan ID.
+    Return: (success: bool, message: str)
+    """
+    ensure_users_table()
+
+    # 1. Validasi Password
+    new_password = (new_password or '').strip()
+    if len(new_password) < 6:
+        return False, "Password minimal 6 karakter."
+    if not any(char.isdigit() for char in new_password) or not any(char.isalpha() for char in new_password):
+        return False, "Password harus kombinasi huruf dan angka."
+
+    # 2. Cek apakah user ada
+    check_sql = "SELECT username FROM rekap_users WHERE id = %s LIMIT 1"
+    target = query(check_sql, (user_id,), one=True)
+    if not target:
+        return False, "User tidak ditemukan."
+
+    # 3. Hash password baru & update
+    pwd_hash, salt = hash_password(new_password)
+
+    conn = get_db()
+    if not conn:
+        return False, "Database error."
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE rekap_users SET password_hash = %s, salt = %s WHERE id = %s",
+            (pwd_hash, salt, user_id)
+        )
+        conn.commit()
+        cur.close()
+        return True, f"Password user \"{target['username']}\" berhasil diubah!"
+    except Exception as e:
+        print(f"[DB ERROR] change_password: {e}")
+        return False, "Gagal mengubah password."
+    finally:
+        conn.close()

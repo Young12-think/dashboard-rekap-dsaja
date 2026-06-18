@@ -48,6 +48,8 @@ async function loadUsersList() {
                 ? `<button class="btn-delete-user" disabled title="Admin utama tidak bisa dihapus"><i class="fa-solid fa-ban"></i></button>`
                 : `<button class="btn-delete-user" onclick="deleteRegisteredUser(${u.id}, '${u.username}')" title="Hapus pengguna"><i class="fa-solid fa-trash"></i></button>`;
 
+            const pwdBtn = `<button class="btn-change-pwd" onclick="openChangePwdModal(${u.id}, '${u.username}')" title="Ganti Password"><i class="fa-solid fa-key"></i></button>`;
+
             let roleLabel = 'Viewer Standard';
             let roleClass = 'viewer';
             if (u.role === 'admin') {
@@ -65,7 +67,9 @@ async function loadUsersList() {
                     <span class="role-badge ${roleClass}">${roleLabel}</span>
                 </td>
                 <td style="text-align:center; font-size:0.8rem; color:var(--text-muted);">${date}</td>
-                <td style="text-align:center;">${deleteBtn}</td>
+                <td style="text-align:center;">
+                    <div style="display:flex; gap:6px; justify-content:center;">${pwdBtn}${deleteBtn}</div>
+                </td>
             </tr>`;
         }).join('');
 
@@ -220,4 +224,110 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Koneksi terputus. Silakan coba lagi.');
         }
     });
+});
+
+// 4. Change Password Modal
+function openChangePwdModal(userId, username) {
+    const modal = document.getElementById('changePwdModal');
+    if (!modal) return;
+    document.getElementById('changePwdUserId').value = userId;
+    document.getElementById('changePwdUsername').textContent = username;
+    document.getElementById('changePwdInput').value = '';
+    document.getElementById('changePwdFeedback').textContent = '';
+    document.getElementById('changePwdStrengthBar').style.width = '0%';
+    document.getElementById('changePwdStrengthWrap').style.display = 'none';
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('changePwdInput').focus(), 100);
+}
+
+function closeChangePwdModal() {
+    const modal = document.getElementById('changePwdModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitChangePassword() {
+    const userId = document.getElementById('changePwdUserId').value;
+    const newPwd = document.getElementById('changePwdInput').value;
+    const feedback = document.getElementById('changePwdFeedback');
+    const btn = document.getElementById('btnSubmitChangePwd');
+
+    // Validate
+    if (newPwd.length < 6) {
+        feedback.textContent = 'Password minimal 6 karakter!';
+        feedback.style.color = 'var(--danger, #f85149)';
+        return;
+    }
+    if (!/[a-zA-Z]/.test(newPwd) || !/[0-9]/.test(newPwd)) {
+        feedback.textContent = 'Password wajib kombinasi huruf dan angka!';
+        feedback.style.color = 'var(--danger, #f85149)';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+    try {
+        const res = await fetch(`${API}/api/admin/users/${userId}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_password: newPwd })
+        });
+        const data = await res.json();
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Password Baru';
+
+        if (res.ok && data.status === 'success') {
+            showUserToast(`✓ ${data.message}`, 'var(--success)');
+            closeChangePwdModal();
+        } else {
+            feedback.textContent = data.message || 'Gagal mengubah password.';
+            feedback.style.color = 'var(--danger, #f85149)';
+        }
+    } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Password Baru';
+        feedback.textContent = 'Koneksi terputus. Coba lagi.';
+        feedback.style.color = 'var(--danger, #f85149)';
+    }
+}
+
+// Real-time strength for change password modal
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for modal to be rendered
+    setTimeout(() => {
+        const pwdInput = document.getElementById('changePwdInput');
+        if (!pwdInput) return;
+
+        pwdInput.addEventListener('input', () => {
+            const val = pwdInput.value;
+            const bar = document.getElementById('changePwdStrengthBar');
+            const wrap = document.getElementById('changePwdStrengthWrap');
+            const fb = document.getElementById('changePwdFeedback');
+
+            if (!val) { wrap.style.display = 'none'; fb.textContent = ''; return; }
+            wrap.style.display = 'block';
+
+            const hasLetter = /[a-zA-Z]/.test(val);
+            const hasNumber = /[0-9]/.test(val);
+
+            if (val.length < 6) {
+                bar.style.width = '30%';
+                bar.style.backgroundColor = 'var(--danger, #f85149)';
+                fb.textContent = 'Terlalu pendek (minimal 6 karakter)';
+                fb.style.color = 'var(--danger, #f85149)';
+            } else if (!hasLetter || !hasNumber) {
+                bar.style.width = '60%';
+                bar.style.backgroundColor = '#f0c000';
+                fb.textContent = 'Sedang (butuh kombinasi huruf & angka)';
+                fb.style.color = '#f0c000';
+            } else {
+                bar.style.width = '100%';
+                bar.style.backgroundColor = 'var(--success, #3fb950)';
+                fb.textContent = 'Kuat ✓';
+                fb.style.color = 'var(--success, #3fb950)';
+            }
+        });
+    }, 500);
 });

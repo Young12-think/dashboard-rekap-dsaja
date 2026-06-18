@@ -75,6 +75,61 @@ def _dedup_cte():
     )"""
 
 
+# =============================================
+# ROBUST DATE+TIME PARSER (handles all MySQL return types)
+# =============================================
+def _parse_dt(tgl_raw, jam_raw):
+    """
+    Robust parser for Tanggal + Jam fields from MySQL.
+    Handles: datetime objects, date objects, timedelta (MySQL TIME columns),
+    and various string formats (DD/MM/YYYY, DD/MM/YY, YYYY-MM-DD, HH:MM, HH:MM:SS).
+    Returns: datetime object or None on failure.
+    """
+    try:
+        # ─── Parse date part ───
+        if hasattr(tgl_raw, 'year'):  # datetime or date object
+            year, month, day = tgl_raw.year, tgl_raw.month, tgl_raw.day
+        elif isinstance(tgl_raw, str) and tgl_raw.strip():
+            s = tgl_raw.strip().split(" ")[0]
+            if '/' in s:
+                parts = s.split('/')
+                if len(parts) == 3:
+                    if len(parts[-1]) == 2:
+                        d = datetime.strptime(s, "%d/%m/%y")
+                    else:
+                        d = datetime.strptime(s, "%d/%m/%Y")
+                    year, month, day = d.year, d.month, d.day
+                else:
+                    return None
+            elif '-' in s:
+                d = datetime.strptime(s, "%Y-%m-%d")
+                year, month, day = d.year, d.month, d.day
+            else:
+                return None
+        else:
+            return None
+
+        # ─── Parse time part ───
+        if isinstance(jam_raw, timedelta):
+            total_sec = int(jam_raw.total_seconds())
+            h = total_sec // 3600
+            m = (total_sec % 3600) // 60
+            sec = total_sec % 60
+        elif hasattr(jam_raw, 'hour'):  # time object
+            h, m, sec = jam_raw.hour, jam_raw.minute, jam_raw.second
+        elif isinstance(jam_raw, str) and jam_raw.strip():
+            parts = jam_raw.strip().split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            sec = int(float(parts[2])) if len(parts) > 2 else 0
+        else:
+            return None
+
+        return datetime(year, month, day, h, m, sec)
+    except Exception:
+        return None
+
+
 def get_production_data(date_str):
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
@@ -201,27 +256,13 @@ def get_history_data(date_str, days=7):
                 aggregated[key]['total_tonase'] += float(r.get('Qty_Netto') or 0)
                 aggregated[key]['total_ritase'] += 1
 
-                # TAT calculation
-                tgl_m = r.get("Tanggal_Masuk", "")
-                jm = r.get("Jam_Masuk", "")
-                tgl_k = r.get("Tanggal_Keluar", "")
-                jk = r.get("Jam_Keluar", "")
-                
-                if tgl_m and jm and tgl_k and jk:
-                    try:
-                        date_m = tgl_m.split(" ")[0]
-                        fmt_m = "%d/%m/%y %H:%M:%S" if len(date_m.split('/')[-1]) == 2 else "%d/%m/%Y %H:%M:%S"
-                        dt_m = datetime.strptime(f"{date_m} {jm}", fmt_m)
-
-                        date_k = tgl_k.split(" ")[0]
-                        fmt_k = "%d/%m/%y %H:%M:%S" if len(date_k.split('/')[-1]) == 2 else "%d/%m/%Y %H:%M:%S"
-                        dt_k = datetime.strptime(f"{date_k} {jk}", fmt_k)
-
-                        tat_min = (dt_k - dt_m).total_seconds() / 60.0
-                        if 0 <= tat_min <= 10080: # Max 7 days
-                            aggregated[key]['tat_list'].append(tat_min)
-                    except:
-                        pass
+                # TAT calculation (robust: handles datetime/date/timedelta/string)
+                dt_m = _parse_dt(r.get("Tanggal_Masuk"), r.get("Jam_Masuk"))
+                dt_k = _parse_dt(r.get("Tanggal_Keluar"), r.get("Jam_Keluar"))
+                if dt_m and dt_k:
+                    tat_min = (dt_k - dt_m).total_seconds() / 60.0
+                    if 0 <= tat_min <= 10080:
+                        aggregated[key]['tat_list'].append(tat_min)
                         
         data = []
         for (tgl, item), val in aggregated.items():

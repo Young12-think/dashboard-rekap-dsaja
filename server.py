@@ -6,7 +6,10 @@ import hashlib
 import logging
 import sys
 import os
+from dotenv import load_dotenv
 from waitress import serve
+
+load_dotenv()
 
 
 import app_queries as queries
@@ -502,6 +505,23 @@ def api_admin_delete_user(user_id):
         
     return jsonify({"status": "success", "message": msg})
 
+@app.route('/api/admin/users/<int:user_id>/password', methods=['PUT'])
+def api_admin_change_password(user_id):
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak. Khusus Admin!"}), 403
+
+    body = request.get_json(silent=True)
+    if not body or 'new_password' not in body:
+        return jsonify({"status": "error", "message": "Missing new_password"}), 400
+
+    ok, msg = queries.change_password(user_id, body['new_password'])
+    if not ok:
+        return jsonify({"status": "error", "message": msg}), 400
+
+    return jsonify({"status": "success", "message": msg})
+
 # =============================================
 # DAILY REPORT ENDPOINTS
 # =============================================
@@ -637,17 +657,17 @@ import time
 import socket
 
 SSH_CONFIG = {
-    'host': 'yourip',
-    'port': yourport,
-    'username': 'username',
-    'password': 'password',
+    'host': os.getenv('SSH_VPS_IP', '157.15.40.39'),
+    'port': 22,
+    'username': os.getenv('SSH_USER', 'ubuntu'),
+    'password': os.getenv('SSH_PASSWORD', 'raimu123'),
 }
 
 # ── Reverse Tunnel: expose localhost:8000 → VPS:8080 (agar web bisa diakses via VPS) ──
-ENABLE_REVERSE_TUNNEL = True    # Web access via http://157.15.40.39:8080
-REVERSE_TUNNEL_REMOTE_PORT = 8080
+ENABLE_REVERSE_TUNNEL = os.getenv('SSH_ENABLE', 'True').lower() in ['true', '1', 't', 'y', 'yes']
+REVERSE_TUNNEL_REMOTE_PORT = int(os.getenv('SSH_REMOTE_PORT', 8080))
 REVERSE_TUNNEL_LOCAL_HOST = '127.0.0.1'
-REVERSE_TUNNEL_LOCAL_PORT = 8000
+REVERSE_TUNNEL_LOCAL_PORT = int(os.getenv('SERVER_PORT', 8000))
 
 # ── MySQL Tunnel: localhost:3307 → VPS MySQL:3306 (untuk akses DB langsung) ──
 ENABLE_MYSQL_TUNNEL = False     # Hanya nyalakan saat butuh akses DB remote via Workbench dll
@@ -914,8 +934,10 @@ if __name__ == '__main__':
 
     # ── 2. Jalankan Waitress server ──
     try:
-        print("==> [INIT] Server Waitress berjalan di port 8000...\n")
-        serve(app, host='0.0.0.0', port=8000, threads=16)
+        server_host = os.getenv('SERVER_HOST', '0.0.0.0')
+        server_port = int(os.getenv('SERVER_PORT', 8000))
+        print(f"==> [INIT] Server Waitress berjalan di host {server_host} port {server_port}...\n")
+        serve(app, host=server_host, port=server_port, threads=16)
     except KeyboardInterrupt:
         print("\n==> [INFO] Server dihentikan oleh user (Ctrl+C)")
     finally:

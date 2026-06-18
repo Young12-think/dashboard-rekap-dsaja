@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────
 from datetime import datetime, timedelta
 from .db_core import dec, query
-from .production import _dedup_cte
+from .production import _dedup_cte, _parse_dt
 
 def get_analytics_data(date_str):
     """
@@ -64,22 +64,10 @@ def get_analytics_data(date_str):
         except:
             pass
             
-        # Hitung TAT (Selisih Jam Keluar - Jam Masuk)
-        try:
-            # parsing datetime
-            # Format: DD/MM/YYYY
-            date_m = tgl_m.split(" ")[0]
-            if len(date_m.split('/')[-1]) == 2:
-                dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%y %H:%M:%S")
-            else:
-                dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%Y %H:%M:%S")
-                
-            date_k = tgl_k.split(" ")[0]
-            if len(date_k.split('/')[-1]) == 2:
-                dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%y %H:%M:%S")
-            else:
-                dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%Y %H:%M:%S")
-                
+        # Hitung TAT (robust: handles datetime/date/timedelta/string)
+        dt_m = _parse_dt(tgl_m, jm)
+        dt_k = _parse_dt(tgl_k, jk)
+        if dt_m and dt_k:
             tat_minutes = (dt_k - dt_m).total_seconds() / 60.0
             
             # Abaikan yang negatif atau lebih dari 7 hari (10080 menit) untuk filter anomali ekstrim
@@ -107,8 +95,6 @@ def get_analytics_data(date_str):
                 if item_name not in tat_by_hour_item[hour_str]:
                     tat_by_hour_item[hour_str][item_name] = []
                 tat_by_hour_item[hour_str][item_name].append(tat_minutes)
-        except Exception as e:
-            pass
             
         # Kumpulkan Tara untuk Anomali
         if nopol and nopol != "-" and tara > 0:
@@ -223,31 +209,13 @@ def get_history_insights_data(date_str, days=7):
             d["netto"] += netto
             d["spt"] += spt
                 
-        # TAT: Parse using actual dates
-        tgl_m = r.get("Tanggal_Masuk", "")
-        jm = r.get("Jam_Masuk", "")
-        tgl_k = r.get("Tanggal_Keluar", "")
-        jk = r.get("Jam_Keluar", "")
-        
-        if tgl_m and jm and tgl_k and jk:
-            try:
-                date_m = tgl_m.split(" ")[0]
-                if len(date_m.split('/')[-1]) == 2:
-                    dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%y %H:%M:%S")
-                else:
-                    dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%Y %H:%M:%S")
-
-                date_k = tgl_k.split(" ")[0]
-                if len(date_k.split('/')[-1]) == 2:
-                    dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%y %H:%M:%S")
-                else:
-                    dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%Y %H:%M:%S")
-
-                tat_min = (dt_k - dt_m).total_seconds() / 60.0
-                if 0 <= tat_min <= 10080: # Max 7 days to filter anomalies
-                    d["tat_list"].append(tat_min)
-            except:
-                pass
+        # TAT: Parse using robust helper (handles all MySQL types)
+        dt_m = _parse_dt(r.get("Tanggal_Masuk"), r.get("Jam_Masuk"))
+        dt_k = _parse_dt(r.get("Tanggal_Keluar"), r.get("Jam_Keluar"))
+        if dt_m and dt_k:
+            tat_min = (dt_k - dt_m).total_seconds() / 60.0
+            if 0 <= tat_min <= 10080:
+                d["tat_list"].append(tat_min)
 
     dates = sorted(list(daily_data.keys()))
     
@@ -323,30 +291,13 @@ def get_shift_productivity_data(date_str):
         if r.get("ItemName"):
             sd["items"].add(r["ItemName"].strip().upper())
 
-        # Hitung TAT
-        try:
-            tgl_m = r.get("Tanggal_Masuk", "")
-            jm = r.get("Jam_Masuk", "")
-            tgl_k = r.get("Tanggal_Keluar", "")
-            jk = r.get("Jam_Keluar", "")
-
-            date_m = tgl_m.split(" ")[0]
-            if len(date_m.split('/')[-1]) == 2:
-                dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%y %H:%M:%S")
-            else:
-                dt_m = datetime.strptime(f"{date_m} {jm}", "%d/%m/%Y %H:%M:%S")
-
-            date_k = tgl_k.split(" ")[0]
-            if len(date_k.split('/')[-1]) == 2:
-                dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%y %H:%M:%S")
-            else:
-                dt_k = datetime.strptime(f"{date_k} {jk}", "%d/%m/%Y %H:%M:%S")
-
+        # Hitung TAT (robust: handles all MySQL types)
+        dt_m = _parse_dt(r.get("Tanggal_Masuk"), r.get("Jam_Masuk"))
+        dt_k = _parse_dt(r.get("Tanggal_Keluar"), r.get("Jam_Keluar"))
+        if dt_m and dt_k:
             tat_min = (dt_k - dt_m).total_seconds() / 60.0
             if 0 <= tat_min <= 10080:
                 sd["tat_list"].append(tat_min)
-        except:
-            pass
 
     if not shift_data:
         return {"shifts": [], "labels": ["Tonase", "Ritase", "Kecepatan", "Variasi Item"]}

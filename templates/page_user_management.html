@@ -71,7 +71,7 @@
                                 <th class="tleft">Username</th>
                                 <th>Role</th>
                                 <th>Tanggal Dibuat</th>
-                                <th style="width: 80px;">Aksi</th>
+                                <th style="width: 110px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="usersListBody">
@@ -152,4 +152,93 @@
         box-shadow: none;
         transform: none;
     }
+
+    .btn-change-pwd {
+        background: rgba(188, 140, 255, 0.12);
+        color: var(--accent, #bc8cff);
+        border: 1px solid rgba(188, 140, 255, 0.3);
+        padding: 5px 9px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-change-pwd:hover {
+        background: var(--accent, #bc8cff);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(188, 140, 255, 0.3);
+        transform: translateY(-1px);
+    }
+
+    /* Change Password Modal */
+    .change-pwd-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+    .change-pwd-box {
+        background: rgba(22, 27, 34, 0.95);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        width: 420px;
+        max-width: 92vw;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 </style>
+
+<!-- Change Password Modal -->
+<div class="change-pwd-overlay" id="changePwdModal" onclick="if(event.target===this) closeChangePwdModal()">
+    <div class="change-pwd-box">
+        <input type="hidden" id="changePwdUserId">
+        <h3 style="font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 6px; color: var(--text); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-key" style="color: var(--accent);"></i> Ganti Password
+        </h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 18px;">
+            Mengubah password untuk user: <strong id="changePwdUsername" style="color: var(--text);"></strong>
+        </p>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Password Baru</label>
+            <div style="position: relative;">
+                <i class="fa-solid fa-lock" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                <input type="password" id="changePwdInput" class="form-input" placeholder="Masukkan password baru..." 
+                    style="padding-left: 38px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: rgba(13,17,23,0.6);"
+                    onkeydown="if(event.key==='Enter') submitChangePassword()">
+            </div>
+            
+            <!-- Password Strength Bar -->
+            <div id="changePwdStrengthWrap" style="margin-top: 10px; display: none;">
+                <div style="background: rgba(255,255,255,0.08); border-radius: 4px; height: 5px; width: 100%; overflow: hidden; position: relative;">
+                    <div id="changePwdStrengthBar" style="height: 100%; width: 0%; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+                </div>
+            </div>
+            <span id="changePwdFeedback" style="font-size: 0.7rem; display: block; margin-top: 5px; color: var(--text-muted); min-height: 15px;"></span>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeChangePwdModal()" style="padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-weight: 600; font-family: 'Sora', sans-serif;">
+                Batal
+            </button>
+            <button id="btnSubmitChangePwd" onclick="submitChangePassword()" style="padding: 10px 22px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; cursor: pointer; font-weight: 700; font-family: 'Sora', sans-serif; box-shadow: 0 4px 14px rgba(188, 140, 255, 0.25);">
+                <i class="fa-solid fa-check"></i> Simpan Password Baru
+            </button>
+        </div>
+    </div>
+</div>
