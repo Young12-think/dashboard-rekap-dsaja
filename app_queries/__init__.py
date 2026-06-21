@@ -62,3 +62,5 @@ __all__ = [
     'get_top_transportir_data',
     'get_history_insights_data',
 ]
+
+import app_queries.rmi_balance as rmi_balance

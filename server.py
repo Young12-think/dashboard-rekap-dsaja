@@ -449,6 +449,54 @@ def api_logout():
     session.clear()
     return jsonify({"status": "success"})
 
+# =============================================
+# API & Pages: RMI Balance Molasses
+# =============================================
+@app.route('/rmi-balance')
+def page_rmi_balance():
+    if not is_logged_in(): return redirect(url_for('page_login'))
+    return render_template('rmi_balance_dashboard.html')
+
+@app.route('/api/rmi-balance/overview')
+def api_rmi_balance_overview():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_overview()})
+
+@app.route('/api/rmi-balance/stok-harian')
+def api_rmi_balance_stok_harian():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_stok_harian()})
+
+@app.route('/api/rmi-balance/delivery-harian')
+def api_rmi_balance_delivery_harian():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_delivery_harian()})
+
+@app.route('/api/rmi-balance/molasses-harian')
+def api_rmi_balance_molasses_harian():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_molasses_harian()})
+
+@app.route('/api/rmi-balance/lokasi')
+def api_rmi_balance_lokasi():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_lokasi_stok()})
+
+@app.route('/api/rmi-balance/settings', methods=['GET', 'POST'])
+def api_rmi_balance_settings():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    if request.method == 'GET':
+        return jsonify({"status": "success", "data": queries.rmi_balance.get_settings()})
+    else:
+        if not is_admin(): return jsonify({"status": "error", "message": "Khusus Admin!"}), 403
+        body = request.get_json(silent=True) or {}
+        gula_cap = body.get('gula_capacity', 22000)
+        mol_cap = body.get('molasses_capacity', 30000)
+        ok = queries.rmi_balance.update_settings(gula_cap, mol_cap)
+        if ok:
+            return jsonify({"status": "success"})
+        return jsonify({"status": "error", "message": "Gagal update setting"}), 500
+
 @app.route('/api/me')
 def api_me():
     if not is_logged_in():
