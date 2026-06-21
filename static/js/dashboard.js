@@ -1168,13 +1168,16 @@ async function loadDashboardTrend(showLoader = false) {
 async function loadPOMonitor() {
     const d = await api('/api/po-monitor');
     const tbody = document.getElementById('poMonitorBody');
-    if (!d || d.status !== 'success') { tbody.innerHTML = errRow(6, 'Gagal memuat Monitor PO.'); return; }
-    if (!d.data || d.data.length === 0) { tbody.innerHTML = emptyRow(6, 'Tidak ada PO Stock yang sedang aktif.'); return; }
+    if (!d || d.status !== 'success') { tbody.innerHTML = errRow(7, 'Gagal memuat Monitor PO.'); return; }
+    if (!d.data || d.data.length === 0) { tbody.innerHTML = emptyRow(7, 'Tidak ada PO Stock yang sedang aktif.'); return; }
+
+    const isAdmin = (window.currentUserRole === 'admin');
 
     tbody.innerHTML = d.data.map(r => {
         const target = parseFloat(r.target_po) || 0;
         const sent = parseFloat(r.total_terkirim) || 0;
         const balance = target - sent;
+        const keterangan = r.keterangan || '';
 
         let percent = target > 0 ? (sent / target) * 100 : 0;
         if (percent > 100) percent = 100;
@@ -1187,8 +1190,16 @@ async function loadPOMonitor() {
         const itemName = r.item_name || 'LIMBAH / BARANG LAINNYA';
         const balanceColor = balance < 0 ? 'color: #f85149;' : 'color: #3fb950;';
 
+        // Buat NOMOR PO clickable untuk admin
+        const poClickStyle = isAdmin
+            ? 'cursor:pointer; color:#58a6ff; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;'
+            : 'color: #e6edf3;';
+        const poClickAttr = isAdmin
+            ? `onclick="openEditPOModal('${r.nomor_po}', ${target}, '${keterangan.replace(/'/g, "\\'")}')" title="Klik untuk edit Target PO & Keterangan"`
+            : '';
+
         return `<tr>
-            <td style="text-align:left; font-weight:700; color: #e6edf3;">${r.nomor_po}</td>
+            <td style="text-align:left; font-weight:700; ${poClickStyle}" ${poClickAttr}>${r.nomor_po}</td>
             <td style="text-align:left">${itemName}</td>
             <td>${fmt(target)}</td>
             <td>${fmt(sent)}</td>
@@ -1199,6 +1210,8 @@ async function loadPOMonitor() {
                 </div>
                 <div style="font-size:0.7rem; color:var(--text-muted); text-align:right; margin-top:4px; font-weight:600;">${percent.toFixed(1)}% Terpakai</div>
             </td>
+            <td style="text-align:left; font-size:0.85rem; color:var(--text-secondary); max-width:220px; white-space:pre-wrap; word-break:break-word;">${keterangan || '<span style="color:var(--text-muted); font-style:italic;">—</span>'}</td>
         </tr>`;
     }).join('');
 }
+

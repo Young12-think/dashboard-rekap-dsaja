@@ -11,6 +11,7 @@ def ensure_po_stock_table():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nomor_po VARCHAR(100) NOT NULL,
                 qty_po DECIMAL(14,2) DEFAULT 0,
+                keterangan VARCHAR(255) DEFAULT '',
                 is_active TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -18,11 +19,16 @@ def ensure_po_stock_table():
             ) ENGINE=InnoDB
         """)
         conn.commit()
-        try:
-            cur.execute("ALTER TABLE po_stock ADD COLUMN is_active TINYINT(1) DEFAULT 1")
-            conn.commit()
-        except:
-            pass
+        # Auto-add columns if missing (migration)
+        for col_sql in [
+            "ALTER TABLE po_stock ADD COLUMN is_active TINYINT(1) DEFAULT 1",
+            "ALTER TABLE po_stock ADD COLUMN keterangan VARCHAR(255) DEFAULT ''",
+        ]:
+            try:
+                cur.execute(col_sql)
+                conn.commit()
+            except:
+                pass
         cur.close()
         return True
     except Exception as e:
@@ -33,19 +39,25 @@ def ensure_po_stock_table():
 
 def get_po_stocks():
     ensure_po_stock_table()
-    rows = query("SELECT nomor_po, qty_po FROM po_stock WHERE is_active = 1") or []
-    return {r['nomor_po']: float(r['qty_po']) for r in rows}
+    rows = query("SELECT nomor_po, qty_po, keterangan FROM po_stock WHERE is_active = 1") or []
+    return {r['nomor_po']: {'qty_po': float(r['qty_po']), 'keterangan': r.get('keterangan', '')} for r in rows}
 
-def save_po_stock(nomor_po, qty_po):
+def save_po_stock(nomor_po, qty_po, keterangan=None):
     ensure_po_stock_table()
     conn = get_db()
     if not conn: return False
     try:
         cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO po_stock (nomor_po, qty_po, is_active) VALUES (%s, %s, 1)
-            ON DUPLICATE KEY UPDATE qty_po = %s, is_active = 1, updated_at = CURRENT_TIMESTAMP
-        """, (nomor_po, qty_po, qty_po))
+        if keterangan is not None:
+            cur.execute("""
+                INSERT INTO po_stock (nomor_po, qty_po, keterangan, is_active) VALUES (%s, %s, %s, 1)
+                ON DUPLICATE KEY UPDATE qty_po = %s, keterangan = %s, is_active = 1, updated_at = CURRENT_TIMESTAMP
+            """, (nomor_po, qty_po, keterangan, qty_po, keterangan))
+        else:
+            cur.execute("""
+                INSERT INTO po_stock (nomor_po, qty_po, is_active) VALUES (%s, %s, 1)
+                ON DUPLICATE KEY UPDATE qty_po = %s, is_active = 1, updated_at = CURRENT_TIMESTAMP
+            """, (nomor_po, qty_po, qty_po))
         conn.commit(); cur.close()
         return True
     except Exception as e:
@@ -101,6 +113,7 @@ def get_po_monitor_data():
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po 
                 LIMIT 1) as item_name,
                p.qty_po as target_po,
+               p.keterangan,
                (SELECT SUM(COALESCE(Qty_Netto, 0)) FROM data_timbang 
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po) as total_terkirim
         FROM po_stock p WHERE p.qty_po > 0 AND p.is_active = 1 ORDER BY p.nomor_po ASC

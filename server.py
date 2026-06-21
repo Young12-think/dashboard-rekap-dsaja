@@ -314,7 +314,8 @@ def api_save_po_stock():
     body = request.get_json()
     if not body or 'nomor_po' not in body or 'qty_po' not in body:
         return jsonify({"status": "error", "message": "Missing nomor_po or qty_po"}), 400
-    ok = queries.save_po_stock(body['nomor_po'], float(body['qty_po']))
+    keterangan = body.get('keterangan', None)
+    ok = queries.save_po_stock(body['nomor_po'], float(body['qty_po']), keterangan=keterangan)
     if not ok:
         return jsonify({"status": "error", "message": "Database error"}), 500
     return jsonify({"status": "success"})

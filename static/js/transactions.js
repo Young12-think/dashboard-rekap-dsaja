@@ -804,9 +804,25 @@ function renderTransactionSummary(typeKey, summaryData) {
 // =============================================
 // PO STOCK MODAL
 // =============================================
-function openEditPOModal(poNumber) {
+function openEditPOModal(poNumber, qtyPo, keterangan) {
     document.getElementById('modalPoNumber').value = poNumber;
-    document.getElementById('modalPoQty').value = poStocks[poNumber] || '';
+    // If qtyPo is passed directly (from PO Monitor), use it; otherwise look up from poStocks
+    if (qtyPo !== undefined && qtyPo !== null) {
+        document.getElementById('modalPoQty').value = qtyPo || '';
+    } else {
+        const stockInfo = poStocks[poNumber];
+        document.getElementById('modalPoQty').value = (stockInfo && typeof stockInfo === 'object') ? (stockInfo.qty_po || '') : (stockInfo || '');
+    }
+    // Set keterangan
+    const ketEl = document.getElementById('modalPoKeterangan');
+    if (ketEl) {
+        if (keterangan !== undefined && keterangan !== null) {
+            ketEl.value = keterangan;
+        } else {
+            const stockInfo = poStocks[poNumber];
+            ketEl.value = (stockInfo && typeof stockInfo === 'object') ? (stockInfo.keterangan || '') : '';
+        }
+    }
     document.getElementById('modalOverlay').classList.add('active');
 }
 
@@ -817,19 +833,22 @@ function closeModal() {
 async function savePOStockFromModal() {
     const poNumber = document.getElementById('modalPoNumber').value;
     const qtyPO = parseFloat(document.getElementById('modalPoQty').value) || 0;
+    const keterangan = (document.getElementById('modalPoKeterangan')?.value || '').trim();
 
     const saveBtn = document.getElementById('modalSaveBtn');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
 
-    const res = await apiPost('/api/po-stock', { nomor_po: poNumber, qty_po: qtyPO });
+    const res = await apiPost('/api/po-stock', { nomor_po: poNumber, qty_po: qtyPO, keterangan: keterangan });
 
     saveBtn.disabled = false;
     saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan';
 
     if (res && res.status === 'success') {
-        poStocks[poNumber] = qtyPO;
+        poStocks[poNumber] = { qty_po: qtyPO, keterangan: keterangan };
         closeModal();
+        // Refresh PO Monitor di dashboard
+        if (typeof loadPOMonitor === 'function') loadPOMonitor();
         if (currentTxType === 'limbah') {
             renderTransactionSummary(currentTxType);
         }
