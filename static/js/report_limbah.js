@@ -8,7 +8,7 @@
 async function loadReportLimbah() {
     const el = document.getElementById('reportLimbahContent');
     if (!el) return;
-    
+
     // Update label tanggal
     const dateStrObj = document.getElementById('reportLimbahDateStr');
     if (dateStrObj) {
@@ -164,6 +164,127 @@ function initReportButtons() {
             }
         });
     }
+
+    // Handler tombol Salin Gambar Shift (tanpa kolom TOTAL)
+    const btnImgShift = document.getElementById('btnCopyReportImgShift');
+    if (btnImgShift && captureArea) {
+        btnImgShift.addEventListener('click', async () => {
+            if (typeof html2canvas === 'undefined') {
+                alert('Library html2canvas belum dimuat.');
+                return;
+            }
+            btnImgShift.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyalin...';
+            try {
+                // Buat container offscreen untuk capture gambar shift saja
+                const offscreen = document.createElement('div');
+                offscreen.style.cssText = 'position:fixed; left:-9999px; top:0; background:#0d1117; padding:20px; width:560px;';
+                document.body.appendChild(offscreen);
+
+                // Clone tanggal
+                const dateEl = captureArea.querySelector('#reportLimbahDateStr');
+                if (dateEl) {
+                    const dateClone = document.createElement('div');
+                    dateClone.style.cssText = 'background:#000; padding:10px 20px; display:inline-block; margin-bottom:20px;';
+                    dateClone.innerHTML = `<h2 style="color:#f0c000; font-family:'Orbitron',sans-serif; margin:0; font-size:1.5rem; letter-spacing:2px;">${dateEl.textContent}</h2>`;
+                    offscreen.appendChild(dateClone);
+                }
+
+                // Clone setiap tabel tapi hilangkan kolom TOTAL
+                const tables = captureArea.querySelectorAll('.report-table-wa');
+                tables.forEach(table => {
+                    const clone = document.createElement('table');
+                    clone.style.cssText = 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif; color:#000; background:#fff; margin-bottom:20px; table-layout:fixed;';
+
+                    const rows = table.querySelectorAll('tr');
+                    if (rows.length < 4) return;
+
+                    // Row 0: Title - colspan 6 (bukan 8)
+                    const titleRow = document.createElement('tr');
+                    const titleTd = document.createElement('th');
+                    titleTd.colSpan = 6;
+                    titleTd.textContent = rows[0].querySelector('.report-head-title').textContent;
+                    const bgClass = rows[0].querySelector('.report-head-title').classList.contains('bg-fc') ? 'bg-fc' : 'bg-fa';
+                    titleTd.className = 'report-head-title ' + bgClass;
+                    titleTd.style.cssText = 'background:#000; color:#fff; padding:10px; font-size:18px; text-align:center; border:1px solid #000; font-weight:bold;';
+                    titleRow.appendChild(titleTd);
+                    clone.appendChild(titleRow);
+
+                    // Tentukan warna background berdasarkan tipe
+                    const isFC = rows[1].classList.contains('bg-fc');
+                    const headerBg = isFC ? '#aad050ff' : '#5c44c4ff';
+                    const headerColor = isFC ? '#000' : '#fff';
+
+                    // Row 1: Shift headers - hanya 3 shift (tanpa TOTAL)
+                    const shiftRow = document.createElement('tr');
+                    shiftRow.style.cssText = `background:${headerBg}; color:${headerColor};`;
+                    ['SHIFT 1', 'SHIFT 2', 'SHIFT 3'].forEach(label => {
+                        const th = document.createElement('th');
+                        th.colSpan = 2;
+                        th.textContent = label;
+                        th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:33.33%;`;
+                        shiftRow.appendChild(th);
+                    });
+                    clone.appendChild(shiftRow);
+
+                    // Row 2: Sub headers RIT/KG x3
+                    const subRow = document.createElement('tr');
+                    subRow.style.cssText = `background:${headerBg}; color:${headerColor}; opacity:0.9;`;
+                    for (let i = 0; i < 3; i++) {
+                        ['RIT', 'KG'].forEach(label => {
+                            const th = document.createElement('th');
+                            th.textContent = label;
+                            th.style.cssText = 'border:1px solid #000; text-align:center; padding:6px 4px; font-size:14px; font-weight:bold; width:16.66%;';
+                            subRow.appendChild(th);
+                        });
+                    }
+                    clone.appendChild(subRow);
+
+                    // Row 3: Data - hanya 6 kolom pertama (tanpa 2 kolom TOTAL)
+                    const dataRow = document.createElement('tr');
+                    const origTds = rows[3].querySelectorAll('td');
+                    for (let i = 0; i < 6 && i < origTds.length; i++) {
+                        const td = document.createElement('td');
+                        td.textContent = origTds[i].textContent;
+                        td.style.cssText = 'border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:16.66%;';
+                        dataRow.appendChild(td);
+                    }
+                    clone.appendChild(dataRow);
+
+                    offscreen.appendChild(clone);
+                });
+
+                // Capture gambar
+                const canvas = await html2canvas(offscreen, { backgroundColor: '#0d1117' });
+                document.body.removeChild(offscreen);
+
+                canvas.toBlob(blob => {
+                    const fallbackDownload = () => {
+                        window.downloadBlob(blob, 'report_limbah_shift.png');
+                        btnImgShift.innerHTML = '<i class="fa-solid fa-download"></i> Diunduh!';
+                        setTimeout(() => btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift', 2000);
+                        alert('Browser memblokir salin gambar di koneksi HTTP biasa. Gambar otomatis diunduh ke perangkat Anda!');
+                    };
+
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        navigator.clipboard.write([item]).then(() => {
+                            btnImgShift.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
+                            setTimeout(() => btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift', 2000);
+                        }).catch(e => {
+                            console.error('Clipboard write error', e);
+                            fallbackDownload();
+                        });
+                    } else {
+                        fallbackDownload();
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                alert('Gagal membuat gambar.');
+                btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift';
+            }
+        });
+    }
 }
 
 // Fungsi helper screenshot
@@ -171,7 +292,7 @@ async function captureToClipboard(elemId, btnId, origHtml) {
     const btn = document.getElementById(btnId);
     const area = document.getElementById(elemId);
     if (!btn || !area) return;
-    
+
     if (typeof html2canvas === 'undefined') {
         alert('Library html2canvas belum dimuat.');
         return;
@@ -209,7 +330,7 @@ async function captureToClipboard(elemId, btnId, origHtml) {
 }
 
 // Global helpers untuk download blob dan copy fallback
-window.downloadBlob = function(blob, filename) {
+window.downloadBlob = function (blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -220,7 +341,7 @@ window.downloadBlob = function(blob, filename) {
     URL.revokeObjectURL(url);
 };
 
-window.copyTextFallback = function(txt) {
+window.copyTextFallback = function (txt) {
     const ta = document.createElement('textarea');
     ta.value = txt;
     ta.setAttribute('readonly', ''); // Cegah keyboard mobile muncul
@@ -234,31 +355,31 @@ window.copyTextFallback = function(txt) {
     ta.style.outline = 'none';
     ta.style.boxShadow = 'none';
     ta.style.background = 'transparent';
-    
+
     document.body.appendChild(ta);
-    
+
     // Simpan selection yang aktif sebelum copy
-    const selected = document.getSelection().rangeCount > 0 
-        ? document.getSelection().getRangeAt(0) 
+    const selected = document.getSelection().rangeCount > 0
+        ? document.getSelection().getRangeAt(0)
         : false;
-        
+
     ta.select();
     ta.setSelectionRange(0, txt.length); // Seleksi teks secara aman
-    
+
     let ok = false;
     try {
         ok = document.execCommand('copy');
     } catch (err) {
         console.error('execCommand copy error', err);
     }
-    
+
     document.body.removeChild(ta);
-    
+
     // Kembalikan selection awal agar tidak terkunci
     if (selected) {
         document.getSelection().removeAllRanges();
         document.getSelection().addRange(selected);
     }
-    
+
     return ok;
 };
