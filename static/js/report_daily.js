@@ -433,13 +433,14 @@ function renderCane(data) {
   const trucks = [
     { label:'ENGKLE',           keyToday: data?.today?.tipe_engkel, keyTodate: data?.todate?.tipe_engkel },
     { label:'FUSO',             keyToday: data?.today?.tipe_fuso,   keyTodate: data?.todate?.tipe_fuso   },
-    { label:'MINIBUS / PICKUP / L300', keyToday: data?.today?.tipe_double, keyTodate: data?.todate?.tipe_double },
+    { label:'DOUBLE',           keyToday: data?.today?.tipe_double, keyTodate: data?.todate?.tipe_double },
+    { label:'MB / PICKUP / L300', keyToday: data?.today?.tipe_pickup, keyTodate: data?.todate?.tipe_pickup },
   ];
  
   let truckHtml = '';
   trucks.forEach((t, i) => {
     truckHtml += `<tr>
-      ${i === 0 ? `<td colspan="2" rowspan="3" style="font-weight:700; vertical-align:middle; text-align:center; letter-spacing:1px;">TRUCK TYPE</td>` : ''}
+      ${i === 0 ? `<td colspan="2" rowspan="${trucks.length}" style="font-weight:700; vertical-align:middle; text-align:center; letter-spacing:1px;">TRUCK TYPE</td>` : ''}
       <td colspan="3" style="background:#ffe082; font-weight:700; text-align:center; color:#0d1117;">${t.label}</td>
       <td style="background:#ffe082; font-weight:700; text-align:center; color:#0d1117;">${t.keyToday || ''}</td>
       <td style="background:#ffe082; font-weight:700; text-align:center; color:#0d1117;">${t.keyTodate || ''}</td>

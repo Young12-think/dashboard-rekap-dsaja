@@ -305,8 +305,8 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             SUM(ABS(COALESCE(COALESCE(t.Qty_sblm_Rafaksi, t.Qty_Netto), 0))) AS netto_sebelum,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%' THEN t.NoSystem END) AS tipe_engkel,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%' THEN t.NoSystem END) AS tipe_fuso,
-            /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
-            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%DOUBLE%' THEN t.NoSystem END) AS tipe_double,
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_pickup
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'
@@ -324,8 +324,8 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
             SUM(ABS(COALESCE(COALESCE(t.Qty_sblm_Rafaksi, t.Qty_Netto), 0))) AS netto_sebelum,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%ENGK%' THEN t.NoSystem END) AS tipe_engkel,
             COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%FUSO%' THEN t.NoSystem END) AS tipe_fuso,
-            /* JURUS SAKTI: Cari Minibus, Pickup, atau L300 */
-            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_double
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%DOUBLE%' THEN t.NoSystem END) AS tipe_double,
+            COUNT(DISTINCT CASE WHEN UPPER(TRIM(t.Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(t.Kendaraan)) LIKE '%L300%' THEN t.NoSystem END) AS tipe_pickup
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND t.ItemName LIKE '%TEBU%'
@@ -336,7 +336,7 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
         raw_todate = dec(query(sql_todate, (td_from, td_to)))     or []
 
         def empty_shift():
-            return dict(ritase=0, netto=0, netto_sebelum=0, tipe_engkel=0, tipe_fuso=0, tipe_double=0)
+            return dict(ritase=0, netto=0, netto_sebelum=0, tipe_engkel=0, tipe_fuso=0, tipe_double=0, tipe_pickup=0)
 
         shifts = {1: empty_shift(), 2: empty_shift(), 3: empty_shift()}
         today  = empty_shift()
@@ -350,6 +350,7 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
                 'tipe_engkel':  int(r.get('tipe_engkel',  0) or 0),
                 'tipe_fuso':    int(r.get('tipe_fuso',    0) or 0),
                 'tipe_double':  int(r.get('tipe_double',  0) or 0),
+                'tipe_pickup':  int(r.get('tipe_pickup',  0) or 0),
             }
             if s in shifts: shifts[s] = row
             for k in today: today[k] += row[k]
@@ -364,6 +365,7 @@ def get_daily_cane(date_from, date_to, rekap_from=None, rekap_to=None):
                 'tipe_engkel':  int(r.get('tipe_engkel',  0) or 0),
                 'tipe_fuso':    int(r.get('tipe_fuso',    0) or 0),
                 'tipe_double':  int(r.get('tipe_double',  0) or 0),
+                'tipe_pickup':  int(r.get('tipe_pickup',  0) or 0),
             }
 
             # ============================================================

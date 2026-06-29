@@ -263,6 +263,7 @@ function renderLaporanTebu() {
   setElem('tk_e', fmt(sd.tipe_engkel));  setElem('tdt_e', fmt(tdt.tipe_engkel));
   setElem('tk_f', fmt(sd.tipe_fuso));    setElem('tdt_f', fmt(tdt.tipe_fuso));
   setElem('tk_d', fmt(sd.tipe_double));  setElem('tdt_d', fmt(tdt.tipe_double));
+  setElem('tk_p', fmt(sd.tipe_pickup));  setElem('tdt_p', fmt(tdt.tipe_pickup));
 
   // progress ring
   const pct    = target > 0 ? (tdt.netto_sesudah / target) * 100 : 0;
@@ -309,7 +310,8 @@ function renderTableTebuV2(d, td, tdt) {
   const truckRows = [
     ['', 'Engkel',       d.shift1.tipe_engkel,d.shift2.tipe_engkel,d.shift3.tipe_engkel,td.tipe_engkel,tdt.tipe_engkel,''],
     ['', 'Fuso',         d.shift1.tipe_fuso,  d.shift2.tipe_fuso,  d.shift3.tipe_fuso,  td.tipe_fuso,  tdt.tipe_fuso,  ''],
-    ['', 'Mini Bus/Pick Up/L300', d.shift1.tipe_double,d.shift2.tipe_double,d.shift3.tipe_double,td.tipe_double,tdt.tipe_double,''],
+    ['', 'Double',       d.shift1.tipe_double,d.shift2.tipe_double,d.shift3.tipe_double,td.tipe_double,tdt.tipe_double,''],
+    ['', 'Mini Bus/Pick Up/L300', d.shift1.tipe_pickup,d.shift2.tipe_pickup,d.shift3.tipe_pickup,td.tipe_pickup,tdt.tipe_pickup,''],
   ];
 
   let html = mainRows.map((r, i) => {

@@ -1,0 +1,346 @@
+<div class="" id="">
+  <!-- Laporan Harian Sub-Header & Controls -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+    <div>
+      <h2 style="margin: 0 0 8px 0; color: var(--text-primary);">RMI — Daily Report</h2>
+      <div style="color: var(--text-secondary); font-size: 14px;">Laporan Harian Gula & Molasses</div>
+    </div>
+    
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 4px 12px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: var(--text-secondary);">Tanggal Laporan:</span>
+        <input type="date" id="lh-date-picker" style="background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 4px; padding: 4px 8px; font-size: 13px;">
+      </div>
+      
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="status-badge active" id="lh-giling-status" style="background: var(--accent-green-dim); color: var(--accent-green); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">● Giling aktif</span>
+        <button class="btn-primary" style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-file-pdf"></i> Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laporan Harian TABS -->
+  <style>
+    .lh-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); }
+    .lh-tab { cursor: pointer; padding: 12px 24px; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .lh-tab:hover { color: var(--text-primary); }
+    .lh-tab.active { color: var(--accent-green); border-bottom-color: var(--accent-green); }
+  </style>
+  <div class="lh-tabs">
+      <div class="lh-tab active" onclick="showTabLH('detail', this)"><i class="fa-solid fa-table-list"></i> Detail Harian</div>
+      <div class="lh-tab" onclick="showTabLH('grafik', this)"><i class="fa-solid fa-chart-pie"></i> Grafik & Analitik</div>
+  </div>
+  <div id="lh-tab-detail">
+    
+    <!-- ==========================================
+         BLOK GULA
+         ========================================== -->
+    <div style="margin-bottom: 32px;">
+      <h3 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-tag" style="color: var(--accent-red);"></i> GULA
+      </h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 24px;">
+        
+        <!-- GULA BALANCE -->
+        <div class="section-card" style="padding: 0; overflow: hidden; margin-bottom: 0;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-blue); font-size: 10px;"></i> Balance Gula</h3>
+            <span style="font-size: 11px; background: var(--accent-blue-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-blue); font-weight: 600;">Ton</span>
+          </div>
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Open Balance</span><span style="font-weight: 600; color: var(--text-primary);"><span id="lh-val-gula-open">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Production</span><span style="font-weight: 600; color: var(--text-primary);">+ <span id="lh-val-gula-prod">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Total</span><span style="font-weight: 600; color: var(--text-primary);">= <span id="lh-val-gula-total">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Delivery</span><span style="font-weight: 600; color: var(--accent-red);">− <span id="lh-val-gula-del">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 14px 10px; margin-top: 8px; background: var(--accent-blue-dim); border-radius: var(--radius-sm);"><span style="color: var(--accent-blue); font-weight: 600;">End Balance</span><span style="font-weight: 700; color: var(--accent-blue); font-size: 15px;"><span id="lh-val-gula-end">-</span> <span style="font-size: 11px; color: var(--accent-blue);">Ton</span></span></div>
+          </div>
+          <div style="background: rgba(255,255,255,0.02); padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; border-top: 1px solid var(--border-color);">
+            <div><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">GKB stock</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-blue);"><span id="lh-val-gkb-stok">-</span> <span style="font-size: 11px;">Ton</span></div></div>
+            <div><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">GKM stock</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-red);"><span id="lh-val-gkm-stok">-</span> <span style="font-size: 11px;">Ton</span></div></div>
+            <div><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Reject</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-yellow);"><span id="lh-val-gula-reject">-</span> <span style="font-size: 11px;">Ton</span></div></div>
+          </div>
+        </div>
+
+        <!-- PRODUKSI GULA -->
+        <div class="section-card" style="padding: 0; overflow: hidden; margin-bottom: 0;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-green); font-size: 10px;"></i> Produksi per Shift</h3>
+              <span style="font-size: 11px; background: var(--accent-green-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-green); font-weight: 600;">Ton</span>
+          </div>
+          <div class="table-responsive" style="padding: 20px;">
+            <table class="data-table" id="lh-table-prod-gula" style="min-width: 100%;">
+              <thead><tr><th style="text-align: left; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">SHIFT</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">GKB</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">GKM</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">REJECT</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">TOTAL</th></tr></thead>
+              <tbody>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift I</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift II</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift III</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+                <tr style="background: var(--accent-blue-dim);"><td style="text-align: left; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">Total</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DELIVERY GULA (FULL WIDTH) -->
+      <div class="section-card" style="padding: 0; overflow: hidden; margin-bottom: 0;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-orange); font-size: 10px;"></i> Delivery Gula — Plan vs Actual</h3>
+            <span style="font-size: 11px; background: var(--accent-orange-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-orange); font-weight: 600;">Ton</span>
+        </div>
+        <div class="table-responsive" style="padding: 20px;">
+          <table class="data-table" id="lh-table-del-gula" style="min-width: 100%;">
+            <thead><tr><th style="text-align: left; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">PRODUK</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">PLAN</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">ACTUAL</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">DIFF</th></tr></thead>
+            <tbody>
+              <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-blue); margin-right: 6px;">●</span> GKB</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td></tr>
+              <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-red); margin-right: 6px;">●</span> GKM</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">−</td></tr>
+              <tr style="background: var(--accent-blue-dim);"><td style="text-align: left; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">Total</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">−</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">−</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">−</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: rgba(229, 180, 0, 0.1); padding: 12px 20px; font-size: 12px; color: var(--text-secondary); border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px;">
+            📅 Delivery plan besok — GKB: <span style="font-weight: 700; color: var(--text-primary);" id="lh-plan-besok-gkb">- Ton</span> <span style="color: var(--text-muted);">|</span> GKM: <span style="font-weight: 700; color: var(--text-primary);" id="lh-plan-besok-gkm">- Ton</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         BLOK MOLASSES & CANE
+         ========================================== -->
+    <div style="margin-bottom: 32px;">
+      <h3 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-tag" style="color: var(--accent-green);"></i> MOLASSES
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 24px;">
+        
+        <!-- MOLASSES BALANCE -->
+        <div class="section-card" style="padding: 0; overflow: hidden; margin-bottom: 0;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-blue); font-size: 10px;"></i> Balance Molasses</h3>
+            <span style="font-size: 11px; background: var(--accent-blue-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-blue); font-weight: 600;">Ton</span>
+          </div>
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Open Balance</span><span style="font-weight: 600; color: var(--text-primary);"><span id="lh-val-mol-open">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Production</span><span style="font-weight: 600; color: var(--text-primary);">+ <span id="lh-val-mol-prod">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Total</span><span style="font-weight: 600; color: var(--text-primary);">= <span id="lh-val-mol-total">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);"><span style="color: var(--text-secondary);">Delivery</span><span style="font-weight: 600; color: var(--accent-red);">− <span id="lh-val-mol-del">-</span> <span style="font-size: 11px; color: var(--text-muted);">Ton</span></span></div>
+            <div style="display: flex; justify-content: space-between; padding: 14px 10px; margin-top: 8px; background: var(--accent-blue-dim); border-radius: var(--radius-sm);"><span style="color: var(--accent-blue); font-weight: 600;">End Balance</span><span style="font-weight: 700; color: var(--accent-blue); font-size: 15px;"><span id="lh-val-mol-end">-</span> <span style="font-size: 11px; color: var(--accent-blue);">Ton</span></span></div>
+          </div>
+          <div style="background: rgba(255,255,255,0.02); padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid var(--border-color);">
+            <div><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Tank A</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-cyan);"><span id="lh-val-tanka-stok">-</span> <span style="font-size: 11px;">Ton</span></div></div>
+            <div><div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Tank B</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-green);"><span id="lh-val-tankb-stok">-</span> <span style="font-size: 11px;">Ton</span></div></div>
+          </div>
+        </div>
+
+        <!-- PRODUKSI MOLASSES -->
+        <div class="section-card" style="padding: 0; overflow: hidden; margin-bottom: 0;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-green); font-size: 10px;"></i> Produksi Molasses per Shift</h3>
+              <span style="font-size: 11px; background: var(--accent-green-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-green); font-weight: 600;">Ton</span>
+          </div>
+          <div class="table-responsive" style="padding: 20px;">
+            <table class="data-table" id="lh-table-prod-mol" style="min-width: 100%;">
+              <thead><tr><th style="text-align: left; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">SHIFT</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">PRODUKSI (Ton)</th></tr></thead>
+              <tbody>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift I</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift II</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+                <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift III</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background: rgba(255,255,255,0.02); padding: 16px 20px; border-top: 1px solid var(--border-color);">
+            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 12px; font-weight: 600;">Delivery Molasses</div>
+            <div style="display: flex; justify-content: space-between;">
+              <div><div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Plan</div><div style="font-weight: 700; font-size: 14px; color: var(--text-primary);" id="lh-mol-plan">-</div></div>
+              <div><div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Actual</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-blue);" id="lh-mol-actual">-</div></div>
+              <div><div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Diff</div><div style="font-weight: 700; font-size: 14px; color: var(--accent-red);" id="lh-mol-diff">-</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         BLOK CANE
+         ========================================== -->
+    <div style="margin-bottom: 32px;">
+      <h3 style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          🌽 CANE
+      </h3>
+      <!-- CANE RECEIVED -->
+      <div class="section-card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-circle" style="color: var(--accent-orange); font-size: 10px;"></i> Penerimaan Tebu</h3>
+            <span style="font-size: 11px; background: var(--accent-yellow-dim); padding: 3px 12px; border-radius: 20px; color: var(--accent-yellow); font-weight: 600;">Ton</span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border-subtle);">
+          <div style="padding: 20px; border-right: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Σ Tebu sebelumnya</div>
+            <div style="font-weight: 700; font-size: 20px; color: var(--text-primary);"><span id="lh-cane-prev">-</span> <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">Ton</span></div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;"><span id="lh-cane-truck-prev">-</span> truck</div>
+          </div>
+          <div style="padding: 20px;">
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Penerimaan hari ini</div>
+            <div style="font-weight: 700; font-size: 20px; color: var(--text-primary);"><span id="lh-cane-today">-</span> <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">Ton</span></div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;"><span id="lh-cane-truck-today">-</span> truck</div>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="padding: 20px;">
+          <table class="data-table" id="lh-table-cane" style="width: 100%; table-layout: fixed;">
+            <thead><tr><th style="text-align: left; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">SHIFT</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">CANE RECEIVED (TON)</th><th style="text-align: right; background: transparent; border-bottom: 1px solid var(--border-subtle); padding: 8px;">Σ TRUCK</th></tr></thead>
+            <tbody>
+              <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift I</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+              <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift II</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+              <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Shift III</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td><td style="text-align: right; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;">-</td></tr>
+              <tr style="background: var(--accent-blue-dim);"><td style="text-align: left; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">Σ Cane Total</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td><td style="text-align: right; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </div><!-- end lh-tab-detail -->
+
+  <!-- TAB CONTENT: GRAFIK & ANALITIK -->
+  <div id="lh-tab-grafik" style="display: none;">
+    <!-- Filter Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 20px; border-radius: var(--radius-md); margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 13px; color: var(--text-secondary);">Periode</span>
+            <div style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 6px 12px; border-radius: 4px; font-weight: 600; color: var(--accent-blue); font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-regular fa-calendar"></i> <span id="lh-grafik-date-range">...</span>
+            </div>
+            <button class="btn-outline lh-grafik-btn-period active" data-days="7" style="padding: 6px 12px; font-size: 12px; border-radius: 4px;">7 hari</button>
+            <button class="btn-outline lh-grafik-btn-period" data-days="30" style="padding: 6px 12px; font-size: 12px; border-radius: 4px;">30 hari</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);" id="lh-grafik-last-update">Update: -</div>
+    </div>
+
+    <!-- Alert Banners -->
+    <div id="lh-grafik-alerts" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+        <!-- Akan diisi dinamis via JS -->
+    </div>
+
+    <!-- RINGKASAN HARI INI -->
+    <div style="margin-bottom: 32px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">RINGKASAN HARI INI</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <!-- Card Gula -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-top: 3px solid var(--accent-blue); border-radius: var(--radius-md); padding: 20px;">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">END BALANCE GULA</div>
+                <div style="font-weight: 700; font-size: 24px; color: var(--text-primary); margin-bottom: 4px;" id="lh-ga-val-gula">-</div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                    Ton <span class="badge-green" id="lh-ga-diff-gula" style="display:none; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-caret-up"></i> +0</span>
+                </div>
+            </div>
+            <!-- Card Molasses -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-top: 3px solid var(--accent-green); border-radius: var(--radius-md); padding: 20px;">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">END BALANCE MOLASSES</div>
+                <div style="font-weight: 700; font-size: 24px; color: var(--text-primary); margin-bottom: 4px;" id="lh-ga-val-mol">-</div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                    Ton <span class="badge-green" id="lh-ga-diff-mol" style="display:none; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-caret-up"></i> +0</span>
+                </div>
+            </div>
+            <!-- Card Cane -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-top: 3px solid var(--accent-yellow); border-radius: var(--radius-md); padding: 20px;">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">TEBU MASUK HARI INI</div>
+                <div style="font-weight: 700; font-size: 24px; color: var(--text-primary); margin-bottom: 4px;" id="lh-ga-val-cane">-</div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                    Ton · <span id="lh-ga-val-truck">-</span> truck
+                </div>
+            </div>
+            <!-- Card Defisit -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-top: 3px solid var(--accent-red); border-radius: var(--radius-md); padding: 20px;">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">DEFISIT DELIVERY MOL.</div>
+                <div style="font-weight: 700; font-size: 24px; color: var(--text-primary); margin-bottom: 4px;" id="lh-ga-val-defisit">-</div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                    Ton kurang dari schedule
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TREN PRODUKSI & BALANCE -->
+    <div style="margin-bottom: 32px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">TREN PRODUKSI & BALANCE</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- Chart Gula -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Produksi Gula Harian (Ton)</div>
+                    <div style="font-size: 10px; font-weight: 600; color: var(--accent-blue); background: var(--accent-blue-dim); padding: 4px 10px; border-radius: 12px;">GKB + GKM</div>
+                </div>
+                <div style="height: 250px; width: 100%;">
+                    <canvas id="chart-ga-gula"></canvas>
+                </div>
+            </div>
+            <!-- Chart Molasses -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Balance Molasses Harian (Ton)</div>
+                    <div style="font-size: 10px; font-weight: 600; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 10px; border-radius: 12px;">Tank A + B</div>
+                </div>
+                <div style="height: 250px; width: 100%;">
+                    <canvas id="chart-ga-molasses"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELIVERY PLAN VS ACTUAL -->
+    <div style="margin-bottom: 32px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">DELIVERY PLAN VS ACTUAL</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Delivery Molasses — Schedule vs Actual (Ton/hari)</div>
+                <div style="font-size: 10px; font-weight: 600; color: var(--accent-orange); background: var(--accent-orange-dim); padding: 4px 10px; border-radius: 12px;"><span id="lh-ga-del-days">7</span> hari terakhir</div>
+            </div>
+            <div style="height: 250px; width: 100%;">
+                <canvas id="chart-ga-delivery"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERFORMA PRODUKSI PER SHIFT -->
+    <div style="margin-bottom: 32px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">PERFORMA PRODUKSI PER SHIFT (PERIODE TERPILIH)</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 14px; color: var(--text-primary);">
+                Rata-rata produksi per shift
+            </div>
+            <div class="table-responsive" style="padding: 0;">
+                <table class="data-table" id="table-ga-shift" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; background: transparent; padding: 12px 20px; font-size: 11px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">SHIFT</th>
+                            <th style="text-align: right; background: transparent; padding: 12px 20px; font-size: 11px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">GULA GKM (AVG/HARI)</th>
+                            <th style="text-align: right; background: transparent; padding: 12px 20px; font-size: 11px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">MOLASSES (AVG/HARI)</th>
+                            <th style="text-align: right; background: transparent; padding: 12px 20px; font-size: 11px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">CANE (AVG/HARI)</th>
+                            <th style="text-align: center; background: transparent; padding: 12px 20px; font-size: 11px; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Diisi via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+  </div>
+
+</div>
+<script>
+// Logic tab handler specific for Laporan Harian
+function showTabLH(tabName, el) {
+    document.getElementById('lh-tab-detail').style.display = 'none';
+    document.getElementById('lh-tab-grafik').style.display = 'none';
+    document.getElementById('lh-tab-' + tabName).style.display = 'block';
+    
+    let tabs = el.parentElement.querySelectorAll('.lh-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+}
+</script>

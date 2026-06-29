@@ -27,6 +27,7 @@ from .daily_reports import (
     get_daily_transfer_gula,
 )
 from .report_tebu import get_report_tebu
+from .laporan_harian import get_laporan_harian
 from .report_blabak import get_blabak_report
 from .report_others import get_others_report
 from .analytics import get_analytics_data, get_shift_productivity_data, get_top_transportir_data, get_history_insights_data

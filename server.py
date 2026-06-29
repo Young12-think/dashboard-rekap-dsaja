@@ -53,6 +53,7 @@ sys.stdout = PrintToLogger()
 sys.stderr = PrintToLogger()
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = secrets.token_hex(32)  # Random secret key setiap restart
 CORS(app)
 
@@ -240,6 +241,14 @@ def api_recent():
 # =============================================
 # API: Transaction Data (date range + item filter)
 # =============================================
+@app.route('/api/laporan-harian')
+def api_laporan_harian():
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    data = queries.get_laporan_harian(date_str)
+    if data is None:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success", "date": date_str, "data": data})
+
 @app.route('/api/transactions')
 def api_transactions():
     date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
@@ -454,7 +463,7 @@ def api_logout():
 # =============================================
 @app.route('/rmi-balance')
 def page_rmi_balance():
-    if not is_logged_in(): return redirect(url_for('page_login'))
+    if not is_logged_in(): return redirect(url_for('login_page'))
     return render_template('rmi_balance_dashboard.html')
 
 @app.route('/api/rmi-balance/overview')
@@ -496,6 +505,26 @@ def api_rmi_balance_settings():
         if ok:
             return jsonify({"status": "success"})
         return jsonify({"status": "error", "message": "Gagal update setting"}), 500
+
+@app.route('/api/rmi-balance/laporan-harian')
+def api_rmi_balance_laporan_harian():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_laporan_harian(date_str)})
+
+@app.route('/api/rmi-balance/grafik')
+def api_rmi_balance_grafik():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_from = request.args.get('date_from', datetime.now().strftime('%Y-%m-%d'))
+    date_to = request.args.get('date_to', datetime.now().strftime('%Y-%m-%d'))
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_grafik_laporan(date_from, date_to)})
+
+@app.route('/api/rmi-balance/grafik-analitik')
+def api_rmi_balance_grafik_analitik():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    days = int(request.args.get('days', 7))
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_grafik_analitik(date_str, days)})
 
 @app.route('/api/me')
 def api_me():

@@ -11,7 +11,8 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
                COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
                COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
-               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
+               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%DOUBLE%' THEN NoSystem END) as tipe_double,
+               COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_pickup
         FROM data_timbang
         WHERE Tanggal_Keluar_Clean BETWEEN %s AND %s
           AND ItemName LIKE '%TEBU%'
@@ -26,7 +27,8 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                    SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
-                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%DOUBLE%' THEN NoSystem END) as tipe_double,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_pickup
             FROM data_timbang
             WHERE Tanggal_Keluar_Clean >= %s
               AND Tanggal_Keluar_Clean < %s
@@ -40,7 +42,8 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
                    SUM(COALESCE(Qty_Netto, 0)) as netto_sesudah,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%ENGK%' THEN NoSystem END) as tipe_engkel,
                    COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%FUSO%' OR UPPER(TRIM(Kendaraan)) LIKE '%TRONTON%' THEN NoSystem END) as tipe_fuso,
-                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_double
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%DOUBLE%' THEN NoSystem END) as tipe_double,
+                   COUNT(DISTINCT CASE WHEN UPPER(TRIM(Kendaraan)) LIKE '%MINI%' OR UPPER(TRIM(Kendaraan)) LIKE '%PICKUP%' OR UPPER(TRIM(Kendaraan)) LIKE '%L300%' THEN NoSystem END) as tipe_pickup
             FROM data_timbang
             WHERE Tanggal_Keluar_Clean < %s
               AND ItemName LIKE '%TEBU%'
@@ -49,8 +52,8 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
 
     shifts = {1: {}, 2: {}, 3: {}}
     for i in range(1, 4):
-        shifts[i] = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0}
-    today_total = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0}
+        shifts[i] = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0, "tipe_pickup": 0}
+    today_total = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0, "tipe_pickup": 0}
 
     for r in res_today:
         s = r.get('Shift', 1)
@@ -61,10 +64,11 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
             shifts[s]['tipe_engkel'] = int(r.get('tipe_engkel', 0) or 0)
             shifts[s]['tipe_fuso'] = int(r.get('tipe_fuso', 0) or 0)
             shifts[s]['tipe_double'] = int(r.get('tipe_double', 0) or 0)
+            shifts[s]['tipe_pickup'] = int(r.get('tipe_pickup', 0) or 0)
             for k in today_total.keys():
                 today_total[k] += shifts[s][k]
 
-    prior_data = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0}
+    prior_data = {"ritase": 0, "netto_sebelum": 0, "netto_sesudah": 0, "tipe_engkel": 0, "tipe_fuso": 0, "tipe_double": 0, "tipe_pickup": 0}
     if res_prior and len(res_prior) > 0:
         pr = res_prior[0]
         prior_data['ritase'] = pr.get('ritase', 0) or 0
@@ -73,6 +77,7 @@ def get_report_tebu(date_from, date_to, rekap_from=None, rekap_to=None):
         prior_data['tipe_engkel'] = int(pr.get('tipe_engkel', 0) or 0)
         prior_data['tipe_fuso'] = int(pr.get('tipe_fuso', 0) or 0)
         prior_data['tipe_double'] = int(pr.get('tipe_double', 0) or 0)
+        prior_data['tipe_pickup'] = int(pr.get('tipe_pickup', 0) or 0)
 
     # Hitung kumulatif per shift (prior + shift)
     todate_shift1 = {}

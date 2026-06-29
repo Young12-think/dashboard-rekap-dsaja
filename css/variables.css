@@ -1,0 +1,151 @@
+/* =============================================
+   REKAP DSAJA - Production Dashboard
+   Dark / Light Mode · Sidebar Toggle
+   Mobile-first, Android Browser Compatible
+   ============================================= */
+
+/* ---- Dark Mode Variables (Default) ---- */
+:root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-card: rgba(22, 27, 34, 0.88);
+    --bg-card-hover: rgba(30, 37, 46, 0.95);
+    --bg-elevated: #1c2333;
+
+    --text-primary: #dde4ee;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+    --text-bright: #ffffff;
+
+    --accent-blue: #58a6ff;
+    --accent-blue-dim: rgba(88, 166, 255, 0.13);
+    --accent-green: #3fb950;
+    --accent-green-dim: rgba(63, 185, 80, 0.13);
+    --accent-yellow: #e5b400;
+    --accent-yellow-dim: rgba(229, 180, 0, 0.13);
+    --accent-orange: #d4780a;
+    --accent-orange-dim: rgba(212, 120, 10, 0.13);
+    --accent-red: #f85149;
+    --accent-red-dim: rgba(248, 81, 73, 0.13);
+    --accent-purple: #a371f7;
+    --accent-purple-dim: rgba(163, 113, 247, 0.13);
+    --accent-cyan: #39d2c0;
+    --accent-cyan-dim: rgba(57, 210, 192, 0.13);
+    --accent-brown: #a1887f;
+
+    --border-color: rgba(48, 54, 61, 0.9);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+
+    --glass-bg: rgba(22, 27, 34, 0.6);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.07);
+    --glass-blur: blur(14px);
+
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 18px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.38);
+    --shadow-glow: 0 0 18px rgba(88, 166, 255, 0.12);
+
+    --radius-sm: 7px;
+    --radius-md: 11px;
+    --radius-lg: 15px;
+    --radius-xl: 20px;
+
+    --sidebar-width: 252px;
+    --topbar-height: 62px;
+
+    --transition-fast: 0.18s ease;
+    --transition-normal: 0.28s ease;
+    --transition-smooth: 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Short aliases used in some older selectors */
+    --bg2: var(--bg-secondary);
+    --b: var(--border-color);
+    --t3: var(--text-muted);
+    --blue: var(--accent-blue);
+    --purple: var(--accent-purple);
+    --text: var(--text-primary);
+}
+
+/* =============================================
+   LIGHT MODE
+   ============================================= */
+body.light-mode {
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.92);
+    --bg-card-hover: rgba(245, 247, 250, 0.98);
+    --bg-elevated: #e8ecf1;
+
+    --text-primary: #1a2232;
+    --text-secondary: #4a5568;
+    --text-muted: #a0aec0;
+    --text-bright: #0d1117;
+
+    --accent-blue: #2563eb;
+    --accent-blue-dim: rgba(37, 99, 235, 0.1);
+    --accent-green: #16a34a;
+    --accent-green-dim: rgba(22, 163, 74, 0.1);
+    --accent-yellow: #ca8a04;
+    --accent-yellow-dim: rgba(202, 138, 4, 0.1);
+    --accent-orange: #c2410c;
+    --accent-orange-dim: rgba(194, 65, 12, 0.1);
+    --accent-red: #dc2626;
+    --accent-red-dim: rgba(220, 38, 38, 0.1);
+    --accent-purple: #7c3aed;
+    --accent-purple-dim: rgba(124, 58, 237, 0.1);
+    --accent-cyan: #0891b2;
+    --accent-cyan-dim: rgba(8, 145, 178, 0.1);
+
+    --border-color: rgba(203, 213, 225, 0.9);
+    --border-subtle: rgba(0, 0, 0, 0.06);
+
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: 1px solid rgba(0, 0, 0, 0.08);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.14);
+    --shadow-glow: 0 0 16px rgba(37, 99, 235, 0.08);
+
+    --bg2: var(--bg-secondary);
+    --b: var(--border-color);
+    --t3: var(--text-muted);
+    --blue: var(--accent-blue);
+    --purple: var(--accent-purple);
+    --text: var(--text-primary);
+}
+
+body.light-mode {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+body.light-mode::before {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(37, 99, 235, 0.04) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 20%, rgba(22, 163, 74, 0.03) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 80%, rgba(124, 58, 237, 0.03) 0%, transparent 55%);
+}
+
+body.light-mode .topbar {
+    background: rgba(240, 242, 245, 0.88);
+    border-bottom-color: var(--border-color);
+}
+
+body.light-mode .sidebar {
+    background: var(--bg-secondary);
+    border-right-color: var(--border-color);
+}
+
+body.light-mode .date-picker {
+    color-scheme: light;
+    color: var(--text-primary);
+}
+
+body.light-mode .date-picker::-webkit-calendar-picker-indicator {
+    filter: none;
+}
+
+body.light-mode #themeIcon::before {
+    content: '\f185'; /* fa-sun */
+}

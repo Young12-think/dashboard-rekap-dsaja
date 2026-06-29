@@ -37,20 +37,22 @@ async function fetchRmiData() {
             fetch('/api/rmi-balance/lokasi').then(r => r.json())
         ]);
         
-        if (overview.status === 'success') renderOverview(overview.data);
+        if (overview.status === 'success') {
+            renderOverview(overview.data, 
+                           stok.status === 'success' ? stok.data : null,
+                           delivery.status === 'success' ? delivery.data : null,
+                           lokasi.status === 'success' ? lokasi.data : null);
+        }
         if (stok.status === 'success') {
-            renderChartStok(stok.data, 'chartOverviewGula');
             renderChartStok(stok.data, 'chartFullStok');
         }
         if (delivery.status === 'success') {
-            renderChartDelivery(delivery.data, 'chartOverviewDelivery');
             renderChartDelivery(delivery.data, 'chartFullDelivery');
         }
         if (molasses.status === 'success') {
             renderChartMolasses(molasses.data, 'chartFullMolasses');
         }
         if (lokasi.status === 'success') {
-            renderChartLokasi(lokasi.data, 'chartOverviewLokasi');
             renderChartLokasi(lokasi.data, 'chartFullLokasi');
         }
         
@@ -60,36 +62,124 @@ async function fetchRmiData() {
 }
 
 // Render Overview Cards
-function renderOverview(data) {
-    // Gula
-    document.getElementById('valGulaTotal').textContent = fmt(data.gula.total_ton);
-    document.getElementById('capGula').textContent = fmt(data.gula.capacity);
-    document.getElementById('valGulaUtil').textContent = fmt(data.gula.utilization_pct) + '%';
-    
-    const utilGula = data.gula.utilization_pct;
-    const cardGula = document.getElementById('cardGulaUtil');
-    cardGula.className = 'rmi-card';
-    if (utilGula < 15) { cardGula.classList.add('danger'); }
-    else if (utilGula < 25) { cardGula.classList.add('warning'); }
-    else { cardGula.classList.add('success'); }
-    
-    // Delivery Deficit
-    document.getElementById('valDelivery').textContent = fmt(data.delivery.defisit_ton);
-    document.getElementById('subDelivery').textContent = `${fmt(data.delivery.defisit_pct)}% dari Plan (${fmt(data.delivery.plan_ton)} MT)`;
-    const cardDel = document.getElementById('cardDelivery');
-    cardDel.className = 'rmi-card';
-    if (data.delivery.defisit_pct > 5) {
-        cardDel.classList.add('danger');
-        document.getElementById('valDelivery').style.color = '#f85149';
-    } else {
-        cardDel.classList.add('success');
-        document.getElementById('valDelivery').style.color = '#3fb950';
+function renderOverview(data, stokData, deliveryData, lokasiData) {
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+    function setHtml(id, val) { const el = document.getElementById(id); if (el) el.innerHTML = val; }
+
+    try {
+        const today = new Date();
+        const dOpt = { month: 'short', year: 'numeric' };
+        setText('ov-header-date', `Per ${today.toLocaleDateString('id-ID', dOpt)}`);
+
+        // Gula Stok Card
+        setText('ov-gula-stok', fmt(data.gula.total_ton));
+        
+        // Gula Util Card
+        const utilGula = data.gula.utilization_pct || 0;
+        setText('ov-gula-util-text', fmt(utilGula) + '%');
+        setText('ov-gula-cap', `cap ${fmt(data.gula.capacity)} ton`);
+        
+        const badgeGula = document.getElementById('ov-gula-util-badge');
+        const barGula = document.getElementById('ov-gula-util-bar');
+        if(badgeGula && barGula) {
+            barGula.style.width = Math.min(utilGula, 100) + '%';
+            if(utilGula < 15) {
+                badgeGula.innerHTML = '⚠ Kritis';
+                badgeGula.style.background = 'rgba(226,75,74,0.1)';
+                badgeGula.style.color = '#A32D2D';
+                barGula.style.background = '#E24B4A';
+            } else {
+                badgeGula.innerHTML = 'Aman';
+                badgeGula.style.background = 'rgba(63,185,80,0.1)';
+                badgeGula.style.color = '#3fb950';
+                barGula.style.background = '#3fb950';
+            }
+        }
+
+        // Defisit Card
+        setText('ov-gula-defisit', fmt(data.delivery.defisit_ton));
+        setText('ov-gula-defisit-pct', `ton · ${fmt(data.delivery.defisit_pct)}% dari plan`);
+
+        // Molasses Card
+        const utilMol = data.molasses.utilization_pct || 0;
+        setText('ov-mol-stok', fmt(data.molasses.total_ton));
+        setText('ov-mol-util-badge', fmt(utilMol) + '% cap');
+        const barMol = document.getElementById('ov-mol-util-bar');
+        if(barMol) {
+            barMol.style.width = Math.min(utilMol, 100) + '%';
+            barMol.style.background = utilMol > 80 ? '#E24B4A' : '#1D9E75';
+        }
+
+        // Alerts
+        let alertsHtml = '';
+        if (utilGula < 15) {
+            alertsHtml += `
+            <div style="background:rgba(226,75,74,0.05); border:0.5px solid rgba(226,75,74,0.3); border-radius:var(--radius-md); padding:9px 12px; display:flex; gap:8px; align-items:flex-start;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size:14px; color:#A32D2D; flex-shrink:0; margin-top:1px;"></i>
+                <div>
+                <div style="font-size:12px; font-weight:500; color:#A32D2D;">Utilization gudang kritis — ${fmt(utilGula)}%</div>
+                <div style="font-size:11px; color:#A32D2D; opacity:0.9; margin-top:1px;">Di bawah threshold 15%. Pertimbangkan restok atau relokasi stok antar gudang.</div>
+                </div>
+            </div>`;
+        }
+        if (data.delivery.defisit_ton < 0) {
+            alertsHtml += `
+            <div style="background:rgba(239,159,39,0.05); border:0.5px solid rgba(239,159,39,0.3); border-radius:var(--radius-md); padding:9px 12px; display:flex; gap:8px; align-items:flex-start;">
+                <i class="fa-solid fa-box" style="font-size:14px; color:#c27d19; flex-shrink:0; margin-top:1px;"></i>
+                <div>
+                <div style="font-size:12px; font-weight:500; color:#c27d19;">Defisit delivery gula ${fmt(data.delivery.defisit_pct)}% dari plan</div>
+                <div style="font-size:11px; color:#c27d19; opacity:0.9; margin-top:1px;">Total: ${fmt(data.delivery.plan_ton)} plan vs ${fmt(data.delivery.actual_ton)} actual.</div>
+                </div>
+            </div>`;
+        }
+        setHtml('ov-alerts-container', alertsHtml);
+
+        // Rendering mini charts if data is present
+        if (stokData) {
+            setText('ov-chart1-subtitle', `Total stok ${stokData.length} hari (ton)`);
+            if (stokData.length > 0) {
+                const lastStok = stokData[stokData.length - 1];
+                setText('ov-gkb-stok', fmt(lastStok.gkb));
+                setText('ov-gkm-stok', fmt(lastStok.gkm));
+            }
+            renderSparklineStok(stokData, 'ov-spark-gula');
+            renderChartStokGKP(stokData, 'ov-chart-stok-gkp');
+        }
+
+        if (deliveryData) {
+            renderSparklineDefisit(deliveryData, 'ov-spark-defisit');
+            renderChartDeliveryGula(deliveryData, 'ov-chart-delivery-gula');
+            setText('ov-del-plan', fmt(data.delivery.plan_ton));
+            setText('ov-del-actual', fmt(data.delivery.actual_ton));
+            setText('ov-del-diff', fmt(data.delivery.defisit_ton));
+        }
+
+        if (lokasiData) {
+            setText('ov-lokasi-subtitle', stokData ? \`Hari ke-\${stokData.length} (ton)\` : 'Stok per lokasi (ton)');
+            let lokHtml = '';
+            const maxStok = Math.max(...lokasiData.map(d => parseFloat(d.stok_akhir) || 0), 1);
+            const colors = ['#BA7517', '#378ADD', '#1D9E75', '#E24B4A'];
+            lokasiData.forEach((lok, i) => {
+                const val = parseFloat(lok.stok_akhir) || 0;
+                const pct = (val / maxStok) * 100;
+                const c = colors[i % colors.length];
+                lokHtml += \`
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
+                    <span style="color:var(--color-text-secondary);">\${lok.nama_gudang}</span>
+                    <span style="color:var(--color-text-primary); font-weight:500;">\${fmt(val)}</span>
+                  </div>
+                  <div style="height:4px; background:var(--color-background-primary); border-radius:2px;">
+                    <div style="width:\${pct}%; height:100%; background:\${c}; border-radius:2px;"></div>
+                  </div>
+                </div>\`;
+            });
+            setHtml('ov-lokasi-container', lokHtml);
+        }
+
+    } catch(e) {
+        console.warn('[RMI] renderOverview skipped:', e.message);
     }
-    
-    // Molasses
-    document.getElementById('valMolasses').textContent = fmt(data.molasses.total_ton);
-    document.getElementById('capMolasses').textContent = fmt(data.molasses.capacity);
-    document.getElementById('valMolassesUtil').textContent = fmt(data.molasses.utilization_pct);
 }
 
 // Destroy existing chart helper
@@ -98,16 +188,124 @@ function clearChart(canvasId) {
         chartInstances[canvasId].destroy();
     }
 }
+function getCtxSafe(canvasId) {
+    const el = document.getElementById(canvasId);
+    return el ? el.getContext('2d') : null;
+}
 
 // Common Chart.js Defaults for Dark Theme
 Chart.defaults.color = '#8b949e';
 Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
 Chart.defaults.font.family = "'Inter', sans-serif";
 
+function renderSparklineStok(data, canvasId) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.tanggal),
+            datasets: [{
+                data: data.map(d => parseFloat(d.total_stok)),
+                borderColor: '#378ADD',
+                borderWidth: 1.5,
+                tension: 0.2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } },
+            layout: { padding: 0 }
+        }
+    });
+}
+
+function renderSparklineDefisit(data, canvasId) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    const defisits = data.map(d => {
+        let diff = parseFloat(d.actual) - parseFloat(d.plan);
+        return diff < 0 ? diff : 0;
+    });
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.tanggal),
+            datasets: [{
+                data: defisits,
+                backgroundColor: '#E24B4A',
+                borderRadius: 1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false, max: 0 } },
+            layout: { padding: 0 }
+        }
+    });
+}
+
+function renderChartStokGKP(data, canvasId) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.tanggal),
+            datasets: [{
+                data: data.map(d => parseFloat(d.total_stok)),
+                borderColor: '#378ADD',
+                backgroundColor: 'rgba(55,138,221,0.2)',
+                fill: true,
+                borderWidth: 1.5,
+                tension: 0.2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { display: false } },
+            layout: { padding: 0 }
+        }
+    });
+}
+
+function renderChartDeliveryGula(data, canvasId) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.tanggal),
+            datasets: [
+                { data: data.map(d => parseFloat(d.plan)), backgroundColor: '#85B7EB', borderRadius: 1 },
+                { data: data.map(d => parseFloat(d.actual)), backgroundColor: '#EF9F27', borderRadius: 1 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false, stacked: false }, y: { display: false } },
+            layout: { padding: 0 },
+            barPercentage: 0.9,
+            categoryPercentage: 1.0
+        }
+    });
+}
+
 // Chart 1: Stok GKP (Line Chart)
 function renderChartStok(data, canvasId) {
     clearChart(canvasId);
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
     const labels = data.map(d => {
         const dt = new Date(d.tanggal);
         return `${dt.getDate()}/${dt.getMonth()+1}`;
@@ -140,7 +338,8 @@ function renderChartStok(data, canvasId) {
 // Chart 2: Delivery Plan vs Actual (Bar Chart)
 function renderChartDelivery(data, canvasId) {
     clearChart(canvasId);
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
     const labels = data.map(d => {
         const dt = new Date(d.tanggal);
         return `${dt.getDate()}/${dt.getMonth()+1}`;
@@ -180,7 +379,8 @@ function renderChartDelivery(data, canvasId) {
 // Chart 3: Lokasi Gudang Luar (Horizontal Bar)
 function renderChartLokasi(data, canvasId) {
     clearChart(canvasId);
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
     const labels = data.map(d => d.nama_gudang);
     const values = data.map(d => parseFloat(d.stok_akhir));
     
@@ -206,7 +406,8 @@ function renderChartLokasi(data, canvasId) {
 // Chart 4: Molasses Tangki A & B (Line Chart)
 function renderChartMolasses(data, canvasId) {
     clearChart(canvasId);
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
     const labels = data.map(d => {
         const dt = new Date(d.tanggal);
         return `${dt.getDate()}/${dt.getMonth()+1}`;
@@ -289,5 +490,137 @@ async function saveSettings() {
     }
 }
 
+
+// --- LAPORAN HARIAN & GRAFIK LOGIC ---
+
+function initDates() {
+    const today = new Date().toISOString().split('T')[0];
+    const firstDay = new Date();
+    firstDay.setDate(1);
+    const firstDayStr = firstDay.toISOString().split('T')[0];
+
+    document.getElementById('laporanDate').value = today;
+    document.getElementById('grafikDateFrom').value = firstDayStr;
+    document.getElementById('grafikDateTo').value = today;
+    
+    document.getElementById('laporanDate').addEventListener('change', function() {
+        if (this.value) {
+            currentLhDate = new Date(this.value + 'T00:00:00');
+            if (typeof updateLhDateDisplay === 'function') {
+                updateLhDateDisplay();
+            }
+        }
+    });
+}
+
+async function fetchGrafikAnalitik() {
+    const dateFrom = document.getElementById('grafikDateFrom').value;
+    const dateTo = document.getElementById('grafikDateTo').value;
+    try {
+        const res = await fetch(`/api/rmi-balance/grafik?date_from=${dateFrom}&date_to=${dateTo}`).then(r => r.json());
+        if (res.status === 'success') {
+            renderGrafikAnalitik(res.data);
+        }
+    } catch (err) {
+        console.error("Failed to fetch Grafik Analitik:", err);
+    }
+}
+
+function renderGrafikAnalitik(data) {
+    const labels = data.tren.map(d => {
+        const dt = new Date(d.tanggal);
+        return `${dt.getDate()}/${dt.getMonth()+1}`;
+    });
+
+    // Chart Produksi
+    clearChart('chartGrafikProduksi');
+    const ctxProd = getCtxSafe('chartGrafikProduksi');
+    if (ctxProd) {
+        chartInstances['chartGrafikProduksi'] = new Chart(ctxProd, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Produksi Gula', data: data.tren.map(d => d.produksiGula), borderColor: '#58a6ff', tension: 0.3 },
+                    { label: 'Produksi Molasses', data: data.tren.map(d => d.produksiMolasses), borderColor: '#3fb950', tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // Chart Delivery
+    clearChart('chartGrafikDelivery');
+    const ctxDel = getCtxSafe('chartGrafikDelivery');
+    if (ctxDel) {
+        chartInstances['chartGrafikDelivery'] = new Chart(ctxDel, {
+            type: 'bar',
+            data: {
+                labels: data.delivery.map(d => {
+                    const dt = new Date(d.tanggal); return `${dt.getDate()}/${dt.getMonth()+1}`;
+                }),
+                datasets: [
+                    { label: 'Gula Plan', data: data.delivery.map(d => d.gulaPlan), backgroundColor: 'rgba(88, 166, 255, 0.4)' },
+                    { label: 'Gula Actual', data: data.delivery.map(d => d.gulaActual), backgroundColor: '#58a6ff' },
+                    { label: 'Molasses Plan', data: data.delivery.map(d => d.molSchedule), backgroundColor: 'rgba(240, 192, 0, 0.4)' },
+                    { label: 'Molasses Actual', data: data.delivery.map(d => d.molActual), backgroundColor: '#f0c000' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // Chart Balance
+    clearChart('chartGrafikBalance');
+    const ctxBal = getCtxSafe('chartGrafikBalance');
+    if (ctxBal) {
+        chartInstances['chartGrafikBalance'] = new Chart(ctxBal, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Balance Gula (GKP)', data: data.tren.map(d => d.gulaEndBalance), borderColor: '#bc8cff', backgroundColor: 'rgba(188,140,255,0.1)', fill:true, tension: 0.3 },
+                    { label: 'Balance Molasses', data: data.tren.map(d => d.molassesEndBalance), borderColor: '#ff7b72', backgroundColor: 'rgba(255,123,114,0.1)', fill:true, tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+
 // Init
-document.addEventListener('DOMContentLoaded', fetchRmiData);
+document.addEventListener('DOMContentLoaded', () => {
+    initDates();
+    fetchRmiData();
+});
+
+// Update event listener for tabs to handle custom actions
+document.querySelectorAll('#rmiNav li[data-tab]').forEach(li => {
+    li.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        
+        // Show/hide date picker for Laporan Harian
+        if(tabId === 'laporan-harian') {
+            document.getElementById('datePickerContainer').style.display = 'block';
+            const lhDate = document.getElementById('laporanDate').value;
+            if (lhDate && typeof currentLhDate !== 'undefined') {
+                const parsedDate = new Date(lhDate + 'T00:00:00');
+                if (!isNaN(parsedDate.getTime())) {
+                    currentLhDate = parsedDate;
+                }
+            }
+            if (typeof updateLhDateDisplay === 'function') {
+                updateLhDateDisplay();
+            } else if (typeof fetchLaporanHarian === 'function') {
+                fetchLaporanHarian();
+            }
+        } else {
+            document.getElementById('datePickerContainer').style.display = 'none';
+        }
+        
+        if(tabId === 'grafik-analitik') {
+            fetchGrafikAnalitik();
+        }
+    });
+});

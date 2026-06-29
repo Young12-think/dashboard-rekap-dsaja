@@ -1,0 +1,77 @@
+
+/* ---- Reset & Base ---- */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+    cursor: pointer;
+}
+
+html {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    min-height: 100vh;
+    line-height: 1.55;
+    transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* Lock scroll when sidebar is open on mobile */
+body.sidebar-is-open {
+    overflow: hidden !important;
+}
+
+/* Subtle ambient background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(88, 166, 255, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(63, 185, 80, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(188, 140, 255, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background var(--transition-smooth);
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
