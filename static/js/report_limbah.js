@@ -86,16 +86,182 @@ function initReportButtons() {
     const btnText = document.getElementById('btnCopyReportText');
     const captureArea = document.getElementById('reportLimbahCaptureArea');
 
+    if (btnText && captureArea) {
+        btnText.addEventListener('click', () => {
+            const mode = document.getElementById('limbahShiftSelect').value;
+            const dparts = currentDate.split('-');
+            let text = `*REPORT LIMBAH HARIAN*\n*Tanggal:* ${dparts[2]}/${dparts[1]}/${dparts[0]}\n`;
+            
+            if (mode === 'ALL_NO_TOTAL') {
+                text += `*Shift:* Semua (Tanpa Total)\n\n`;
+            } else if (mode !== 'ALL') {
+                text += `*Shift:* ${mode}\n\n`;
+            } else {
+                text += `\n`;
+            }
+
+            const tables = captureArea.querySelectorAll('.report-table-wa');
+            tables.forEach(table => {
+                const title = table.querySelector('.report-head-title').innerText;
+                const rows = table.querySelectorAll('tr');
+                if (rows.length < 4) return;
+                const tds = rows[3].querySelectorAll('td');
+
+                text += `*[${title}]*\n`;
+                if (mode === 'ALL') {
+                    text += `SHIFT 1 : ${tds[0].innerText || '-'} Rit / ${tds[1].innerText || '-'} Kg\n`;
+                    text += `SHIFT 2 : ${tds[2].innerText || '-'} Rit / ${tds[3].innerText || '-'} Kg\n`;
+                    text += `SHIFT 3 : ${tds[4].innerText || '-'} Rit / ${tds[5].innerText || '-'} Kg\n`;
+                    text += `*TOTAL*   : *${tds[6].innerText || '-'} Rit* / *${tds[7].innerText || '-'} Kg*\n\n`;
+                } else if (mode === 'ALL_NO_TOTAL') {
+                    text += `SHIFT 1 : ${tds[0].innerText || '-'} Rit / ${tds[1].innerText || '-'} Kg\n`;
+                    text += `SHIFT 2 : ${tds[2].innerText || '-'} Rit / ${tds[3].innerText || '-'} Kg\n`;
+                    text += `SHIFT 3 : ${tds[4].innerText || '-'} Rit / ${tds[5].innerText || '-'} Kg\n\n`;
+                } else if (mode === '1') {
+                    text += `SHIFT 1 : ${tds[0].innerText || '-'} Rit / ${tds[1].innerText || '-'} Kg\n\n`;
+                } else if (mode === '2') {
+                    text += `SHIFT 2 : ${tds[2].innerText || '-'} Rit / ${tds[3].innerText || '-'} Kg\n\n`;
+                } else if (mode === '3') {
+                    text += `SHIFT 3 : ${tds[4].innerText || '-'} Rit / ${tds[5].innerText || '-'} Kg\n\n`;
+                }
+            });
+
+            const successAction = () => {
+                btnText.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
+                setTimeout(() => btnText.innerHTML = '<i class="fa-solid fa-copy"></i> Salin Teks', 2000);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(successAction).catch(e => {
+                    if (window.copyTextFallback(text)) successAction();
+                    else alert('Gagal menyalin text.');
+                });
+            } else {
+                if (window.copyTextFallback(text)) successAction();
+                else alert('Gagal menyalin text.');
+            }
+        });
+    }
+
     if (btnImg && captureArea) {
         btnImg.addEventListener('click', async () => {
             if (typeof html2canvas === 'undefined') {
                 alert('Library html2canvas belum dimuat.');
                 return;
             }
+            const mode = document.getElementById('limbahShiftSelect').value;
             btnImg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyalin...';
+
             try {
-                // Gunakan backgroundColor hitam agar mirip design aslinya
-                const canvas = await html2canvas(captureArea, { backgroundColor: '#0d1117' });
+                let targetElement = captureArea;
+                let offscreen = null;
+
+                if (mode !== 'ALL') {
+                    // Buat container offscreen untuk capture spesifik
+                    offscreen = document.createElement('div');
+                    let w = '560px';
+                    if (mode !== 'ALL_NO_TOTAL') w = '320px'; // Lebar lebih kecil jika hanya 1 shift
+                    
+                    offscreen.style.cssText = `position:fixed; left:-9999px; top:0; background:#0d1117; padding:20px; width:${w};`;
+                    document.body.appendChild(offscreen);
+
+                    // Clone tanggal
+                    const dateEl = captureArea.querySelector('#reportLimbahDateStr');
+                    if (dateEl) {
+                        const dateClone = document.createElement('div');
+                        dateClone.style.cssText = 'background:#000; padding:10px 20px; display:inline-block; margin-bottom:20px; text-align:center;';
+                        dateClone.innerHTML = `<h2 style="color:#f0c000; font-family:'Orbitron',sans-serif; margin:0; font-size:1.5rem; letter-spacing:2px;">${dateEl.textContent}</h2>`;
+                        if (mode !== 'ALL_NO_TOTAL') {
+                             dateClone.innerHTML += `<div style="color:#fff; font-size:1.2rem; margin-top:5px; font-weight:bold;">SHIFT ${mode}</div>`;
+                        }
+                        offscreen.appendChild(dateClone);
+                    }
+
+                    const tables = captureArea.querySelectorAll('.report-table-wa');
+                    tables.forEach(table => {
+                        const clone = document.createElement('table');
+                        clone.style.cssText = 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif; color:#000; background:#fff; margin-bottom:20px; table-layout:fixed;';
+
+                        const rows = table.querySelectorAll('tr');
+                        if (rows.length < 4) return;
+
+                        const isFC = rows[1].classList.contains('bg-fc');
+                        const headerBg = isFC ? '#aad050ff' : '#5c44c4ff';
+                        const headerColor = isFC ? '#000' : '#fff';
+                        
+                        let colCount = mode === 'ALL_NO_TOTAL' ? 6 : 2;
+
+                        // Title Row
+                        const titleRow = document.createElement('tr');
+                        const titleTd = document.createElement('th');
+                        titleTd.colSpan = colCount;
+                        titleTd.textContent = rows[0].querySelector('.report-head-title').textContent;
+                        titleTd.style.cssText = `background:#000; color:#fff; padding:10px; font-size:18px; text-align:center; border:1px solid #000; font-weight:bold;`;
+                        titleRow.appendChild(titleTd);
+                        clone.appendChild(titleRow);
+
+                        // Shift Headers Row
+                        const shiftRow = document.createElement('tr');
+                        shiftRow.style.cssText = `background:${headerBg}; color:${headerColor};`;
+                        if (mode === 'ALL_NO_TOTAL') {
+                            ['SHIFT 1', 'SHIFT 2', 'SHIFT 3'].forEach(label => {
+                                const th = document.createElement('th');
+                                th.colSpan = 2;
+                                th.textContent = label;
+                                th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:33.33%;`;
+                                shiftRow.appendChild(th);
+                            });
+                        } else {
+                            const th = document.createElement('th');
+                            th.colSpan = 2;
+                            th.textContent = 'SHIFT ' + mode;
+                            th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:100%;`;
+                            shiftRow.appendChild(th);
+                        }
+                        clone.appendChild(shiftRow);
+
+                        // Sub headers Row (RIT / KG)
+                        const subRow = document.createElement('tr');
+                        subRow.style.cssText = `background:${headerBg}; color:${headerColor}; opacity:0.9;`;
+                        let iters = mode === 'ALL_NO_TOTAL' ? 3 : 1;
+                        let wth = mode === 'ALL_NO_TOTAL' ? '16.66%' : '50%';
+                        for (let i = 0; i < iters; i++) {
+                            ['RIT', 'KG'].forEach(label => {
+                                const th = document.createElement('th');
+                                th.textContent = label;
+                                th.style.cssText = `border:1px solid #000; text-align:center; padding:6px 4px; font-size:14px; font-weight:bold; width:${wth};`;
+                                subRow.appendChild(th);
+                            });
+                        }
+                        clone.appendChild(subRow);
+
+                        // Data Row
+                        const dataRow = document.createElement('tr');
+                        const origTds = rows[3].querySelectorAll('td');
+                        
+                        let idxStart = 0;
+                        let numCells = 6;
+                        if (mode === '1') { idxStart = 0; numCells = 2; }
+                        else if (mode === '2') { idxStart = 2; numCells = 2; }
+                        else if (mode === '3') { idxStart = 4; numCells = 2; }
+
+                        for (let i = idxStart; i < idxStart + numCells && i < origTds.length; i++) {
+                            const td = document.createElement('td');
+                            td.textContent = origTds[i].textContent;
+                            td.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:${wth};`;
+                            dataRow.appendChild(td);
+                        }
+                        clone.appendChild(dataRow);
+                        offscreen.appendChild(clone);
+                    });
+                    
+                    targetElement = offscreen;
+                }
+
+                // Capture gambar
+                const canvas = await html2canvas(targetElement, { backgroundColor: '#0d1117' });
+                if (offscreen) document.body.removeChild(offscreen);
+
                 canvas.toBlob(blob => {
                     const fallbackDownload = () => {
                         window.downloadBlob(blob, 'report_limbah.png');
@@ -121,167 +287,6 @@ function initReportButtons() {
                 console.error(err);
                 alert('Gagal membuat gambar.');
                 btnImg.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar';
-            }
-        });
-    }
-
-    if (btnText) {
-        btnText.addEventListener('click', () => {
-            // Kita generate text plain yang rapi
-            const dparts = currentDate.split('-');
-            let text = `*REPORT LIMBAH HARIAN*\n*Tanggal:* ${dparts[2]}/${dparts[1]}/${dparts[0]}\n\n`;
-
-            const getVal = (v) => (!v || v === 0) ? '-' : fmt(v);
-
-            // Fungsi ambil data dari element DOM by index (quick & dirty way karena data sudah dirender HTML)
-            const tables = captureArea.querySelectorAll('.report-table-wa');
-            tables.forEach(table => {
-                const title = table.querySelector('.report-head-title').innerText;
-                const rows = table.querySelectorAll('tr');
-                if (rows.length < 4) return;
-                const tds = rows[3].querySelectorAll('td');
-
-                text += `*[${title}]*\n`;
-                text += `SHIFT 1 : ${tds[0].innerText || '-'} Rit / ${tds[1].innerText || '-'} Kg\n`;
-                text += `SHIFT 2 : ${tds[2].innerText || '-'} Rit / ${tds[3].innerText || '-'} Kg\n`;
-                text += `SHIFT 3 : ${tds[4].innerText || '-'} Rit / ${tds[5].innerText || '-'} Kg\n`;
-                text += `*TOTAL*   : *${tds[6].innerText || '-'} Rit* / *${tds[7].innerText || '-'} Kg*\n\n`;
-            });
-
-            const successAction = () => {
-                btnText.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
-                setTimeout(() => btnText.innerHTML = '<i class="fa-solid fa-copy"></i> Salin Teks WA', 2000);
-            };
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(successAction).catch(e => {
-                    if (window.copyTextFallback(text)) successAction();
-                    else alert('Gagal menyalin text.');
-                });
-            } else {
-                if (window.copyTextFallback(text)) successAction();
-                else alert('Gagal menyalin text.');
-            }
-        });
-    }
-
-    // Handler tombol Salin Gambar Shift (tanpa kolom TOTAL)
-    const btnImgShift = document.getElementById('btnCopyReportImgShift');
-    if (btnImgShift && captureArea) {
-        btnImgShift.addEventListener('click', async () => {
-            if (typeof html2canvas === 'undefined') {
-                alert('Library html2canvas belum dimuat.');
-                return;
-            }
-            btnImgShift.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyalin...';
-            try {
-                // Buat container offscreen untuk capture gambar shift saja
-                const offscreen = document.createElement('div');
-                offscreen.style.cssText = 'position:fixed; left:-9999px; top:0; background:#0d1117; padding:20px; width:560px;';
-                document.body.appendChild(offscreen);
-
-                // Clone tanggal
-                const dateEl = captureArea.querySelector('#reportLimbahDateStr');
-                if (dateEl) {
-                    const dateClone = document.createElement('div');
-                    dateClone.style.cssText = 'background:#000; padding:10px 20px; display:inline-block; margin-bottom:20px;';
-                    dateClone.innerHTML = `<h2 style="color:#f0c000; font-family:'Orbitron',sans-serif; margin:0; font-size:1.5rem; letter-spacing:2px;">${dateEl.textContent}</h2>`;
-                    offscreen.appendChild(dateClone);
-                }
-
-                // Clone setiap tabel tapi hilangkan kolom TOTAL
-                const tables = captureArea.querySelectorAll('.report-table-wa');
-                tables.forEach(table => {
-                    const clone = document.createElement('table');
-                    clone.style.cssText = 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif; color:#000; background:#fff; margin-bottom:20px; table-layout:fixed;';
-
-                    const rows = table.querySelectorAll('tr');
-                    if (rows.length < 4) return;
-
-                    // Row 0: Title - colspan 6 (bukan 8)
-                    const titleRow = document.createElement('tr');
-                    const titleTd = document.createElement('th');
-                    titleTd.colSpan = 6;
-                    titleTd.textContent = rows[0].querySelector('.report-head-title').textContent;
-                    const bgClass = rows[0].querySelector('.report-head-title').classList.contains('bg-fc') ? 'bg-fc' : 'bg-fa';
-                    titleTd.className = 'report-head-title ' + bgClass;
-                    titleTd.style.cssText = 'background:#000; color:#fff; padding:10px; font-size:18px; text-align:center; border:1px solid #000; font-weight:bold;';
-                    titleRow.appendChild(titleTd);
-                    clone.appendChild(titleRow);
-
-                    // Tentukan warna background berdasarkan tipe
-                    const isFC = rows[1].classList.contains('bg-fc');
-                    const headerBg = isFC ? '#aad050ff' : '#5c44c4ff';
-                    const headerColor = isFC ? '#000' : '#fff';
-
-                    // Row 1: Shift headers - hanya 3 shift (tanpa TOTAL)
-                    const shiftRow = document.createElement('tr');
-                    shiftRow.style.cssText = `background:${headerBg}; color:${headerColor};`;
-                    ['SHIFT 1', 'SHIFT 2', 'SHIFT 3'].forEach(label => {
-                        const th = document.createElement('th');
-                        th.colSpan = 2;
-                        th.textContent = label;
-                        th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:33.33%;`;
-                        shiftRow.appendChild(th);
-                    });
-                    clone.appendChild(shiftRow);
-
-                    // Row 2: Sub headers RIT/KG x3
-                    const subRow = document.createElement('tr');
-                    subRow.style.cssText = `background:${headerBg}; color:${headerColor}; opacity:0.9;`;
-                    for (let i = 0; i < 3; i++) {
-                        ['RIT', 'KG'].forEach(label => {
-                            const th = document.createElement('th');
-                            th.textContent = label;
-                            th.style.cssText = 'border:1px solid #000; text-align:center; padding:6px 4px; font-size:14px; font-weight:bold; width:16.66%;';
-                            subRow.appendChild(th);
-                        });
-                    }
-                    clone.appendChild(subRow);
-
-                    // Row 3: Data - hanya 6 kolom pertama (tanpa 2 kolom TOTAL)
-                    const dataRow = document.createElement('tr');
-                    const origTds = rows[3].querySelectorAll('td');
-                    for (let i = 0; i < 6 && i < origTds.length; i++) {
-                        const td = document.createElement('td');
-                        td.textContent = origTds[i].textContent;
-                        td.style.cssText = 'border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:16.66%;';
-                        dataRow.appendChild(td);
-                    }
-                    clone.appendChild(dataRow);
-
-                    offscreen.appendChild(clone);
-                });
-
-                // Capture gambar
-                const canvas = await html2canvas(offscreen, { backgroundColor: '#0d1117' });
-                document.body.removeChild(offscreen);
-
-                canvas.toBlob(blob => {
-                    const fallbackDownload = () => {
-                        window.downloadBlob(blob, 'report_limbah_shift.png');
-                        btnImgShift.innerHTML = '<i class="fa-solid fa-download"></i> Diunduh!';
-                        setTimeout(() => btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift', 2000);
-                        alert('Browser memblokir salin gambar di koneksi HTTP biasa. Gambar otomatis diunduh ke perangkat Anda!');
-                    };
-
-                    if (navigator.clipboard && navigator.clipboard.write) {
-                        const item = new ClipboardItem({ "image/png": blob });
-                        navigator.clipboard.write([item]).then(() => {
-                            btnImgShift.innerHTML = '<i class="fa-solid fa-check"></i> Disalin!';
-                            setTimeout(() => btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift', 2000);
-                        }).catch(e => {
-                            console.error('Clipboard write error', e);
-                            fallbackDownload();
-                        });
-                    } else {
-                        fallbackDownload();
-                    }
-                });
-            } catch (err) {
-                console.error(err);
-                alert('Gagal membuat gambar.');
-                btnImgShift.innerHTML = '<i class="fa-solid fa-image"></i> Salin Gambar Shift';
             }
         });
     }

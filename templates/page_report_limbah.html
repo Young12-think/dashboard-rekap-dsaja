@@ -2,10 +2,16 @@
                 <section class="section-card">
                     <div class="section-header">
                         <h2><i class="fa-solid fa-recycle"></i> Laporan Limbah Harian</h2>
-                        <div class="section-actions">
-                            <button class="btn-sm" id="btnCopyReportText"><i class="fa-solid fa-copy"></i> Salin Teks WA</button>
+                        <div class="section-actions" style="display: flex; gap: 8px; align-items: center;">
+                            <select id="limbahShiftSelect" style="background: #161b22; color: #f0c000; border: 1px solid #f0c000; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; outline: none;">
+                                <option value="ALL">Semua Shift (Full)</option>
+                                <option value="ALL_NO_TOTAL">Semua Shift (Tanpa Total)</option>
+                                <option value="1">Hanya Shift 1</option>
+                                <option value="2">Hanya Shift 2</option>
+                                <option value="3">Hanya Shift 3</option>
+                            </select>
+                            <button class="btn-sm" id="btnCopyReportText"><i class="fa-solid fa-copy"></i> Salin Teks</button>
                             <button class="btn-sm active" id="btnCopyReportImg"><i class="fa-solid fa-image"></i> Salin Gambar</button>
-                            <button class="btn-sm active" id="btnCopyReportImgShift" style="background: #e6a817; border-color: #e6a817;"><i class="fa-solid fa-image"></i> Salin Gambar Shift</button>
                         </div>
                     </div>
                     
