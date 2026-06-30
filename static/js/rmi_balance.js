@@ -155,7 +155,7 @@ function renderOverview(data, stokData, deliveryData, lokasiData) {
         }
 
         if (lokasiData) {
-            setText('ov-lokasi-subtitle', stokData ? \`Hari ke-\${stokData.length} (ton)\` : 'Stok per lokasi (ton)');
+            setText('ov-lokasi-subtitle', stokData ? `Hari ke-${stokData.length} (ton)` : 'Stok per lokasi (ton)');
             let lokHtml = '';
             const maxStok = Math.max(...lokasiData.map(d => parseFloat(d.stok_akhir) || 0), 1);
             const colors = ['#BA7517', '#378ADD', '#1D9E75', '#E24B4A'];
@@ -163,16 +163,16 @@ function renderOverview(data, stokData, deliveryData, lokasiData) {
                 const val = parseFloat(lok.stok_akhir) || 0;
                 const pct = (val / maxStok) * 100;
                 const c = colors[i % colors.length];
-                lokHtml += \`
+                lokHtml += `
                 <div>
                   <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
-                    <span style="color:var(--color-text-secondary);">\${lok.nama_gudang}</span>
-                    <span style="color:var(--color-text-primary); font-weight:500;">\${fmt(val)}</span>
+                    <span style="color:var(--color-text-secondary);">${lok.nama_gudang}</span>
+                    <span style="color:var(--color-text-primary); font-weight:500;">${fmt(val)}</span>
                   </div>
                   <div style="height:4px; background:var(--color-background-primary); border-radius:2px;">
-                    <div style="width:\${pct}%; height:100%; background:\${c}; border-radius:2px;"></div>
+                    <div style="width:${pct}%; height:100%; background:${c}; border-radius:2px;"></div>
                   </div>
-                </div>\`;
+                </div>`;
             });
             setHtml('ov-lokasi-container', lokHtml);
         }
