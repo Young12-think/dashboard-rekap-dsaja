@@ -1010,7 +1010,15 @@ if __name__ == '__main__':
     # ── 1. Nyalakan SSH Tunnels ──
     init_all_tunnels()
 
-    # ── 2. Jalankan Waitress server ──
+    # ── 2. Run Auto-migrations ──
+    try:
+        from app_queries.rmi_balance import ensure_data_timbang_clean_column
+        print("==> [INIT] Mengecek dan memastikan schema database (auto-migration)...")
+        ensure_data_timbang_clean_column()
+    except Exception as e:
+        print(f"==> [ERROR] Auto-migration gagal: {e}")
+
+    # ── 3. Jalankan Waitress server ──
     try:
         server_host = os.getenv('SERVER_HOST', '0.0.0.0')
         server_port = int(os.getenv('SERVER_PORT', 8000))
@@ -1019,7 +1027,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\n==> [INFO] Server dihentikan oleh user (Ctrl+C)")
     finally:
-        # ── 3. Shutdown semua tunnel ──
+        # ── 4. Shutdown semua tunnel ──
         shutdown_all_tunnels()
         print("==> [INFO] Shutdown selesai. Bye!")
 

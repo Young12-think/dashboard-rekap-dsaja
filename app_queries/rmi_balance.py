@@ -32,14 +32,17 @@ def ensure_data_timbang_clean_column():
         cur = conn.cursor()
         cur.execute("SHOW COLUMNS FROM data_timbang LIKE 'Tanggal_Keluar_Clean'")
         if not cur.fetchone():
+            print("[INIT] Creating Tanggal_Keluar_Clean column (This might take a minute...)")
+            cur.execute("SET SESSION sql_mode = ''")
             cur.execute("""
                 ALTER TABLE data_timbang 
                 ADD COLUMN Tanggal_Keluar_Clean DATE GENERATED ALWAYS AS (
-                    STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y')
+                    STR_TO_DATE(NULLIF(TRIM(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1)), ''), '%d/%m/%Y')
                 ) STORED,
                 ADD INDEX idx_tanggal_keluar_clean (Tanggal_Keluar_Clean);
             """)
             conn.commit()
+            print("[INIT] Tanggal_Keluar_Clean column created successfully.")
         cur.close()
         return True
     except Exception as e:
