@@ -25,6 +25,32 @@ def ensure_rmi_settings():
     finally:
         conn.close()
 
+def ensure_data_timbang_clean_column():
+    conn = get_db()
+    if not conn: return False
+    try:
+        cur = conn.cursor()
+        cur.execute("SHOW COLUMNS FROM data_timbang LIKE 'Tanggal_Keluar_Clean'")
+        if not cur.fetchone():
+            cur.execute("""
+                ALTER TABLE data_timbang 
+                ADD COLUMN Tanggal_Keluar_Clean DATE GENERATED ALWAYS AS (
+                    str_to_date(substr(Tanggal_Keluar,1,10), '%Y-%m-%d')
+                ) STORED,
+                ADD INDEX idx_tanggal_keluar_clean (Tanggal_Keluar_Clean);
+            """)
+            conn.commit()
+        cur.close()
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] ensure_data_timbang_clean_column: {e}")
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
 def get_settings():
     ensure_rmi_settings()
     res = query("SELECT gula_capacity, molasses_capacity FROM rmi_settings WHERE id = 1")
@@ -53,6 +79,7 @@ def update_settings(gula_capacity, molasses_capacity):
         conn.close()
 
 def get_overview():
+    ensure_data_timbang_clean_column()
     settings = get_settings()
     
     # Gula Stock (GKM + GKB)
