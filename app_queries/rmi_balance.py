@@ -35,7 +35,7 @@ def ensure_data_timbang_clean_column():
             cur.execute("""
                 ALTER TABLE data_timbang 
                 ADD COLUMN Tanggal_Keluar_Clean DATE GENERATED ALWAYS AS (
-                    str_to_date(substr(Tanggal_Keluar,1,10), '%Y-%m-%d')
+                    STR_TO_DATE(SUBSTRING_INDEX(Tanggal_Keluar, ' ', 1), '%d/%m/%Y')
                 ) STORED,
                 ADD INDEX idx_tanggal_keluar_clean (Tanggal_Keluar_Clean);
             """)
