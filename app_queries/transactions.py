@@ -57,6 +57,7 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
     total_netto = 0; total_spm = 0; unique_spt = set()
     truck_visits = []; tebu_visits = set(); unique_tickets = set()
     is_gula = (tx_key == 'gula'); is_tebu = (tx_key == 'tebu'); is_molasses = (tx_key == 'molasses')
+    is_bagasse = (tx_key == 'bagasse')
 
     def parse_angka(val):
         if not val: return 0
@@ -107,7 +108,7 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
         total_spm += spm
         spt = r.get('Nomor_SPT') or r.get('Nomor_SPMSPB') or r.get('Nomor_SPPB') or r.get('Nomor_SPTA')
         if spt and str(spt).strip() not in ('', '-'): unique_spt.add(str(spt).strip())
-        if is_gula or is_molasses:
+        if is_gula or is_molasses or is_bagasse:
             remarks = str(r.get('Remarks') or '').lower()
             is_tambahan = is_molasses and 'tambahan' in remarks
             if not is_tambahan:
@@ -129,7 +130,7 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
         else:
             total_netto += netto
 
-    if is_gula or is_molasses: total_ritase = len(truck_visits)
+    if is_gula or is_molasses or is_bagasse: total_ritase = len(truck_visits)
     elif is_tebu: total_ritase = len(tebu_visits) if tebu_visits else len(all_data)
     else: total_ritase = len(unique_tickets) if unique_tickets else len(all_data)
 

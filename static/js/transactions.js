@@ -600,12 +600,12 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
     };
 
     const isSameGroup = (rowA, rowB) => {
-        if (typeKey !== 'gula' && typeKey !== 'molasses') return false;
+        if (typeKey !== 'gula' && typeKey !== 'molasses' && typeKey !== 'bagasse') return false;
         
         // Jangan grup-kan kalau salah satunya adalah SPT Tambahan
         const remA = (rowA.remarks || '').toLowerCase();
         const remB = (rowB.remarks || '').toLowerCase();
-        if (typeKey === 'molasses' && (remA.includes('tambahan') || remB.includes('tambahan'))) return false;
+        if ((typeKey === 'molasses' || typeKey === 'bagasse') && (remA.includes('tambahan') || remB.includes('tambahan'))) return false;
 
         const nopolA = normalizeStr(rowA.nopol);
         const supirA = normalizeStr(rowA.supir);
@@ -624,7 +624,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
     while (currentStart < txAllData.length) {
         let nextCut = currentStart + 100; // Limit 100
         if (nextCut >= txAllData.length) break;
-        if (typeKey === 'gula' || typeKey === 'molasses') {
+        if (typeKey === 'gula' || typeKey === 'molasses' || typeKey === 'bagasse') {
             while (nextCut < txAllData.length) {
                 if (isSameGroup(txAllData[nextCut - 1], txAllData[nextCut])) nextCut++;
                 else break;
@@ -635,13 +635,13 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
     }
 
     // PRE-PROCESSING ROWSPAN & SPT TAMBAHAN
-    if (typeKey === 'gula' || typeKey === 'molasses') {
+    if (typeKey === 'gula' || typeKey === 'molasses' || typeKey === 'bagasse') {
         for (let i = 0; i < pageData.length; i++) {
             if (pageData[i].skipNetto) continue; 
             
-            // Tandai jika ini SPT Tambahan (Molasses)
+            // Tandai jika ini SPT Tambahan (Molasses/Bagasse)
             const remarksA = (pageData[i].remarks || '').toLowerCase();
-            if (typeKey === 'molasses' && remarksA.includes('tambahan')) {
+            if ((typeKey === 'molasses' || typeKey === 'bagasse') && remarksA.includes('tambahan')) {
                 pageData[i].isTambahan = true;
                 continue; // Biarkan berdiri sendiri, jangan di-merge
             }
@@ -658,7 +658,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
                 const remarksB = (pageData[j].remarks || '').toLowerCase();
 
                 // Stop kalau ketemu SPT tambahan
-                if (typeKey === 'molasses' && remarksB.includes('tambahan')) break;
+                if ((typeKey === 'molasses' || typeKey === 'bagasse') && remarksB.includes('tambahan')) break;
 
                 if (nopolA !== '' && nopolA === nopolB && supirA === supirB && Math.abs(timeA - timeB) <= (30 * 60000)) {
                     rowspanCount++;
@@ -679,7 +679,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
         
         cells += config.columns.map(col => {
             // Sembunyikan sel netto kalau dia adalah duplikat 30 menit
-            if (col.key === 'qty_netto' && (typeKey === 'gula' || typeKey === 'molasses') && row.skipNetto) return ''; 
+            if (col.key === 'qty_netto' && (typeKey === 'gula' || typeKey === 'molasses' || typeKey === 'bagasse') && row.skipNetto) return ''; 
 
             let val = row[col.key];
 
@@ -718,7 +718,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
             const cls = (col.format === 'number' && (val === '-' || val === '0')) ? 'zero-val' : '';
             
             let attr = '';
-            if (col.key === 'qty_netto' && (typeKey === 'gula' || typeKey === 'molasses') && row.nettoRowspan > 1) {
+            if (col.key === 'qty_netto' && (typeKey === 'gula' || typeKey === 'molasses' || typeKey === 'bagasse') && row.nettoRowspan > 1) {
                 attr = ` rowspan="${row.nettoRowspan}" style="vertical-align: middle; background-color: rgba(88,166,255,0.05);"`;
             }
 

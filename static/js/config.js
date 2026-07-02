@@ -113,6 +113,30 @@ const TRANSACTION_TYPES = {
             { key: 'remarks', label: 'Keterangan' },
         ]
     },
+    bagasse: {
+        label: 'Bagasse',
+        icon: 'fa-leaf',
+        color: '#8d6e63',
+        filters: ['BAGASSE', 'BAGGASE'],
+        columns: [
+            { key: 'tanggal_masuk', label: 'Tgl Masuk' },
+            { key: 'jam_masuk', label: 'Jam' },
+            { key: 'berat_masuk', label: 'Tara', format: 'number' },
+            { key: 'tanggal_keluar', label: 'Tgl Keluar' },
+            { key: 'jam_keluar', label: 'Jam' },
+            { key: 'berat_keluar', label: 'Bruto', format: 'number' },
+            { key: 'qty_netto', label: 'Netto WB', format: 'number', bold: true },
+            { key: 'nomor_spmspb', label: 'No SPM'},
+            { key: 'nopol', label: 'Polisi' },
+            { key: 'nomor_spt', label: 'SPT' },
+            { key: 'nomor_spmspb', label: 'SPM' },
+            { key: 'nomor_sppb', label: 'SPPB' },
+            { key: 'supir', label: 'Sopir' },
+            { key: 'cardname', label: 'Customer' },
+            { key: 'shift', label: 'Shift'},
+            { key: 'remarks', label: 'Keterangan' },
+        ]
+    },
     limbah: {
         label: 'Limbah',
         icon: 'fa-recycle',
