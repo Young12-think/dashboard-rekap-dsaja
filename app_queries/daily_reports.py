@@ -396,7 +396,7 @@ def get_daily_transfer_gula(date_from, date_to):
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS spt_total
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
-          AND (LOWER(t.ItemName) LIKE '%warehouse transfer%' OR LOWER(t.ItemName) LIKE '%werehouse tranfer%')
+          AND (LOWER(t.Type) LIKE '%warehouse transfer%' OR LOWER(t.Type) LIKE '%werehouse tranfer%')
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
         GROUP BY TRIM(t.CardName)
         ORDER BY TRIM(t.CardName)
@@ -409,7 +409,7 @@ def get_daily_transfer_gula(date_from, date_to):
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS todate_netto
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean <= %s
-          AND (LOWER(t.ItemName) LIKE '%warehouse transfer%' OR LOWER(t.ItemName) LIKE '%werehouse tranfer%')
+          AND (LOWER(t.Type) LIKE '%warehouse transfer%' OR LOWER(t.Type) LIKE '%werehouse tranfer%')
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
         GROUP BY TRIM(t.CardName)
     """
