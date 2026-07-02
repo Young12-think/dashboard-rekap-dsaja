@@ -396,16 +396,8 @@ def get_daily_transfer_gula(date_from, date_to):
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS spt_total
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean BETWEEN %s AND %s
-          AND t.ItemName LIKE '%GULA%'
+          AND (LOWER(t.ItemName) LIKE '%warehouse transfer%' OR LOWER(t.ItemName) LIKE '%werehouse tranfer%')
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
-          AND (
-              UPPER(t.CardName) LIKE '%BULOG%'
-           OR UPPER(t.CardName) LIKE '%GUDANG%'
-           OR UPPER(t.CardName) LIKE '%WAREHOUSE%'
-           OR UPPER(t.CardName) LIKE '%RMI%'
-           OR UPPER(t.CardName) LIKE '%NUSINDO%'
-           OR UPPER(t.CardName) LIKE '%RAJAWALI%'
-          )
         GROUP BY TRIM(t.CardName)
         ORDER BY TRIM(t.CardName)
     """
@@ -417,16 +409,8 @@ def get_daily_transfer_gula(date_from, date_to):
             SUM(ABS(COALESCE(t.Qty_SPMSPB, 0)))                AS todate_netto
         FROM data_timbang t
         WHERE t.Tanggal_Keluar_Clean <= %s
-          AND t.ItemName LIKE '%GULA%'
+          AND (LOWER(t.ItemName) LIKE '%warehouse transfer%' OR LOWER(t.ItemName) LIKE '%werehouse tranfer%')
           AND t.CardName IS NOT NULL AND TRIM(t.CardName) != ''
-          AND (
-              UPPER(t.CardName) LIKE '%BULOG%'
-           OR UPPER(t.CardName) LIKE '%GUDANG%'
-           OR UPPER(t.CardName) LIKE '%WAREHOUSE%'
-           OR UPPER(t.CardName) LIKE '%RMI%'
-           OR UPPER(t.CardName) LIKE '%NUSINDO%'
-           OR UPPER(t.CardName) LIKE '%RAJAWALI%'
-          )
         GROUP BY TRIM(t.CardName)
     """
  

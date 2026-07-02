@@ -1,4 +1,5 @@
 from app_queries.db_core import query
 
-res = query("SELECT DISTINCT Type, ItemName FROM data_timbang WHERE LOWER(ItemName) LIKE '%bagasse%' OR LOWER(Type) LIKE '%bagasse%' OR LOWER(ItemName) LIKE '%baggase%' OR LOWER(Type) LIKE '%baggase%'")
-print(res)
+res = query("SELECT DISTINCT ItemName FROM data_timbang WHERE ItemName IS NOT NULL")
+for r in res:
+    print(r['ItemName'])
