@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup RMI - Laporan Harian Stock Gula</title>
+  <style>
+    :root {
+      --bg-body: #0d1117;
+      --bg-primary: #161b22;
+      --bg-secondary: #21262d;
+      --bg-card: #151a21;
+      --border-color: #30363d;
+      --border-subtle: rgba(255,255,255,0.08);
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-blue: #58a6ff;
+      --accent-blue-dim: rgba(88,166,255,0.12);
+      --accent-green: #3fb950;
+      --accent-green-dim: rgba(63,185,80,0.12);
+      --accent-red: #f85149;
+      --accent-red-dim: rgba(248,81,73,0.12);
+      --accent-yellow: #d29922;
+      --accent-yellow-dim: rgba(210,153,34,0.14);
+      --accent-orange: #f0883e;
+      --accent-orange-dim: rgba(240,136,62,0.12);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --font-main: Inter, Segoe UI, Arial, sans-serif;
+      --font-mono: Consolas, "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      font-size: 14px;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--bg-primary);
+      border-right: 1px solid var(--border-color);
+      padding: 18px 0;
+    }
+
+    .brand {
+      padding: 0 20px 18px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+      color: var(--accent-blue);
+      letter-spacing: .02em;
+    }
+
+    .nav {
+      list-style: none;
+      margin: 16px 0 0;
+      padding: 0;
+    }
+
+    .nav li {
+      padding: 13px 20px;
+      color: var(--text-secondary);
+      border-right: 3px solid transparent;
+    }
+
+    .nav li.active {
+      color: var(--accent-blue);
+      background: var(--accent-blue-dim);
+      border-right-color: var(--accent-blue);
+    }
+
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 60px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .date-chip {
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .content {
+      padding: 22px;
+      overflow: auto;
+    }
+
+    .report-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .report-head h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+    }
+
+    .report-head p {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 22px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      color: var(--text-secondary);
+      padding: 13px 16px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      color: var(--accent-green);
+      border-bottom-color: var(--accent-green);
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .section-title {
+      margin: 0 0 14px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-head h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 22px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .badge.blue { color: var(--accent-blue); background: var(--accent-blue-dim); }
+    .badge.green { color: var(--accent-green); background: var(--accent-green-dim); }
+    .badge.yellow { color: var(--accent-yellow); background: var(--accent-yellow-dim); }
+    .badge.red { color: var(--accent-red); background: var(--accent-red-dim); }
+    .badge.orange { color: var(--accent-orange); background: var(--accent-orange-dim); }
+
+    .balance-list {
+      padding: 16px 18px 18px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .row .label {
+      color: var(--text-secondary);
+    }
+
+    .row .value {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .row.total {
+      margin-top: 8px;
+      padding: 13px 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--accent-blue-dim);
+    }
+
+    .row.final {
+      margin-top: 8px;
+      padding: 16px 12px;
+      border: 1px solid rgba(63,185,80,.35);
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, rgba(63,185,80,.16), rgba(63,185,80,.08));
+    }
+
+    .row.final .label,
+    .row.final .value {
+      color: var(--accent-green);
+      font-size: 16px;
+    }
+
+    .mini-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .mini {
+      padding: 14px 18px;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    .mini:last-child { border-right: 0; }
+
+    .mini-label {
+      color: var(--text-secondary);
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .mini-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      text-align: left;
+      background: rgba(255,255,255,0.015);
+    }
+
+    td {
+      color: var(--text-secondary);
+    }
+
+    td.num {
+      text-align: right;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    tr.summary td {
+      color: var(--accent-blue);
+      background: var(--accent-blue-dim);
+      font-weight: 800;
+    }
+
+    tr.warning td {
+      color: var(--accent-yellow);
+      background: var(--accent-yellow-dim);
+      font-weight: 800;
+    }
+
+    .audit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .audit-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 15px;
+    }
+
+    .audit-card h4 {
+      margin: 0 0 12px;
+      font-size: 13px;
+    }
+
+    .audit-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-secondary);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .audit-line:last-child { border-bottom: 0; }
+
+    .callout {
+      border: 1px solid rgba(210,153,34,.28);
+      background: rgba(210,153,34,.08);
+      border-radius: var(--radius-md);
+      padding: 13px 15px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .placeholder {
+      padding: 36px;
+      text-align: center;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    .mt { margin-top: 22px; }
+
+    @media (max-width: 980px) {
+      .page { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .grid-2, .grid-3, .audit-grid { grid-template-columns: 1fr; }
+      .report-head { flex-direction: column; }
+      .mini-metrics { grid-template-columns: 1fr; }
+      .mini { border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <div class="brand">RMI Balance</div>
+      <ul class="nav">
+        <li>Overview</li>
+        <li class="active">Laporan Detail Harian</li>
+        <li>Grafik & Analitik</li>
+        <li>Stok GKP Harian</li>
+        <li>Delivery Plan</li>
+        <li>Tangki Molasses</li>
+        <li>Stok Gudang Luar</li>
+      </ul>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1>Laporan Detail Harian</h1>
+        <div class="date-chip">Tanggal: 31/01/2025</div>
+      </header>
+
+      <section class="content">
+        <div class="report-head">
+          <div>
+            <h2>RMI Daily Report</h2>
+            <p>Mockup UI berdasarkan akuntansi sheet Balance 1: stock normal, reject, remelt, dan validasi balance.</p>
+          </div>
+          <span class="badge green">Giling aktif</span>
+        </div>
+
+        <nav class="tabs" aria-label="Sub menu laporan harian">
+          <button class="tab active" data-target="summary">Summary</button>
+          <button class="tab" data-target="stock-gula">Detail Stock Gula</button>
+          <button class="tab" data-target="delivery">Detail Delivery</button>
+          <button class="tab" data-target="molasses">Molasses & Cane</button>
+          <button class="tab" data-target="grafik">Grafik</button>
+        </nav>
+
+        <section class="panel active" id="summary">
+          <h3 class="section-title">Gula</h3>
+          <div class="grid-2">
+            <article class="card">
+              <div class="card-head">
+                <h3>Balance Gula</h3>
+                <span class="badge blue">Ton</span>
+              </div>
+              <div class="balance-list">
+                <div class="row">
+                  <span class="label">Open Balance</span>
+                  <span class="value">16,435.00</span>
+                </div>
+                <div class="row">
+                  <span class="label">Production</span>
+                  <span class="value">+ 0.00</span>
+                </div>
+                <div class="row">
+                  <span class="label">Available Stock</span>
+                  <span class="value">= 16,435.00</span>
+                </div>
+                <div class="row">
+                  <span class="label">Delivery</span>
+                  <span class="value" style="color: var(--accent-red);">- 667.00</span>
+                </div>
+                <div class="row total">
+                  <span class="label" style="color: var(--accent-blue); font-weight: 800;">End Balance GKP</span>
+                  <span class="value" style="color: var(--accent-blue);">15,768.00</span>
+                </div>
+                <div class="row">
+                  <span class="label">Reject Stock</span>
+                  <span class="value" style="color: var(--accent-yellow);">+ 1,244.10</span>
+                </div>
+                <div class="row final">
+                  <span class="label">Total Stock + Reject</span>
+                  <span class="value">17,012.10</span>
+                </div>
+              </div>
+              <div class="mini-metrics">
+                <div class="mini">
+                  <div class="mini-label">GKB / Blue</div>
+                  <div class="mini-value" style="color: var(--accent-blue);">3,398.90</div>
+                </div>
+                <div class="mini">
+                  <div class="mini-label">GKM / Red</div>
+                  <div class="mini-value" style="color: var(--accent-red);">11,792.00</div>
+                </div>
+                <div class="mini">
+                  <div class="mini-label">Reject</div>
+                  <div class="mini-value" style="color: var(--accent-yellow);">1,244.10</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h3>Stock GKP Snapshot</h3>
+                <span class="badge yellow">Akuntansi Excel</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style="text-align:right;">Ton</th>
+                    <th style="text-align:right;">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Blue / GKB</td>
+                    <td class="num">3,398.90</td>
+                    <td class="num">20.68%</td>
+                  </tr>
+                  <tr>
+                    <td>Red / GKM</td>
+                    <td class="num">11,792.00</td>
+                    <td class="num">71.75%</td>
+                  </tr>
+                  <tr class="warning">
+                    <td>Total Reject</td>
+                    <td class="num">1,244.10</td>
+                    <td class="num">7.57%</td>
+                  </tr>
+                  <tr class="summary">
+                    <td>Total Stock + Reject</td>
+                    <td class="num">16,435.00</td>
+                    <td class="num">100.00%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <div class="callout mt">
+            Catatan UI: angka besar di summary memakai rumus akuntansi dari Excel. User bisa melihat stock normal GKB/GKM, lalu reject sebagai stock tambahan yang tetap masuk total.
+          </div>
+        </section>
+
+        <section class="panel" id="stock-gula">
+          <h3 class="section-title">Detail Stock Gula</h3>
+          <div class="callout">
+            Halaman ini dibuat untuk menjawab pertanyaan: stock gula terdiri dari apa saja, reject-nya jenis apa saja, dan apakah balance-nya cocok.
+          </div>
+
+          <div class="grid-2">
+            <article class="card">
+              <div class="card-head">
+                <h3>Stock GKP</h3>
+                <span class="badge blue">Stock + Reject</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Komponen</th>
+                    <th style="text-align:right;">Ton</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Blue / GKB</td>
+                    <td class="num">3,398.90</td>
+                  </tr>
+                  <tr>
+                    <td>Red / GKM</td>
+                    <td class="num">11,792.00</td>
+                  </tr>
+                  <tr class="warning">
+                    <td>Total Reject</td>
+                    <td class="num">1,244.10</td>
+                  </tr>
+                  <tr class="summary">
+                    <td>Total Stock + Reject</td>
+                    <td class="num">16,435.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h3>Stock Site Summary</h3>
+                <span class="badge green">Site</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kelompok</th>
+                    <th style="text-align:right;">Ton</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Stock in Site RMI</td>
+                    <td class="num">7,435.25</td>
+                  </tr>
+                  <tr>
+                    <td>Stock out Site RMI</td>
+                    <td class="num">8,999.75</td>
+                  </tr>
+                  <tr class="summary">
+                    <td>Total Stock</td>
+                    <td class="num">16,435.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <article class="card mt">
+            <div class="card-head">
+              <h3>Sugar Stock Position</h3>
+              <span class="badge green">Dari sheet Balance 1</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  <th>Lokasi stock</th>
+                  <th style="text-align:right;">Ton</th>
+                  <th>Status UI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock WFG</td>
+                  <td class="num">3,448.00</td>
+                  <td><span class="badge blue">Aktif</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock South WFG</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge blue">Sub lokasi</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock West WFG</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge blue">Sub lokasi</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock Cane Yard (Mill)</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge blue">Sub lokasi</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock WRS / Curah</td>
+                  <td class="num">3,987.25</td>
+                  <td><span class="badge blue">Aktif</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock North WRS</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge blue">Sub lokasi</span></td>
+                </tr>
+                <tr>
+                  <td>In Site RMI</td>
+                  <td>Stock Area Workshop</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge blue">Sub lokasi</span></td>
+                </tr>
+                <tr class="summary">
+                  <td colspan="2">Stock in Site RMI</td>
+                  <td class="num">7,435.25</td>
+                  <td><span class="badge green">Subtotal</span></td>
+                </tr>
+                <tr>
+                  <td>Out Site RMI</td>
+                  <td>Stock Gudang Wlingi</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge orange">Gudang luar</span></td>
+                </tr>
+                <tr>
+                  <td>Out Site RMI</td>
+                  <td>Stock Blitar (Gedog)</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge orange">Gudang luar</span></td>
+                </tr>
+                <tr>
+                  <td>Out Site RMI</td>
+                  <td>Stock Bulog Garum</td>
+                  <td class="num">0.00</td>
+                  <td><span class="badge orange">Gudang luar</span></td>
+                </tr>
+                <tr>
+                  <td>Out Site RMI</td>
+                  <td>Stock Kepanjen</td>
+                  <td class="num">8,999.75</td>
+                  <td><span class="badge orange">Gudang luar</span></td>
+                </tr>
+                <tr class="summary">
+                  <td colspan="2">Stock out Site RMI</td>
+                  <td class="num">8,999.75</td>
+                  <td><span class="badge green">Subtotal</span></td>
+                </tr>
+                <tr class="warning">
+                  <td colspan="2">Total Stock</td>
+                  <td class="num">16,435.00</td>
+                  <td><span class="badge yellow">Reconcile ke Stock GKP</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+
+          <div class="grid-2 mt">
+            <article class="card">
+              <div class="card-head">
+                <h3>Detail Reject</h3>
+                <span class="badge yellow">Reject Today</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jenis reject</th>
+                    <th style="text-align:right;">Ton</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Mix Colour / Metal Detector</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Off Colour</td>
+                    <td class="num">146.00</td>
+                  </tr>
+                  <tr>
+                    <td>Cleaning Bin</td>
+                    <td class="num">16.55</td>
+                  </tr>
+                  <tr>
+                    <td>Lumping</td>
+                    <td class="num">943.85</td>
+                  </tr>
+                  <tr>
+                    <td>Flashing / Flushing</td>
+                    <td class="num">134.15</td>
+                  </tr>
+                  <tr>
+                    <td>Sapon Bagging</td>
+                    <td class="num">0.15</td>
+                  </tr>
+                  <tr>
+                    <td>S. Loading / Downgrade RED</td>
+                    <td class="num">42.85</td>
+                  </tr>
+                  <tr>
+                    <td>S. Loading / Downgrade BLUE</td>
+                    <td class="num">3.25</td>
+                  </tr>
+                  <tr class="summary">
+                    <td>Total Reject Today</td>
+                    <td class="num">1,286.80</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h3>Remelt Reject</h3>
+                <span class="badge orange">Remelt</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jenis remelt</th>
+                    <th style="text-align:right;">Ton</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Remelt Mix Colour / Metal Detector</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Off Colour</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Cleaning Bin</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Lumping</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Flushing</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Reject Bagging</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Reject Loading</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Wet Sugar Blue / Dgrade</td>
+                    <td class="num">0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Remelt Wet Sugar Red / Dgrade</td>
+                    <td class="num">177.30</td>
+                  </tr>
+                  <tr class="summary">
+                    <td>Total Remelt Reject Today</td>
+                    <td class="num">177.30</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <h3 class="section-title mt">Validasi Balance</h3>
+          <div class="audit-grid">
+            <div class="audit-card">
+              <h4>Stock Checking <span class="badge green">Balanced</span></h4>
+              <div class="audit-line"><span>Inventory Stock</span><strong>242.55</strong></div>
+              <div class="audit-line"><span>WFG</span><strong>242.55</strong></div>
+              <div class="audit-line"><span>Diffs</span><strong>0.00</strong></div>
+            </div>
+            <div class="audit-card">
+              <h4>Reject Checking <span class="badge green">Balanced</span></h4>
+              <div class="audit-line"><span>Reject Polos</span><strong>0.00</strong></div>
+              <div class="audit-line"><span>Reject</span><strong>0.00</strong></div>
+              <div class="audit-line"><span>Diffs</span><strong>0.00</strong></div>
+            </div>
+            <div class="audit-card">
+              <h4>Remelt Check <span class="badge green">Balanced</span></h4>
+              <div class="audit-line"><span>Remelt Sent to Process</span><strong>177.30</strong></div>
+              <div class="audit-line"><span>Remelt</span><strong>177.30</strong></div>
+              <div class="audit-line"><span>Diffs</span><strong>0.00</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="delivery">
+          <div class="placeholder">
+            Detail Delivery akan memecah delivery seperti Excel: Move Out SO, Move Out STO, Move Out Repack, Move Out Total, dan Remelt Sent to Process.
+          </div>
+        </section>
+
+        <section class="panel" id="molasses">
+          <div class="placeholder">
+            Bagian Molasses & Cane tetap memakai layout existing, nanti bisa diselaraskan setelah stock gula dan reject disetujui.
+          </div>
+        </section>
+
+        <section class="panel" id="grafik">
+          <div class="placeholder">
+            Grafik tetap menjadi area trend. Untuk tahap UI ini fokusnya belum grafik, tapi struktur akuntansi harian.
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll(".tab").forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        document.querySelectorAll(".tab").forEach(function(item) {
+          item.classList.remove("active");
+        });
+        document.querySelectorAll(".panel").forEach(function(panel) {
+          panel.classList.remove("active");
+        });
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.target).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

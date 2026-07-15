@@ -471,6 +471,12 @@ def api_rmi_balance_overview():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
     return jsonify({"status": "success", "data": queries.rmi_balance.get_overview()})
 
+@app.route('/api/rmi-balance/overview-v2')
+def api_rmi_balance_overview_v2():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_str = request.args.get('date')
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_overview_v2(date_str)})
+
 @app.route('/api/rmi-balance/stok-harian')
 def api_rmi_balance_stok_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
@@ -501,7 +507,10 @@ def api_rmi_balance_settings():
         body = request.get_json(silent=True) or {}
         gula_cap = body.get('gula_capacity', 22000)
         mol_cap = body.get('molasses_capacity', 30000)
-        ok = queries.rmi_balance.update_settings(gula_cap, mol_cap)
+        milling_start_date = body.get('milling_start_date') or None
+        if milling_start_date and not queries.rmi_balance._valid_date_str(milling_start_date):
+            return jsonify({"status": "error", "message": "Format tanggal awal giling harus YYYY-MM-DD"}), 400
+        ok = queries.rmi_balance.update_settings(gula_cap, mol_cap, milling_start_date)
         if ok:
             return jsonify({"status": "success"})
         return jsonify({"status": "error", "message": "Gagal update setting"}), 500
