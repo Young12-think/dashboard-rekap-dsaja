@@ -101,8 +101,3 @@ echo [ERROR] Server berhenti! Lihat pesan error di atas.
 echo ===================================================
 goto :FAIL
 
-:FAIL
-echo.
-echo Tekan tombol apa saja untuk menutup jendela ini...
-pause >nul
-exit /b
