@@ -3,6 +3,9 @@ setlocal enabledelayedexpansion
 title Rekap DSaja - Portable Launcher
 color 0b
 
+:: Pastikan Working Directory selalu di folder tempat start.bat berada
+cd /d "%~dp0"
+
 echo ===================================================
 echo     MEMULAI REKAP DSAJA (PORTABLE SYSTEM)
 echo ===================================================
@@ -13,17 +16,21 @@ set PLAYWRIGHT_BROWSERS_PATH=%~dp0playwright_browsers
 echo [INFO] Browser Path: %PLAYWRIGHT_BROWSERS_PATH%
 echo.
 
-:: ── STEP 1: Cek Python ─────────────────────────────
-python --version >nul 2>&1
-if !errorlevel! neq 0 (
-    color 0c
-    echo ===================================================
-    echo [ERROR] Python tidak terdeteksi di PC ini!
-    echo Silakan install Python dan centang "Add Python to PATH".
-    echo ===================================================
-    goto :FAIL
+:: ── STEP 1: Cek Python / .venv ─────────────────────
+if exist "%~dp0.venv\Scripts\python.exe" (
+    echo [OK] Python Virtual Environment terdeteksi (.venv).
+) else (
+    python --version >nul 2>&1
+    if !errorlevel! neq 0 (
+        color 0c
+        echo ===================================================
+        echo [ERROR] Python tidak terdeteksi di PC ini!
+        echo Silakan install Python dan centang "Add Python to PATH".
+        echo ===================================================
+        goto :FAIL
+    )
+    echo [OK] Python sistem ditemukan.
 )
-echo [OK] Python ditemukan.
 
 :: ── STEP 1.5: Cek File .env ─────────────────────────
 if not exist ".env" (
@@ -127,6 +134,6 @@ echo.
 echo ===================================================
 echo [ERROR] Terjadi kesalahan pada persiapan/server.
 echo ===================================================
-pause
+<nul pause
 exit /b 1
 
