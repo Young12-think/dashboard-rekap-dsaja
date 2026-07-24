@@ -589,6 +589,65 @@ body.neo-mode .chart-container {
     border: var(--nb-border);
     border-radius: var(--nb-radius);
 }
+body.neo-mode canvas {
+    background: var(--nb-white) !important;
+    border-radius: var(--nb-radius);
+}
+
+/* ══════════════════════════════════════
+   PAGE: GRAFIK & ANALISIS (page_charts.html)
+   ══════════════════════════════════════ */
+body.neo-mode .chart-full-box,
+body.neo-mode .inline-chart-box {
+    background: var(--nb-white) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow) !important;
+}
+body.neo-mode .chart-full-box h3,
+body.neo-mode .inline-chart-box h3 {
+    color: var(--nb-black) !important;
+    font-weight: 800;
+}
+body.neo-mode .chart-full-box h3 i,
+body.neo-mode .inline-chart-box h3 i { color: var(--nb-black) !important; }
+body.neo-mode .chart-full-box p,
+body.neo-mode .inline-chart-box p { color: #555 !important; }
+
+/* Insight boxes (Radar Shift, Top Transportir) — beri warna berbeda biar gak monoton */
+body.neo-mode .insight-chart-box { background: var(--nb-white) !important; }
+body.neo-mode .insight-chart-box::before { background: var(--nb-black) !important; opacity: 1; height: 4px; border-radius: 0; }
+body.neo-mode #radarShiftBox { background: var(--nb-yellow) !important; }
+body.neo-mode #topTransportirBox { background: var(--nb-cyan) !important; }
+body.neo-mode .insight-chart-box:hover {
+    border-color: var(--nb-black) !important;
+    box-shadow: none !important;
+    transform: translate(4px,4px);
+}
+body.neo-mode #radarStatsCards > div {
+    color: var(--nb-black) !important;
+    background: var(--nb-white) !important;
+    border: 1.5px solid var(--nb-black) !important;
+    border-radius: var(--nb-radius) !important;
+}
+body.neo-mode #radarStatsCards > div * { color: var(--nb-black) !important; }
+
+/* ══════════════════════════════════════
+   PAGE: LAPORAN LIMBAH (page_report_limbah.html)
+   ══════════════════════════════════════ */
+body.neo-mode #reportLimbahCaptureArea {
+    background: var(--nb-white) !important;
+    border: var(--nb-border) !important;
+    box-shadow: var(--nb-shadow) !important;
+}
+body.neo-mode #limbahShiftSelect {
+    background: var(--nb-white) !important;
+    color: var(--nb-black) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    color-scheme: light;
+}
+body.neo-mode .loading-cell { color: var(--nb-black); }
 
 /* ══════════════════════════════════════
    LOADING
@@ -609,6 +668,487 @@ body.neo-mode ::-webkit-scrollbar-track { background: var(--nb-bg2); }
 body.neo-mode .sidebar-overlay.active { background: rgba(0,0,0,0.5); }
 
 /* ══════════════════════════════════════
+   REPORT TEBU (.tebu-v2)
+   Override vars gelap + komponen di pages.css
+   ══════════════════════════════════════ */
+body.neo-mode .tebu-v2 {
+    --bg:     var(--nb-bg);
+    --bg2:    var(--nb-white);
+    --bg3:    var(--nb-bg2);
+    --bg4:    var(--nb-bg2);
+    --card:   var(--nb-white);
+
+    --b:      var(--nb-black);
+    --b2:     var(--nb-black);
+    --b3:     var(--nb-black);
+
+    --t:      var(--nb-black);
+    --t2:     #444444;
+    --t3:     #777777;
+    --bright: var(--nb-black);
+
+    --green:  var(--nb-green);
+    --gdim:   var(--nb-green);
+    --gline:  var(--nb-black);
+
+    --blue:   var(--nb-blue);
+    --bdim:   var(--nb-blue);
+    --bline:  var(--nb-black);
+
+    --gold:   var(--nb-yellow);
+    --ydim:   var(--nb-yellow);
+    --yline:  var(--nb-black);
+
+    --purple: var(--nb-purple);
+    --pdim:   var(--nb-purple);
+    --pline:  var(--nb-black);
+
+    --red:    var(--nb-red);
+    --rdim:   var(--nb-red);
+
+    --mono: var(--nb-mono);
+    --body: var(--nb-font);
+    --r:  var(--nb-radius);
+    --r2: var(--nb-radius);
+    --r3: var(--nb-radius);
+
+    background: var(--nb-bg);
+    min-height: auto;
+    color: var(--nb-black);
+}
+body.neo-mode .tebu-v2::after { display: none; }
+
+body.neo-mode .tebu-v2 .ph-left h1 { color: var(--nb-black); font-weight: 900; }
+body.neo-mode .tebu-v2 .ph-left h1 i { color: var(--nb-black); }
+body.neo-mode .tebu-v2 .ph-left p { color: #444; }
+body.neo-mode .tebu-v2 .live-pill {
+    background: var(--nb-green);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    color: var(--nb-black);
+    box-shadow: var(--nb-shadow-sm);
+}
+body.neo-mode .tebu-v2 .live-pill::before { background: var(--nb-black); animation: none; }
+
+body.neo-mode .tebu-v2 .filter-panel,
+body.neo-mode .tebu-v2 .global-panel,
+body.neo-mode .tebu-v2 .section-block,
+body.neo-mode .tebu-v2 .mstat,
+body.neo-mode .tebu-v2 .ring-card,
+body.neo-mode .tebu-v2 .wa-section {
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow);
+}
+body.neo-mode .tebu-v2 .filter-panel::before,
+body.neo-mode .tebu-v2 .global-panel::before { display: none; }
+
+body.neo-mode .tebu-v2 .sb-head { background: var(--nb-bg2); }
+body.neo-mode .tebu-v2 .sb-head h3 { color: var(--nb-black); font-weight: 800; }
+
+body.neo-mode .tebu-v2 .fp-input {
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    color: var(--nb-black);
+    font-weight: 700;
+    box-shadow: var(--nb-shadow-sm);
+    color-scheme: light;
+}
+body.neo-mode .tebu-v2 .fp-input:focus { box-shadow: none; transform: translate(2px,2px); }
+body.neo-mode .tebu-v2 .fp-input option { background: var(--nb-white); color: var(--nb-black); }
+
+body.neo-mode .tebu-v2 .spill {
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    color: var(--nb-black);
+    font-weight: 700;
+    box-shadow: var(--nb-shadow-sm);
+    transition: all .1s;
+}
+body.neo-mode .tebu-v2 .spill:hover { transform: translate(2px,2px); box-shadow: none; }
+body.neo-mode .tebu-v2 .spill.active { color: var(--nb-black); transform: translate(2px,2px); box-shadow: none; }
+body.neo-mode .tebu-v2 .spill.active.s1 { background: var(--nb-blue); }
+body.neo-mode .tebu-v2 .spill.active.s2 { background: var(--nb-yellow); }
+body.neo-mode .tebu-v2 .spill.active.s3 { background: var(--nb-purple); }
+
+body.neo-mode .tebu-v2 .persisted-badge {
+    background: var(--nb-yellow);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    color: var(--nb-black);
+    font-weight: 700;
+}
+
+body.neo-mode .tebu-v2 .btn-gen {
+    background: var(--nb-blue);
+    color: var(--nb-black);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow);
+    font-weight: 800;
+    transition: all .1s;
+}
+body.neo-mode .tebu-v2 .btn-gen:hover { filter: none; transform: translate(4px,4px); box-shadow: none; }
+body.neo-mode .tebu-v2 .btn-gen:active { transform: translate(4px,4px); box-shadow: none; }
+
+body.neo-mode .tebu-v2 .mstat::before { display: none; }
+body.neo-mode .tebu-v2 .mstat:hover { border-color: var(--nb-black); }
+body.neo-mode .tebu-v2 .mstat.blue  { background: var(--nb-blue); }
+body.neo-mode .tebu-v2 .mstat.green { background: var(--nb-green); }
+body.neo-mode .tebu-v2 .mstat.gold  { background: var(--nb-yellow); }
+body.neo-mode .tebu-v2 .mstat.purple{ background: var(--nb-purple); }
+body.neo-mode .tebu-v2 .mstat.orange{ background: var(--nb-orange); }
+body.neo-mode .tebu-v2 .mstat-lbl { color: var(--nb-black); font-weight: 800; }
+body.neo-mode .tebu-v2 .mstat-sub { color: #333; }
+body.neo-mode .tebu-v2 .mstat-val { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .mstat-val .u { color: #333; }
+
+body.neo-mode .tebu-v2 .ring-track { stroke: var(--nb-bg2); }
+body.neo-mode .tebu-v2 .ring-fill { stroke: var(--nb-green); stroke-linecap: butt; }
+body.neo-mode .tebu-v2 .ring-pct { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .ring-info-title { color: var(--nb-black); font-weight: 800; }
+body.neo-mode .tebu-v2 .ring-target { color: #444; }
+body.neo-mode .tebu-v2 .ring-target span { color: var(--nb-black); font-weight: 700; }
+
+body.neo-mode .tebu-v2 .truck-mini {
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow-sm);
+}
+body.neo-mode .tebu-v2 .truck-mini-lbl { color: var(--nb-black); font-weight: 800; }
+body.neo-mode .tebu-v2 .truck-mini-today { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .truck-mini-todate { color: #444; }
+body.neo-mode .tebu-v2 .truck-mini-todate span { color: var(--nb-black); font-weight: 700; }
+
+body.neo-mode .tebu-v2 .rtable th {
+    background: var(--nb-bg2);
+    color: var(--nb-black);
+    font-weight: 800;
+    border-bottom: var(--nb-border);
+}
+body.neo-mode .tebu-v2 .rtable th.th-s1,
+body.neo-mode .tebu-v2 .rtable th.th-s2,
+body.neo-mode .tebu-v2 .rtable th.th-s3,
+body.neo-mode .tebu-v2 .rtable th.th-td,
+body.neo-mode .tebu-v2 .rtable th.th-dt { color: var(--nb-black); border-bottom-color: var(--nb-black); }
+body.neo-mode .tebu-v2 .rtable td { color: var(--nb-black); border-bottom: 1px solid #999; }
+body.neo-mode .tebu-v2 .rtable td.tnum,
+body.neo-mode .tebu-v2 .rtable td.tgreen,
+body.neo-mode .tebu-v2 .rtable td.tblue,
+body.neo-mode .tebu-v2 .rtable td.tgold { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .rtable .rh-row td { background: var(--nb-bg2); color: #444; }
+body.neo-mode .tebu-v2 .rtable .highlight-row td {
+    background: var(--nb-blue);
+    border-top: var(--nb-border);
+    border-bottom: var(--nb-border);
+    color: var(--nb-black);
+}
+body.neo-mode .tebu-v2 .rtable tbody tr:hover td { background: var(--nb-yellow); }
+
+body.neo-mode .tebu-v2 .wa-head { background: var(--nb-bg2); border-bottom: var(--nb-border); }
+body.neo-mode .tebu-v2 .wa-head h3 { color: var(--nb-black); font-weight: 800; }
+body.neo-mode .tebu-v2 .btn-wa {
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    color: var(--nb-black);
+    font-weight: 800;
+    box-shadow: var(--nb-shadow-sm);
+    transition: all .1s;
+}
+body.neo-mode .tebu-v2 .btn-wa.cp { background: var(--nb-green); }
+body.neo-mode .tebu-v2 .btn-wa.imgcp { background: var(--nb-blue); }
+body.neo-mode .tebu-v2 .btn-wa:hover { transform: translate(2px,2px); box-shadow: none; }
+body.neo-mode .tebu-v2 .wa-col { border-right: 1px solid #999; }
+body.neo-mode .tebu-v2 .wa-col-title { color: #444; }
+body.neo-mode .tebu-v2 .wa-col:first-child .wa-col-title::before { background: var(--nb-blue); }
+body.neo-mode .tebu-v2 .wa-col:last-child .wa-col-title::before { background: var(--nb-green); }
+body.neo-mode .tebu-v2 .wa-box {
+    background: var(--nb-white);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow-sm);
+    color: var(--nb-black);
+}
+body.neo-mode .tebu-v2 .wa-box .wb { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .wa-box .wg { color: var(--nb-black); font-weight: 700; }
+body.neo-mode .tebu-v2 .wa-box .wd { color: #777; }
+
+/* ══════════════════════════════════════
+   RMI BALANCE DASHBOARD (templates/rmi_balance_dashboard.html)
+   ══════════════════════════════════════ */
+body.neo-mode .rmi-container { background: var(--nb-bg); }
+body.neo-mode .rmi-sidebar {
+    background: var(--nb-white);
+    border-right: 3px solid var(--nb-black) !important;
+}
+body.neo-mode .rmi-nav-list li {
+    color: var(--nb-black);
+    font-weight: 600;
+    border-bottom: 1px dashed #ccc;
+}
+body.neo-mode .rmi-nav-list li:hover {
+    background: var(--nb-bg2);
+}
+body.neo-mode .rmi-nav-list li.active {
+    background: var(--nb-blue);
+    color: var(--nb-black);
+    border-right: 4px solid var(--nb-black);
+}
+body.neo-mode .rmi-header {
+    background: var(--nb-white);
+    border-bottom: 3px solid var(--nb-black) !important;
+}
+body.neo-mode .rmi-header-copy h1 { color: var(--nb-black); font-weight: 800; }
+body.neo-mode .rmi-header-copy p,
+body.neo-mode .last-updated { color: #555; }
+body.neo-mode .sidebar-toggle,
+body.neo-mode .rmi-header-actions .btn-sm {
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    background: var(--nb-white);
+    color: var(--nb-black);
+    font-weight: 700;
+    box-shadow: var(--nb-shadow-sm);
+}
+body.neo-mode .rmi-header-actions .btn-sm:hover {
+    transform: translate(2px,2px);
+    box-shadow: none;
+}
+body.neo-mode .rmi-content { background: var(--nb-bg); }
+
+/* Overview cards / KPI */
+body.neo-mode .overview-header,
+body.neo-mode .overview-card,
+body.neo-mode .overview-kpi-card.hero,
+body.neo-mode .overview-kpi-card.operational,
+body.neo-mode .analytics-panel,
+body.neo-mode .analytics-toolbar,
+body.neo-mode .analytics-kpi,
+body.neo-mode .history-kpi,
+body.neo-mode .mol-tank-card,
+body.neo-mode .rmi-modal-content,
+body.neo-mode .rmi-chart-full,
+body.neo-mode .rmi-chart-box,
+body.neo-mode .rmi-card {
+    background: var(--nb-white) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow) !important;
+}
+body.neo-mode .overview-kpi-card.flat {
+    background: var(--nb-bg2) !important;
+    border: 2px solid transparent;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: none !important;
+}
+body.neo-mode .overview-title-wrap h2,
+body.neo-mode .overview-card-title,
+body.neo-mode .analytics-panel-title,
+body.neo-mode .mol-tank-name,
+body.neo-mode .rmi-header-copy h1 { color: var(--nb-black) !important; font-weight: 800; }
+body.neo-mode .overview-title-wrap p,
+body.neo-mode .overview-card-subtitle,
+body.neo-mode .overview-kpi-label,
+body.neo-mode .overview-kpi-sub,
+body.neo-mode .rmi-label { color: #555 !important; }
+body.neo-mode .overview-composition-label,
+body.neo-mode .overview-stock-label,
+body.neo-mode .overview-summary-label,
+body.neo-mode .overview-validation-label,
+body.neo-mode .overview-validation-message,
+body.neo-mode .overview-insight-label,
+body.neo-mode .overview-insight-note,
+body.neo-mode .overview-balance-table td,
+body.neo-mode .overview-balance-table td:first-child,
+body.neo-mode .history-table td,
+body.neo-mode .mol-tank-stat span,
+body.neo-mode .v-row,
+body.neo-mode .lh-tab,
+body.neo-mode .sp-location-row,
+body.neo-mode .sp-sub-row,
+body.neo-mode .sp-cap-name,
+body.neo-mode .sp-cap-meta,
+body.neo-mode .lh-cane-period,
+body.neo-mode .validation-title,
+body.neo-mode .validation-sub { color: var(--nb-black) !important; }
+body.neo-mode .overview-kpi-value,
+body.neo-mode .overview-composition-value,
+body.neo-mode .overview-stock-value,
+body.neo-mode .overview-summary-value,
+body.neo-mode .overview-insight-value,
+body.neo-mode .overview-balance-table td:last-child,
+body.neo-mode .history-table td,
+body.neo-mode .mol-tank-stat strong,
+body.neo-mode .v-row.diff,
+body.neo-mode .sp-loc-val,
+body.neo-mode .sp-sub-val,
+body.neo-mode .sp-cap-badge,
+body.neo-mode .rmi-value { color: var(--nb-black) !important; font-family: var(--nb-mono); }
+body.neo-mode .overview-balance-table tr.total td,
+body.neo-mode .overview-balance-table tr.final td { color: var(--nb-black) !important; font-weight: 800 !important; }
+body.neo-mode .overview-balance-table tr.total td { background: var(--nb-yellow) !important; }
+body.neo-mode .overview-balance-table tr.final td { background: var(--nb-green) !important; }
+body.neo-mode .overview-card-header { border-bottom: var(--nb-border) !important; }
+body.neo-mode .overview-header { background: var(--nb-blue) !important; }
+body.neo-mode .overview-kpi-card.hero { background: var(--nb-purple) !important; }
+body.neo-mode .overview-kpi-card.operational { background: var(--nb-yellow) !important; }
+body.neo-mode .overview-main-grid .overview-card:nth-child(1) { background: var(--nb-cyan) !important; }
+body.neo-mode .overview-main-grid .overview-card:nth-child(2) { background: var(--nb-purple) !important; }
+body.neo-mode .overview-second-grid .overview-card:nth-child(1) { background: var(--nb-yellow) !important; }
+body.neo-mode .overview-second-grid .overview-card:nth-child(2) { background: var(--nb-purple) !important; }
+body.neo-mode .overview-mini-chart-grid .overview-card:nth-child(1) { background: var(--nb-orange) !important; }
+body.neo-mode .overview-mini-chart-grid .overview-card:nth-child(2) { background: var(--nb-blue) !important; }
+body.neo-mode .analytics-kpi:nth-child(odd) { background: var(--nb-blue) !important; }
+body.neo-mode .analytics-kpi:nth-child(even) { background: var(--nb-yellow) !important; }
+body.neo-mode .history-kpi:nth-child(odd) { background: var(--nb-cyan) !important; }
+body.neo-mode .history-kpi:nth-child(even) { background: var(--nb-green) !important; }
+body.neo-mode .overview-status-badge {
+    border: 2px solid var(--nb-black) !important;
+    border-radius: var(--nb-radius) !important;
+    font-family: var(--nb-mono);
+}
+body.neo-mode .overview-status-badge.balanced,
+body.neo-mode .overview-status-badge.ok,
+body.neo-mode .overview-status-badge.valid,
+body.neo-mode .overview-status-badge.approved { background: var(--nb-green) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-status-badge.warning,
+body.neo-mode .overview-status-badge.submitted { background: var(--nb-yellow) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-status-badge.mismatch,
+body.neo-mode .overview-status-badge.error { background: var(--nb-red) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-status-badge.draft { background: var(--nb-blue) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-status-badge.locked { background: var(--nb-purple) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-insight-box,
+body.neo-mode .overview-stock-metric { background: var(--nb-bg2) !important; border: 1px solid var(--nb-black) !important; border-radius: var(--nb-radius); }
+body.neo-mode .overview-composition-bar,
+body.neo-mode .overview-progress { background: var(--nb-bg2) !important; border-radius: 0; }
+body.neo-mode .overview-composition-fill,
+body.neo-mode .overview-progress-fill { background: var(--nb-blue) !important; }
+body.neo-mode .overview-validation-icon.ok { background: var(--nb-green) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-validation-icon.warning { background: var(--nb-yellow) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-validation-icon.mismatch,
+body.neo-mode .overview-validation-icon.error { background: var(--nb-red) !important; color: var(--nb-black) !important; }
+body.neo-mode .overview-error-state,
+body.neo-mode .overview-empty-state,
+body.neo-mode .analytics-empty { border: 2px dashed var(--nb-black) !important; color: #555 !important; background: var(--nb-bg2) !important; }
+
+/* Analytics / history tables */
+body.neo-mode .analytics-insight { background: var(--nb-bg2) !important; border-left: 4px solid var(--nb-black) !important; border-radius: 0; }
+body.neo-mode .history-table th { background: var(--nb-yellow) !important; color: var(--nb-black) !important; border-bottom: var(--nb-border) !important; font-family: var(--nb-mono); }
+body.neo-mode .history-table td { border-bottom: 1px solid #999 !important; color: var(--nb-black); }
+
+/* Molasses tanks */
+body.neo-mode .mol-tank-vessel { border: 4px solid var(--nb-black); border-radius: 12px; box-shadow: var(--nb-shadow); }
+body.neo-mode .mol-tank-stand { background: var(--nb-black); box-shadow: none; }
+body.neo-mode .mol-tank-stat { border-bottom: 1px solid #ccc; }
+body.neo-mode .mol-tank-stat strong { color: var(--nb-black); }
+
+/* Filter select / date picker reused inside RMI */
+body.neo-mode .filter-select,
+body.neo-mode .date-picker-wrap { color-scheme: light; }
+
+/* Settings modal */
+body.neo-mode .rmi-form-group input {
+    background: var(--nb-white) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    color: var(--nb-black);
+    box-shadow: var(--nb-shadow-sm);
+}
+body.neo-mode .rmi-form-group label { color: var(--nb-black); font-weight: 700; }
+
+/* ══════════════════════════════════════
+   LAPORAN HARIAN (templates/laporan_harian.html)
+   ══════════════════════════════════════ */
+body.neo-mode .lh-tabs { border-bottom: 3px solid var(--nb-black); }
+body.neo-mode .lh-tab { color: #555; font-weight: 700; }
+body.neo-mode .lh-tab:hover { color: var(--nb-black); }
+body.neo-mode .lh-tab.active { color: var(--nb-black); border-bottom: 3px solid var(--nb-black); }
+body.neo-mode .audit-card {
+    background: var(--nb-white) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow) !important;
+}
+body.neo-mode .audit-title { color: var(--nb-black); border-bottom: var(--nb-border) !important; }
+body.neo-mode .audit-letter { background: var(--nb-yellow) !important; color: var(--nb-black) !important; border-radius: var(--nb-radius); }
+body.neo-mode table.audit-table th { color: #555; border-bottom: var(--nb-border) !important; }
+body.neo-mode table.audit-table td { color: var(--nb-black); border-bottom: 1px solid #ccc; }
+body.neo-mode table.audit-table tr.total td { border-top: 3px solid var(--nb-black) !important; }
+body.neo-mode .validation-panel { background: var(--nb-bg2) !important; border: 1px solid var(--nb-black) !important; border-radius: var(--nb-radius); }
+body.neo-mode .badge { border: 2px solid var(--nb-black) !important; border-radius: var(--nb-radius) !important; font-family: var(--nb-mono); }
+body.neo-mode .badge.balanced,
+body.neo-mode .badge-green { background: var(--nb-green) !important; color: var(--nb-black) !important; }
+body.neo-mode .badge.mismatch { background: var(--nb-red) !important; color: var(--nb-black) !important; }
+body.neo-mode .mockup-flag { background: var(--nb-yellow) !important; border: var(--nb-border) !important; border-radius: var(--nb-radius) !important; color: var(--nb-black) !important; }
+body.neo-mode .status-badge.active { background: var(--nb-green) !important; color: var(--nb-black) !important; border: 2px solid var(--nb-black) !important; border-radius: var(--nb-radius) !important; }
+body.neo-mode .btn-primary {
+    background: var(--nb-blue) !important;
+    color: var(--nb-black) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow-sm) !important;
+    font-weight: 700;
+}
+body.neo-mode .btn-primary:hover { transform: translate(2px,2px); box-shadow: none !important; }
+body.neo-mode .btn-outline {
+    background: var(--nb-white) !important;
+    color: var(--nb-black) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+}
+body.neo-mode .btn-outline.active,
+body.neo-mode .lh-grafik-btn-period.active { background: var(--nb-blue) !important; color: var(--nb-black) !important; }
+body.neo-mode .sp-cap-card { background: var(--nb-bg2) !important; border: 1px solid var(--nb-black) !important; border-radius: var(--nb-radius); }
+body.neo-mode .sp-cap-bar { background: var(--nb-white) !important; border-radius: 0; }
+body.neo-mode .sp-location-row:hover { background: var(--nb-bg2) !important; }
+
+/* ── LAPORAN HARIAN: remap var inline-style supaya kontras di mode neo ──
+   Banyak elemen di laporan_harian.html pakai inline style="color: var(--text-secondary)"
+   dan "background: var(--bg-card)". Alih-alih override ratusan [style] selector,
+   remap variablenya di scope tab ini ke nilai neo. */
+body.neo-mode .rmi-content,
+body.neo-mode .rmi-modal-content {
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+    --bg-primary: var(--nb-white);
+    --bg-card: var(--nb-white);
+    --bg-secondary: var(--nb-bg2);
+    --border-color: #000000;
+    --border-subtle: #999999;
+    --radius-md: var(--nb-radius);
+    --radius-sm: var(--nb-radius);
+}
+/* Input date di laporan harian (lh-date-picker) pakai bg gelap bawaan — paksa terang */
+body.neo-mode #lh-date-picker,
+body.neo-mode .rmi-content input[type="date"],
+body.neo-mode .rmi-modal-content input[type="date"] {
+    background: var(--nb-white) !important;
+    color: var(--nb-black) !important;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    color-scheme: light;
+    font-weight: 600;
+}
+body.neo-mode #tab-laporan-harian [style*="var(--bg-card)"],
+body.neo-mode #tab-laporan-harian [style*="background: var(--bg-card)"] {
+    border: var(--nb-border) !important;
+    box-shadow: var(--nb-shadow-sm) !important;
+    border-radius: var(--nb-radius) !important;
+}
+body.neo-mode #tab-laporan-harian [style*="border-radius: 12px"] {
+    border-radius: var(--nb-radius) !important;
+}
+/* Chart.js canvas di laporan harian: paksa background putih biar grid/garis kontras */
+body.neo-mode #tab-laporan-harian canvas {
+    background: var(--nb-white) !important;
+    border-radius: var(--nb-radius);
+}
+
+/* ══════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════ */
 @media (max-width: 768px) {
@@ -616,6 +1156,7 @@ body.neo-mode .sidebar-overlay.active { background: rgba(0,0,0,0.5); }
     body.neo-mode .main-content { margin-left: 0 !important; }
     body.neo-mode .topbar { padding: 0 12px; }
     body.neo-mode .wib-clock-wrap { display: none; }
+    body.neo-mode .rmi-sidebar { width: 80vw; max-width: 300px; }
 }
 @media (max-width: 480px) {
     body.neo-mode .summary-cards { grid-template-columns: 1fr !important; }

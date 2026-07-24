@@ -6,9 +6,9 @@
     <meta name="description" content="REKAP DSAJA — Login">
     <meta name="theme-color" content="#0d1117">
     <title>REKAP DSAJA — Login</title>
-    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Lexend:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,10 +24,64 @@
             --text-muted: #8b949e;
             --danger:     #f85149;
             --success:    #3fb950;
+            --font-body:  'Inter', sans-serif;
+            --font-head:  'Orbitron', sans-serif;
+
+            --card-border:  1px solid var(--border);
+            --card-radius:  20px;
+            --card-shadow:  0 0 0 1px rgba(188,140,255,0.08), 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+
+            --input-bg:           rgba(13,17,23,0.7);
+            --input-border:       1px solid var(--border);
+            --input-radius:       10px;
+            --input-focus-border: var(--accent);
+            --input-focus-shadow: 0 0 0 3px rgba(188,140,255,0.12);
+
+            --btn-bg:      linear-gradient(135deg, #7c5cbf, #bc8cff 50%, #39d2c0);
+            --btn-color:   #ffffff;
+            --btn-border:  none;
+            --btn-radius:  10px;
+            --btn-shadow:  0 8px 24px rgba(188,140,255,0.35);
+            --btn-active-transform: translateY(0);
+
+            --deco-display: block;
+        }
+
+        /* ── NEO BRUTALISM OVERRIDE ──
+           Aktif dengan: body.neo-mode (sama seperti dashboard utama) */
+        body.neo-mode {
+            --bg-base:    #FFE600;
+            --bg-card:    #FFFFFF;
+            --border:     #000000;
+            --accent:     #FF007A;
+            --accent2:    #00F0FF;
+            --text:       #000000;
+            --text-muted: #333333;
+            --font-body:  'Lexend', sans-serif;
+            --font-head:  'Lexend', sans-serif;
+
+            --card-border: 4px solid #000000;
+            --card-radius: 0px;
+            --card-shadow: 8px 8px 0px #000000;
+
+            --input-bg:           #FFFFFF;
+            --input-border:       3px solid #000000;
+            --input-radius:       0px;
+            --input-focus-border: #000000;
+            --input-focus-shadow: 4px 4px 0px #000000;
+
+            --btn-bg:      #FF007A;
+            --btn-color:   #ffffff;
+            --btn-border:  3px solid #000000;
+            --btn-radius:  0px;
+            --btn-shadow:  6px 6px 0px #000000;
+            --btn-active-transform: translate(3px, 3px);
+
+            --deco-display: none;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-body);
             background: var(--bg-base);
             color: var(--text);
             min-height: 100vh;
@@ -36,12 +90,14 @@
             justify-content: center;
             overflow: hidden;
             position: relative;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         /* ─────────────────────────────────────────
            ANIMATED GRID BACKGROUND
         ───────────────────────────────────────── */
         .bg-grid {
+            display: var(--deco-display);
             position: fixed;
             inset: 0;
             background-image:
@@ -58,6 +114,7 @@
 
         /* Floating orbs / glow spots */
         .orb {
+            display: var(--deco-display);
             position: fixed;
             border-radius: 50%;
             filter: blur(80px);
@@ -89,6 +146,7 @@
 
         /* Scan line effect */
         .scanline {
+            display: var(--deco-display);
             position: fixed;
             top: 0; left: 0; right: 0;
             height: 2px;
@@ -115,22 +173,22 @@
 
         .login-card {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
+            border: var(--card-border);
+            border-radius: var(--card-radius);
             padding: 48px 40px 40px;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            box-shadow:
-                0 0 0 1px rgba(188,140,255,0.08),
-                0 24px 64px rgba(0,0,0,0.6),
-                inset 0 1px 0 rgba(255,255,255,0.04);
+            box-shadow: var(--card-shadow);
             position: relative;
             overflow: hidden;
+            transition: background 0.25s ease, border 0.25s ease, border-radius 0.25s ease, box-shadow 0.25s ease;
         }
+        body.neo-mode .login-card { backdrop-filter: none; -webkit-backdrop-filter: none; }
 
-        /* Top glow line on card */
+        /* Top glow line on card (classic only) */
         .login-card::before {
             content: '';
+            display: var(--deco-display);
             position: absolute;
             top: 0; left: 10%; right: 10%;
             height: 1px;
@@ -138,8 +196,8 @@
             opacity: 0.6;
         }
 
-        /* Corner decorations */
-        .corner { position: absolute; width: 20px; height: 20px; }
+        /* Corner decorations (classic only) */
+        .corner { display: var(--deco-display); position: absolute; width: 20px; height: 20px; }
         .corner-tl { top: 12px; left: 12px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); border-radius: 4px 0 0 0; }
         .corner-tr { top: 12px; right: 12px; border-top: 2px solid var(--accent2); border-right: 2px solid var(--accent2); border-radius: 0 4px 0 0; }
         .corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); border-radius: 0 0 0 4px; }
@@ -166,8 +224,16 @@
             0%, 100% { box-shadow: 0 0 20px rgba(188,140,255,0.2); }
             50%       { box-shadow: 0 0 35px rgba(188,140,255,0.45); }
         }
+        body.neo-mode .logo-icon {
+            border-radius: 0;
+            background: var(--btn-bg);
+            border: 3px solid #000000;
+            color: #ffffff;
+            box-shadow: 4px 4px 0px #000000;
+            animation: none;
+        }
         .app-name {
-            font-family: 'Orbitron', sans-serif;
+            font-family: var(--font-head);
             font-size: 22px;
             font-weight: 700;
             letter-spacing: 3px;
@@ -175,6 +241,12 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+        body.neo-mode .app-name {
+            -webkit-text-fill-color: initial;
+            background: none;
+            color: var(--text);
+            font-weight: 900;
         }
         .app-sub {
             font-size: 11px;
@@ -212,21 +284,23 @@
         }
         .form-input {
             width: 100%;
-            background: rgba(13,17,23,0.7);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            background: var(--input-bg);
+            border: var(--input-border);
+            border-radius: var(--input-radius);
             padding: 13px 14px 13px 40px;
             color: var(--text);
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-body);
             font-size: 14px;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
         }
         .form-input::placeholder { color: rgba(139,148,158,0.5); }
+        body.neo-mode .form-input::placeholder { color: rgba(0,0,0,0.35); }
         .form-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(188,140,255,0.12);
+            border-color: var(--input-focus-border);
+            box-shadow: var(--input-focus-shadow);
         }
+        body.neo-mode .form-input:focus { transform: translate(-2px, -2px); }
         .form-input:focus + .input-icon,
         .input-wrap:focus-within .input-icon { color: var(--accent); }
 
@@ -271,17 +345,23 @@
             border: 1px solid rgba(63,185,80,0.3);
             color: var(--success);
         }
+        body.neo-mode .alert.error {
+            background: #FF6B6B; border: 3px solid #000000; color: #000000; font-weight: 700;
+        }
+        body.neo-mode .alert.success {
+            background: #88D66C; border: 3px solid #000000; color: #000000; font-weight: 700;
+        }
 
         /* ─── BUTTON ─── */
         .btn-login {
             width: 100%;
             padding: 14px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #7c5cbf, #bc8cff 50%, #39d2c0);
+            border-radius: var(--btn-radius);
+            border: var(--btn-border);
+            background: var(--btn-bg);
             background-size: 200% 200%;
-            color: #fff;
-            font-family: 'Orbitron', sans-serif;
+            color: var(--btn-color);
+            font-family: var(--font-head);
             font-size: 13px;
             font-weight: 700;
             letter-spacing: 2px;
@@ -292,6 +372,7 @@
             animation: gradShift 4s ease infinite;
             margin-top: 8px;
         }
+        body.neo-mode .btn-login { animation: none; }
         @keyframes gradShift {
             0%   { background-position: 0% 50%; }
             50%  { background-position: 100% 50%; }
@@ -299,16 +380,19 @@
         }
         .btn-login:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(188,140,255,0.35);
+            box-shadow: var(--btn-shadow);
         }
-        .btn-login:active:not(:disabled) { transform: translateY(0); }
+        body.neo-mode .btn-login:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px #000000; }
+        .btn-login:active:not(:disabled) { transform: var(--btn-active-transform); }
+        body.neo-mode .btn-login:active:not(:disabled) { box-shadow: none; }
         .btn-login:disabled {
             opacity: 0.7;
             cursor: not-allowed;
         }
-        /* Ripple */
+        /* Ripple (classic only) */
         .btn-login::after {
             content: '';
+            display: var(--deco-display);
             position: absolute;
             inset: 0;
             background: linear-gradient(rgba(255,255,255,0.1), transparent);
@@ -326,6 +410,30 @@
             color: var(--accent);
             font-weight: 600;
         }
+
+        /* ─── THEME SWITCHER ─── */
+        .theme-switcher {
+            position: fixed;
+            top: 20px; right: 20px;
+            z-index: 100;
+            background: var(--bg-card);
+            border: var(--card-border);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+        .theme-switcher:hover { transform: scale(1.04); }
+        body.neo-mode .theme-switcher:active { transform: translate(2px, 2px); box-shadow: none; }
 
         /* Status dots */
         .status-row {
@@ -374,6 +482,11 @@
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
     <div class="scanline"></div>
+
+    <button class="theme-switcher" id="themeSwitcher" type="button">
+        <i class="fa-solid fa-palette"></i>
+        <span id="themeSwitcherLabel">TEMA: NEO BRUTALISM</span>
+    </button>
 
     <div class="login-wrapper">
         <div class="login-card">
@@ -458,6 +571,28 @@
     </div>
 
     <script>
+    // ─── Theme Switcher (Classic / Neo Brutalism) ───
+    // Pakai key localStorage yang sama dengan dashboard (rekap_neo) supaya preferensi konsisten.
+    (function initThemeSwitcher() {
+        const btn = document.getElementById('themeSwitcher');
+        const label = document.getElementById('themeSwitcherLabel');
+
+        function apply(isNeo) {
+            document.body.classList.toggle('neo-mode', isNeo);
+            label.textContent = isNeo ? 'TEMA: NEO BRUTALISM' : 'TEMA: CLASSIC';
+        }
+
+        // Default: neo mode ON, kecuali user pernah matikan
+        const isNeo = localStorage.getItem('rekap_neo') !== '0';
+        apply(isNeo);
+
+        btn.addEventListener('click', () => {
+            const next = !document.body.classList.contains('neo-mode');
+            apply(next);
+            localStorage.setItem('rekap_neo', next ? '1' : '0');
+        });
+    })();
+
     // ─── DOM refs ───────────────────────────────────
     const form       = document.getElementById('loginForm');
     const userInput  = document.getElementById('username');

@@ -56,6 +56,18 @@ body::before {
     transition: background var(--transition-smooth);
 }
 
+/* ---- Smooth theme switch (dark/light + neo brutalism) ----
+   Diaktifkan sementara oleh JS (class .theme-switching di body) saat
+   toggleTheme()/toggleNeoMode() dipanggil, lalu dilepas setelah durasi transisi. */
+body.theme-switching,
+body.theme-switching *,
+body.theme-switching *::before,
+body.theme-switching *::after {
+    transition: background-color 0.35s ease, color 0.35s ease,
+        border-color 0.35s ease, box-shadow 0.35s ease,
+        fill 0.35s ease, stroke 0.35s ease !important;
+}
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar {
     width: 6px;

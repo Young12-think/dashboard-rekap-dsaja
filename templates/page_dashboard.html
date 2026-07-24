@@ -63,13 +63,16 @@
 
                 <!-- po + grapik -->
                 <!---po-->
-                <section class="section-card">
+                <section class="section-card" id="poMonitorSection">
                     <div class="section-header">
                         <h2><i class="fa-solid fa-file-invoice"></i> Monitor PO Limbah Aktif</h2>
+                        <div class="section-actions">
+                            <button class="btn-sm" id="btnMiniMonitorPo"><i class="fa-solid fa-file-lines"></i> Monitoring PO</button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table" id="poMonitorTable">
-                            <thead>
+                            <thead id="poMonitorHead">
                                 <tr>
                                     <th style="text-align:left; min-width: 150px;">NOMOR PO</th>
                                     <th style="text-align:left; min-width: 200px;">ITEM (BARANG)</th>

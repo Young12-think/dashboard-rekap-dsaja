@@ -8,8 +8,21 @@
 function initTheme() {
     const saved = localStorage.getItem('rekap_theme') || 'dark';
     applyTheme(saved);
-    // Restore neo mode
-    if (localStorage.getItem('rekap_neo') === '1') enableNeoMode(false);
+    // Neo mode: default ON, kecuali user sengaja matikan
+    if (localStorage.getItem('rekap_neo') !== '0') enableNeoMode(false);
+}
+
+/* ---- Smooth transition helper ----
+ * Nyalakan transisi warna sesaat saat ganti tema, lalu matikan lagi
+ * supaya tidak mengganggu animasi lain (hover, spin, dsb).
+ */
+function withThemeTransition(fn) {
+    document.body.classList.add('theme-switching');
+    fn();
+    clearTimeout(window._themeTransitionTimer);
+    window._themeTransitionTimer = setTimeout(() => {
+        document.body.classList.remove('theme-switching');
+    }, 400);
 }
 
 /* ---- Neo Brutalism Mode ---- */
@@ -18,16 +31,20 @@ function enableNeoMode(save = true) {
     const btn = document.getElementById('neoModeBtn');
     if (btn) { btn.style.background = '#C9533A'; btn.style.color = '#fff'; btn.style.border = '2px solid #1A1A1A'; }
     if (save) localStorage.setItem('rekap_neo', '1');
+    if (window.Chart) Object.values(Chart.instances).forEach(c => c.update());
 }
 function disableNeoMode(save = true) {
     document.body.classList.remove('neo-mode');
     const btn = document.getElementById('neoModeBtn');
     if (btn) { btn.style.background = ''; btn.style.color = ''; btn.style.border = ''; }
     if (save) localStorage.setItem('rekap_neo', '0');
+    if (window.Chart) Object.values(Chart.instances).forEach(c => c.update());
 }
 function toggleNeoMode() {
-    if (document.body.classList.contains('neo-mode')) disableNeoMode();
-    else enableNeoMode();
+    withThemeTransition(() => {
+        if (document.body.classList.contains('neo-mode')) disableNeoMode();
+        else enableNeoMode();
+    });
 }
 
 function applyTheme(mode) {
@@ -44,7 +61,7 @@ function applyTheme(mode) {
 
 function toggleTheme() {
     const isLight = document.body.classList.contains('light-mode');
-    applyTheme(isLight ? 'dark' : 'light');
+    withThemeTransition(() => applyTheme(isLight ? 'dark' : 'light'));
 }
 
 /* ---- Load Active User Info ---- */
@@ -79,10 +96,6 @@ async function loadUserInfo() {
             // Atur visibilitas menu via CSS class (tanpa flash/delay)
             if (d.role === 'viewer_report_only') {
                 document.body.classList.add('role-viewer-report-only');
-                // Alihkan ke report_daily secara otomatis jika saat ini berada di dashboard
-                if (currentPage === 'dashboard') {
-                    switchPage('report_daily');
-                }
             } else {
                 document.body.classList.remove('role-viewer-report-only');
             }
@@ -167,8 +180,8 @@ function switchPage(page) {
         page = 'dashboard';
     }
 
-    // Viewer Report Only route guard (tidak bisa mengakses menu Dashboard, Grafik, Transaksi)
-    if (window.currentUserRole === 'viewer_report_only' && (page === 'dashboard' || page === 'charts' || page === 'transactions')) {
+    // Viewer Report Only route guard (tidak bisa mengakses menu Grafik & Transaksi; Dashboard dibolehkan tapi hanya section Monitor PO yang tampil via CSS)
+    if (window.currentUserRole === 'viewer_report_only' && (page === 'charts' || page === 'transactions')) {
         page = 'report_daily';
     }
 

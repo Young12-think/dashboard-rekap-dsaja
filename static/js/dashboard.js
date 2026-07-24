@@ -1168,16 +1168,47 @@ async function loadDashboardTrend(showLoader = false) {
 async function loadPOMonitor() {
     const d = await api('/api/po-monitor');
     const tbody = document.getElementById('poMonitorBody');
-    if (!d || d.status !== 'success') { tbody.innerHTML = errRow(7, 'Gagal memuat Monitor PO.'); return; }
-    if (!d.data || d.data.length === 0) { tbody.innerHTML = emptyRow(7, 'Tidak ada PO Stock yang sedang aktif.'); return; }
-
+    const thead = document.getElementById('poMonitorHead');
     const isAdmin = (window.currentUserRole === 'admin');
 
-    tbody.innerHTML = d.data.map(r => {
+    // Render header: tambah kolom AKSI untuk admin
+    thead.innerHTML = `<tr>
+        <th style="text-align:left; min-width: 150px;">NOMOR PO</th>
+        <th style="text-align:left; min-width: 200px;">ITEM (BARANG)</th>
+        <th>TARGET PO (KG)</th>
+        <th>TERKIRIM (KG)</th>
+        <th>SISA KUOTA (KG)</th>
+        <th style="min-width: 150px;">STATUS TERPAKAI</th>
+        <th style="text-align:left; min-width: 180px;">KETERANGAN</th>
+        ${isAdmin ? '<th style="width:56px; text-align:center;">AKSI</th>' : ''}
+    </tr>`;
+
+    // Initialize mini monitor button if admin
+    const btnMiniMonitorPo = document.getElementById('btnMiniMonitorPo');
+    if (btnMiniMonitorPo) {
+        if (isAdmin) {
+            btnMiniMonitorPo.style.display = 'inline-block';
+            btnMiniMonitorPo.onclick = openMiniMonitorPO;
+        } else {
+            btnMiniMonitorPo.style.display = 'none';
+        }
+    }
+
+    const colCount = isAdmin ? 8 : 7;
+    if (!d || d.status !== 'success') { tbody.innerHTML = errRow(colCount, 'Gagal memuat Monitor PO.'); return; }
+
+    // User biasa hanya lihat PO yang di-monitor; admin lihat semua PO aktif.
+    // Toleran terhadap NULL (row lama sebelum kolom is_monitored ada): NULL dianggap monitored.
+    const rows = isAdmin ? (d.data || []) : (d.data || []).filter(r => r.is_monitored != 0);
+
+    if (rows.length === 0) { tbody.innerHTML = emptyRow(colCount, 'Tidak ada PO Stock yang sedang aktif.'); return; }
+
+    tbody.innerHTML = rows.map(r => {
         const target = parseFloat(r.target_po) || 0;
         const sent = parseFloat(r.total_terkirim) || 0;
         const balance = target - sent;
         const keterangan = r.keterangan || '';
+        const isMonitored = (r.is_monitored == 1);
 
         let percent = target > 0 ? (sent / target) * 100 : 0;
         if (percent > 100) percent = 100;
@@ -1198,6 +1229,19 @@ async function loadPOMonitor() {
             ? `onclick="openEditPOModal('${r.nomor_po}', ${target}, '${keterangan.replace(/'/g, "\\'")}')" title="Klik untuk edit Target PO & Keterangan"`
             : '';
 
+        // Kolom aksi (admin only): toggle monitor + close PO — kecil & rapat
+        const aksiCell = isAdmin
+            ? `<td style="white-space:nowrap; text-align:center; padding:4px 6px;">
+                   <button onclick="togglePOMonitor('${r.nomor_po}', ${isMonitored ? 0 : 1})" title="${isMonitored ? 'Sembunyikan dari Monitor' : 'Tampilkan di Monitor'}"
+                       style="background:none;border:none;cursor:pointer;font-size:0.8rem;line-height:1;padding:2px 3px;color:${isMonitored ? '#3fb950' : '#8b949e'};">
+                       <i class="fa-solid ${isMonitored ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                   </button><button onclick="closePO('${r.nomor_po}')" title="Tutup PO (soft delete)"
+                       style="background:none;border:none;cursor:pointer;font-size:0.8rem;line-height:1;padding:2px 3px;color:#f85149;">
+                       <i class="fa-solid fa-circle-xmark"></i>
+                   </button>
+               </td>`
+            : '';
+
         return `<tr>
             <td style="text-align:left; font-weight:700; ${poClickStyle}" ${poClickAttr}>${r.nomor_po}</td>
             <td style="text-align:left">${itemName}</td>
@@ -1211,7 +1255,131 @@ async function loadPOMonitor() {
                 <div style="font-size:0.7rem; color:var(--text-muted); text-align:right; margin-top:4px; font-weight:600;">${percent.toFixed(1)}% Terpakai</div>
             </td>
             <td style="text-align:left; font-size:0.85rem; color:var(--text-secondary); max-width:220px; white-space:pre-wrap; word-break:break-word;">${keterangan || '<span style="color:var(--text-muted); font-style:italic;">—</span>'}</td>
+            ${aksiCell}
         </tr>`;
     }).join('');
+}
+
+// Toggle PO ditampilkan/disembunyikan di Monitor (admin only)
+async function togglePOMonitor(nomorPo, isMonitored) {
+    const res = await apiPost('/api/po-monitor-toggle', { nomor_po: nomorPo, is_monitored: isMonitored });
+    if (res && res.status === 'success') {
+        loadPOMonitor();
+    } else {
+        alert('Gagal mengubah status monitor PO!');
+    }
+}
+
+// Close PO (soft delete, admin only)
+async function closePO(nomorPo) {
+    if (!confirm(`Tutup PO "${nomorPo}"?\n\nPO akan disembunyikan dari monitor & tidak bisa dipakai lagi. Data histori tetap tersimpan.`)) return;
+    const res = await apiPost('/api/po-close', { nomor_po: nomorPo });
+    if (res && res.status === 'success') {
+        loadPOMonitor();
+    } else {
+        alert('Gagal menutup PO!');
+    }
+}
+
+// Monitoring PO mini popup — tampilkan PO dari data_timbang yang belum dimonitor
+let _miniPoAllRows = [];
+const _MINI_PO_LIMIT = 50;
+
+function renderMiniPoRows(rows) {
+    _miniPoAllRows = rows || [];
+    _filterMiniPoRows();
+}
+
+function _filterMiniPoRows() {
+    const q = (document.getElementById('searchInputPoMini')?.value || '').toLowerCase();
+    const matched = q
+        ? _miniPoAllRows.filter(r => (r.nomor_po || '').toLowerCase().includes(q) || (r.item_name || '').toLowerCase().includes(q))
+        : _miniPoAllRows;
+    const display = matched.slice(0, _MINI_PO_LIMIT);
+    const tbody = document.getElementById('poMiniListBody');
+    if (!display.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted); font-style:italic;">${q ? 'Tidak ditemukan.' : 'Tidak ada data PO.'}</td></tr>`;
+        return;
+    }
+    let html = display.map(r => {
+        const noPo = r.nomor_po || '-';
+        const item = r.item_name || '-';
+        const qtySj = parseFloat(r.qty_sj) || 0;
+        const isActive = r.is_active == 1;
+        const isMonitored = r.is_monitored == 1;
+
+        let statusLabel, statusColor;
+        if (isActive && isMonitored) {
+            statusLabel = 'Aktif'; statusColor = '#3fb950';
+        } else if (isActive && !isMonitored) {
+            statusLabel = 'Hidden'; statusColor = '#8b949e';
+        } else {
+            statusLabel = 'Belum'; statusColor = '#f0c000';
+        }
+
+        let aksiHtml;
+        if (isActive && isMonitored) {
+            aksiHtml = `<button onclick="togglePOMonitor('${noPo}', 0); _refreshMiniPo();" title="Sembunyikan"
+                style="background:none; border:1px solid #8b949e; color:#8b949e; cursor:pointer; font-size:0.75rem; border-radius:4px; padding:2px 8px;">
+                <i class="fa-solid fa-eye-slash"></i> Hide
+            </button>`;
+        } else if (isActive && !isMonitored) {
+            aksiHtml = `<button onclick="togglePOMonitor('${noPo}', 1); _refreshMiniPo();" title="Tampilkan kembali"
+                style="background:var(--accent-green); border:none; color:#fff; cursor:pointer; font-size:0.75rem; border-radius:4px; padding:2px 8px; font-weight:600;">
+                <i class="fa-solid fa-eye"></i> Show
+            </button>`;
+        } else {
+            aksiHtml = `<button onclick="addPoToMonitor('${noPo}', ${qtySj})" title="Tambahkan ke Monitoring"
+                style="background:var(--accent-green); border:none; color:#fff; cursor:pointer; font-size:0.75rem; border-radius:4px; padding:2px 8px; font-weight:600;">
+                <i class="fa-solid fa-plus"></i> Monitor
+            </button>`;
+        }
+
+        return `<tr>
+            <td style="text-align:left; font-weight:600; font-size:0.82rem;">${noPo}</td>
+            <td style="text-align:left; font-size:0.82rem;">${item}</td>
+            <td style="text-align:center;">${qtySj > 0 ? fmt(qtySj) : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="text-align:center;"><span style="color:${statusColor}; font-weight:600; font-size:0.75rem;">${statusLabel}</span></td>
+            <td style="text-align:center; white-space:nowrap;">${aksiHtml}</td>
+        </tr>`;
+    }).join('');
+    
+    if (matched.length > _MINI_PO_LIMIT && !q) {
+        html += `<tr><td colspan="5" style="text-align:center; padding:8px; color:var(--text-muted); font-size:0.8rem; font-style:italic;">Menampilkan ${_MINI_PO_LIMIT} dari ${matched.length} PO. Gunakan pencarian untuk menemukan PO lain.</td></tr>`;
+    }
+    tbody.innerHTML = html;
+}
+
+async function openMiniMonitorPO() {
+    const overlay = document.getElementById('modalPoMiniOverlay');
+    const tbody = document.getElementById('poMiniListBody');
+    if (!overlay || !tbody) return;
+    overlay.classList.add('active');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell"><div class="loader"></div> Memuat...</td></tr>';
+
+    const searchInput = document.getElementById('searchInputPoMini');
+    if (searchInput) { searchInput.value = ''; searchInput.oninput = _filterMiniPoRows; }
+
+    document.getElementById('modalPoMiniClose').onclick = () => overlay.classList.remove('active');
+    overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('active'); };
+
+    const d = await api('/api/po-unmonitored');
+    renderMiniPoRows(d && d.status === 'success' ? d.data : []);
+}
+
+async function _refreshMiniPo() {
+    await loadPOMonitor();
+    const d = await api('/api/po-unmonitored');
+    renderMiniPoRows(d && d.status === 'success' ? d.data : []);
+}
+
+async function addPoToMonitor(nomorPo, qtySj) {
+    const qty = qtySj > 0 ? qtySj : 0;
+    const res = await apiPost('/api/po-stock', { nomor_po: nomorPo, qty_po: qty });
+    if (res && res.status === 'success') {
+        await _refreshMiniPo();
+    } else {
+        alert('Gagal menambahkan PO ke monitoring!');
+    }
 }
 

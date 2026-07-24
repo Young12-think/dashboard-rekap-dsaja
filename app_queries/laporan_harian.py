@@ -51,8 +51,12 @@ def get_laporan_harian(tanggal):
                 data["gula"]["prod_shifts"][shift-1] = total_shift
                 data["gula"]["prod_total"] += total_shift
 
-    # Molasses Stok
-    m_stok = query("SELECT * FROM mol_stok_tangki WHERE tanggal = %s LIMIT 1", (tanggal,))
+    # Molasses Stok (kg di DB → ton)
+    m_stok = query("""SELECT COALESCE(stok_awal_tanka,0)/1000 as stok_awal_tanka,
+                             COALESCE(stok_awal_tankb,0)/1000 as stok_awal_tankb,
+                             COALESCE(stok_akhir_tanka,0)/1000 as stok_akhir_tanka,
+                             COALESCE(stok_akhir_tankb,0)/1000 as stok_akhir_tankb
+                      FROM mol_stok_tangki WHERE tanggal = %s LIMIT 1""", (tanggal,))
     if m_stok:
         r = dec(m_stok[0])
         data["molasses"]["open"] = float(r.get('stok_awal_tanka') or 0) + float(r.get('stok_awal_tankb') or 0)

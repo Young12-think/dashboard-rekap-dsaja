@@ -9,7 +9,7 @@ from .auth import verify_login, ensure_users_table, hash_password, get_all_users
 from .po_management import (
     get_po_stocks, save_po_stock, close_po_stock,
     get_distinct_po_numbers, get_po_monitor_data,
-    ensure_po_stock_table,
+    ensure_po_stock_table, set_po_monitored, get_unmonitored_pos
 )
 from .production import (
     get_production_data, get_summary_data, get_types,
@@ -39,7 +39,7 @@ __all__ = [
     'verify_login', 'ensure_users_table', 'hash_password', 'get_all_users', 'add_user', 'delete_user', 'change_password',
     # po
     'get_po_stocks', 'save_po_stock', 'close_po_stock',
-    'get_distinct_po_numbers', 'get_po_monitor_data', 'ensure_po_stock_table',
+    'get_distinct_po_numbers', 'get_po_monitor_data', 'ensure_po_stock_table', 'set_po_monitored', 'get_unmonitored_pos',
     # production
     'get_production_data', 'get_summary_data', 'get_types',
     'get_history_data', 'get_recent_data',

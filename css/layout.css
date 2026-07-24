@@ -123,9 +123,12 @@ body.role-loaded #transactionMenu {
     display: block !important;
 }
 /* For viewer_report_only: override back to hidden even after role-loaded */
-body.role-viewer-report-only #menuDashboard,
 body.role-viewer-report-only #menuCharts,
 body.role-viewer-report-only #transactionMenu {
+    display: none !important;
+}
+/* viewer_report_only di dashboard: hanya tampilkan Monitor PO, section lain disembunyikan */
+body.role-viewer-report-only #page-dashboard > section:not(#poMonitorSection) {
     display: none !important;
 }
 /* Hide main-content until role confirmed → prevents dashboard flash */

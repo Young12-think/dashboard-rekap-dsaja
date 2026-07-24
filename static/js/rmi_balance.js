@@ -123,6 +123,9 @@ document.querySelectorAll('#rmiNav li[data-tab]').forEach(li => {
 
         // Trigger resize so charts render correctly if they were hidden
         window.dispatchEvent(new Event('resize'));
+
+        if (tabId === 'stok') fetchStockHistory();
+        if (tabId === 'delivery') fetchDeliveryHistory();
     });
 });
 
@@ -144,9 +147,14 @@ async function fetchRmiData() {
 
     if (stok && stok.status === 'success') {
         renderChartStok(stok.data, 'chartFullStok');
+        renderStockHistoryTable(stok.data);
+        renderStockHistoryKpis(stok.data);
     }
     if (delivery && delivery.status === 'success') {
         renderChartDelivery(delivery.data, 'chartFullDelivery');
+        renderChartDeliveryMolasses(delivery.data, 'chartDeliveryMolasses');
+        renderDeliveryHistoryTable(delivery.data);
+        renderDeliveryHistoryKpis(delivery.data);
     }
     if (molasses && molasses.status === 'success') {
         renderChartMolasses(molasses.data, 'chartFullMolasses');
@@ -158,7 +166,7 @@ async function fetchRmiData() {
 window.fetchRmiData = fetchRmiData;
 
 async function fetchOverviewData() {
-    const dateValue = document.getElementById('overview-date-picker')?.value;
+    const dateValue = document.getElementById('laporanDate')?.value;
     const url = '/api/rmi-balance/overview-v2' + (dateValue ? `?date=${encodeURIComponent(dateValue)}` : '');
     try {
         const res = await fetch(url);
@@ -172,7 +180,7 @@ async function fetchOverviewData() {
             renderOverview(RMI_OVERVIEW_MOCK_DATA);
             showOverviewFallback(`API overview-v2 gagal dimuat (${err.message}). Menampilkan fallback mock data development.`);
         } else {
-            showOverviewFallback(`API overview-v2 gagal dimuat (${err.message}).`);
+            showOverviewFallback(`API overview-v2 gagal dimuat (${err.message}). Coba refresh atau login ulang.`);
         }
     }
 }
@@ -321,6 +329,12 @@ function formatTon(value) {
     return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ton';
 }
 
+// Molasses: DB kg / 1000 → butuh >2 desimal agar tidak ada pembulatan
+function formatTonPrecise(value) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+    return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 5 }) + ' ton';
+}
+
 function formatPercent(value) {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
     return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
@@ -410,8 +424,9 @@ function renderOverview(data) {
         applyOverviewStatus('overview-report-status', report.status);
         applyOverviewStatus('overview-balance-status', report.balance_status);
 
-        const datePicker = document.getElementById('overview-date-picker');
-        if (datePicker && data.date) datePicker.value = data.date;
+        const datePicker = document.getElementById('laporanDate');
+        // ponytail: jangan timpa pilihan user; hanya isi saat kosong (load awal)
+        if (datePicker && data.date && !datePicker.value) datePicker.value = data.date;
 
         const errorEl = document.getElementById('overview-error');
         if (errorEl) errorEl.style.display = 'none';
@@ -437,12 +452,12 @@ function renderOverviewKpiCards(kpi) {
     const gap = Number(kpi.delivery_gap || 0);
     const util = Number(kpi.utilization_percent || 0);
     const cards = [
-        { label: 'Total Stock Gula', value: formatTon(kpi.total_stock), sub: 'GKM + GKB + Reject', cls: 'success' },
-        { label: 'GKM', value: formatTon(kpi.gkm), sub: 'Red sugar / Gula merah', cls: 'danger' },
-        { label: 'GKB', value: formatTon(kpi.gkb), sub: 'Blue sugar / Gula biru', cls: '' },
-        { label: 'Reject', value: formatTon(kpi.reject), sub: 'Reject stock', cls: 'warning' },
-        { label: 'Delivery Gap', value: formatTon(kpi.delivery_gap), sub: 'Actual - Plan', cls: overviewSignedClass(gap) || 'warning' },
-        { label: 'Warehouse Utilization', value: formatPercent(util), sub: 'Stock / capacity', cls: util > 85 ? 'warning' : 'success', progress: util }
+        { label: 'Total Stock Gula', value: formatTon(kpi.total_stock), sub: 'GKM + GKB + Reject', cls: 'hero' },
+        { label: 'GKM', value: formatTon(kpi.gkm), sub: 'Gula merah', cls: 'flat' },
+        { label: 'GKB', value: formatTon(kpi.gkb), sub: 'Gula biru', cls: 'flat' },
+        { label: 'Reject', value: formatTon(kpi.reject), sub: 'Reject stock', cls: 'flat' },
+        { label: 'Delivery Gap', value: formatTon(kpi.delivery_gap), sub: 'Actual - Plan', cls: "operational " + overviewSignedClass(gap) },
+        { label: 'Warehouse Utilization', value: formatPercent(util), sub: 'Stock / capacity', cls: 'operational', progress: util }
     ];
 
     setOverviewHtml('overview-kpi-grid', cards.map(card => `
@@ -695,9 +710,9 @@ function renderOverviewOtherSummary(molasses, cane) {
                 ${getOverviewStatusBadge(molasses.status || 'ok')}
             </div>
             <div class="overview-card-body overview-summary-list">
-                <div class="overview-summary-row"><span class="overview-summary-label">Tank A</span><span class="overview-summary-value">${formatTon(molasses.tank_a)}</span></div>
-                <div class="overview-summary-row"><span class="overview-summary-label">Tank B</span><span class="overview-summary-value">${formatTon(molasses.tank_b)}</span></div>
-                <div class="overview-summary-row"><span class="overview-summary-label">Total Molasses</span><span class="overview-summary-value">${formatTon(molasses.total_stock)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Tank A</span><span class="overview-summary-value">${formatTonPrecise(molasses.tank_a)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Tank B</span><span class="overview-summary-value">${formatTonPrecise(molasses.tank_b)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Total Molasses</span><span class="overview-summary-value">${formatTonPrecise(molasses.total_stock)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Utilization</span><span class="overview-summary-value">${formatPercent(molasses.utilization_percent)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Delivery Gap</span><span class="overview-summary-value">${formatTon(molasses.delivery_gap)}</span></div>
             </div>
@@ -711,9 +726,9 @@ function renderOverviewOtherSummary(molasses, cane) {
                 ${getOverviewStatusBadge(cane.status || 'ok')}
             </div>
             <div class="overview-card-body overview-summary-list">
-                <div class="overview-summary-row"><span class="overview-summary-label">Cane Netto in Day</span><span class="overview-summary-value">${formatTon(cane.cane_tebu_today)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Cane Netto in Day</span><span class="overview-summary-value">${formatTonPrecise(cane.cane_tebu_today)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Ritase in Day</span><span class="overview-summary-value">${fmt(cane.cane_ritase)} truck</span></div>
-                <div class="overview-summary-row"><span class="overview-summary-label">Cane Netto to Date</span><span class="overview-summary-value">${formatTon(cane.cane_netto_to_date)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Cane Netto to Date</span><span class="overview-summary-value">${formatTonPrecise(cane.cane_netto_to_date)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Ritase to Date</span><span class="overview-summary-value">${fmt(cane.cane_ritase_to_date)} truck</span></div>
             </div>
         </section>
@@ -898,6 +913,140 @@ function renderChartDelivery(data, canvasId) {
     });
 }
 
+// === Stok & Delivery History (tab Stok GKP Harian / Delivery Plan) ===
+async function fetchStockHistory() {
+    const days = document.getElementById('stockHistoryDays')?.value || 90;
+    const body = document.getElementById('stockHistoryBody');
+    try {
+        const res = await fetch(`/api/rmi-balance/stok-harian?days=${days}`);
+        const payload = await res.json();
+        if (payload.status !== 'success') throw new Error(payload.message || 'API error');
+        const data = Array.isArray(payload.data) ? payload.data : [];
+        renderStockHistoryTable(data);
+        renderStockHistoryKpis(data);
+        renderChartStok(data, 'chartFullStok');
+    } catch (err) {
+        console.error('fetchStockHistory failed:', err);
+        if (body) body.innerHTML = `<tr><td colspan="5">Gagal memuat data: ${err.message}</td></tr>`;
+    }
+}
+window.fetchStockHistory = fetchStockHistory;
+
+async function fetchDeliveryHistory() {
+    const days = document.getElementById('deliveryHistoryDays')?.value || 90;
+    const body = document.getElementById('deliveryHistoryBody');
+    try {
+        const res = await fetch(`/api/rmi-balance/delivery-harian?days=${days}`);
+        const payload = await res.json();
+        if (payload.status !== 'success') throw new Error(payload.message || 'API error');
+        const data = Array.isArray(payload.data) ? payload.data : [];
+        renderDeliveryHistoryTable(data);
+        renderDeliveryHistoryKpis(data);
+        renderChartDelivery(data, 'chartFullDelivery');
+        renderChartDeliveryMolasses(data, 'chartDeliveryMolasses');
+    } catch (err) {
+        console.error('fetchDeliveryHistory failed:', err);
+        if (body) body.innerHTML = `<tr><td colspan="5">Gagal memuat data: ${err.message}</td></tr>`;
+    }
+}
+window.fetchDeliveryHistory = fetchDeliveryHistory;
+
+function renderStockHistoryTable(data) {
+    const body = document.getElementById('stockHistoryBody');
+    if (!body) return;
+    if (!data.length) { body.innerHTML = '<tr><td colspan="5">Tidak ada data</td></tr>'; return; }
+    const latest = data.slice(-10).reverse();
+    body.innerHTML = latest.map(d => {
+        const gkm = parseFloat(d.gkm) || 0;
+        const gkb = parseFloat(d.gkb) || 0;
+        const reject = parseFloat(d.reject) || 0;
+        const total = parseFloat(d.total_stok) || (gkm + gkb);
+        return `<tr><td>${formatDateIndo(d.tanggal)}</td><td>${fmt(gkm)}</td><td>${fmt(gkb)}</td><td>${fmt(reject)}</td><td>${fmt(total)}</td></tr>`;
+    }).join('');
+}
+
+function renderStockHistoryKpis(data) {
+    const wrap = document.getElementById('stockHistoryKpis');
+    if (!wrap) return;
+    if (!data.length) { wrap.innerHTML = ''; return; }
+    const last = data[data.length - 1];
+    const gkm = parseFloat(last.gkm) || 0;
+    const gkb = parseFloat(last.gkb) || 0;
+    const reject = parseFloat(last.reject) || 0;
+    const total = parseFloat(last.total_stok) || (gkm + gkb);
+    wrap.innerHTML = [
+        { label: 'Total Stok', value: fmt(total) + ' ton' },
+        { label: 'GKM', value: fmt(gkm) + ' ton' },
+        { label: 'GKB', value: fmt(gkb) + ' ton' },
+        { label: 'Reject', value: fmt(reject) + ' ton' }
+    ].map(k => `<div class="history-kpi"><span>${k.label}</span><strong>${k.value}</strong></div>`).join('');
+}
+
+function renderDeliveryHistoryTable(data) {
+    const body = document.getElementById('deliveryHistoryBody');
+    if (!body) return;
+    if (!data.length) { body.innerHTML = '<tr><td colspan="8">Tidak ada data</td></tr>'; return; }
+    const latest = data.slice(-10).reverse();
+    body.innerHTML = latest.map(d => {
+        const plan = parseFloat(d.plan) || 0;
+        const actual = parseFloat(d.actual) || 0;
+        const gap = actual - plan;
+        const pct = plan ? (actual / plan * 100) : 0;
+        const mPlan = parseFloat(d.mol_plan) || 0;
+        const mActual = parseFloat(d.mol_actual) || 0;
+        const mGap = mActual - mPlan;
+        return `<tr>
+            <td>${formatDateIndo(d.tanggal)}</td>
+            <td>${fmt(plan)}</td><td>${fmt(actual)}</td><td>${fmt(gap)}</td><td>${pct.toFixed(1)}%</td>
+            <td>${fmt(mPlan)}</td><td>${fmt(mActual)}</td><td>${fmt(mGap)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderDeliveryHistoryKpis(data) {
+    const wrap = document.getElementById('deliveryHistoryKpis');
+    if (!wrap) return;
+    if (!data.length) { wrap.innerHTML = ''; return; }
+    const sum = k => data.reduce((s, d) => s + (parseFloat(d[k]) || 0), 0);
+    const sumPlan = sum('plan'), sumActual = sum('actual');
+    const sumMolPlan = sum('mol_plan'), sumMolActual = sum('mol_actual');
+    const pct = sumPlan ? (sumActual / sumPlan * 100) : 0;
+    wrap.innerHTML = [
+        { label: 'Gula Plan', value: fmt(sumPlan) + ' ton' },
+        { label: 'Gula Actual', value: fmt(sumActual) + ' ton' },
+        { label: 'Realisasi Gula', value: pct.toFixed(1) + '%' },
+        { label: 'Molasses Plan', value: fmt(sumMolPlan) + ' ton' },
+        { label: 'Molasses Actual', value: fmt(sumMolActual) + ' ton' }
+    ].map(k => `<div class="history-kpi"><span>${k.label}</span><strong>${k.value}</strong></div>`).join('');
+}
+
+// Delivery Molasses: Plan vs Actual (bar)
+function renderChartDeliveryMolasses(data, canvasId) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    const labels = data.map(d => {
+        const dt = new Date(d.tanggal);
+        return `${dt.getDate()}/${dt.getMonth() + 1}`;
+    });
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Plan (MT)', data: data.map(d => parseFloat(d.mol_plan) || 0), backgroundColor: 'rgba(210,153,34,0.55)' },
+                { label: 'Actual (MT)', data: data.map(d => parseFloat(d.mol_actual) || 0), backgroundColor: '#d29922' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
 // Chart 3: Lokasi Gudang Luar (Horizontal Bar)
 function renderChartLokasi(data, canvasId) {
     clearChart(canvasId);
@@ -970,7 +1119,8 @@ async function openSettings() {
         const res = await fetch('/api/rmi-balance/settings').then(r => r.json());
         if (res.status === 'success') {
             document.getElementById('inputCapGula').value = res.data.gula_capacity;
-            document.getElementById('inputCapMolasses').value = res.data.molasses_capacity;
+            document.getElementById('inputCapMolassesA').value = res.data.molasses_tank_a_capacity ?? (res.data.molasses_capacity / 2);
+            document.getElementById('inputCapMolassesB').value = res.data.molasses_tank_b_capacity ?? (res.data.molasses_capacity / 2);
             document.getElementById('inputMillingStartDate').value = res.data.milling_start_date || '';
             document.getElementById('settingsModal').classList.add('active');
         }
@@ -990,8 +1140,16 @@ async function saveSettings() {
     btn.disabled = true;
 
     const gula = parseFloat(document.getElementById('inputCapGula').value);
-    const mol = parseFloat(document.getElementById('inputCapMolasses').value);
+    const molA = parseFloat(document.getElementById('inputCapMolassesA').value);
+    const molB = parseFloat(document.getElementById('inputCapMolassesB').value);
     const millingStartDate = document.getElementById('inputMillingStartDate').value || null;
+
+    if (!(gula > 0) || !(molA > 0) || !(molB > 0)) {
+        alert("Kapasitas harus angka lebih dari 0.");
+        btn.textContent = oriText;
+        btn.disabled = false;
+        return;
+    }
 
     try {
         const res = await fetch('/api/rmi-balance/settings', {
@@ -999,7 +1157,8 @@ async function saveSettings() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 gula_capacity: gula,
-                molasses_capacity: mol,
+                molasses_tank_a_capacity: molA,
+                molasses_tank_b_capacity: molB,
                 milling_start_date: millingStartDate
             })
         }).then(r => r.json());
@@ -1031,138 +1190,398 @@ function initDates() {
     const grafikDateFrom = document.getElementById('grafikDateFrom');
     const grafikDateTo = document.getElementById('grafikDateTo');
 
-    if (laporanDate) laporanDate.value = today;
+    if (laporanDate && !laporanDate.value) laporanDate.value = today;
     if (grafikDateFrom) grafikDateFrom.value = firstDayStr;
     if (grafikDateTo) grafikDateTo.value = today;
 
+    // Sync awal dari #laporanDate ke currentLhDate (dipakai tab Laporan Harian)
+    if (laporanDate?.value && typeof currentLhDate !== 'undefined') {
+        const parsed = new Date(laporanDate.value + 'T00:00:00');
+        if (!isNaN(parsed.getTime())) currentLhDate = parsed;
+    }
+
     laporanDate?.addEventListener('change', function () {
-        if (this.value) {
-            currentLhDate = new Date(this.value + 'T00:00:00');
-            if (typeof updateLhDateDisplay === 'function') {
-                updateLhDateDisplay();
+        if (this.value && typeof currentLhDate !== 'undefined') {
+            const parsed = new Date(this.value + 'T00:00:00');
+            if (!isNaN(parsed.getTime())) {
+                currentLhDate = parsed;
+                if (typeof updateLhDateDisplay === 'function'
+                    && document.getElementById('tab-laporan-harian')?.classList.contains('active')) {
+                    updateLhDateDisplay();
+                }
             }
         }
     });
 }
 
 function initOverviewControls() {
-    const datePicker = document.getElementById('overview-date-picker');
+    const datePicker = document.getElementById('laporanDate');
     if (datePicker) {
         datePicker.addEventListener('change', () => {
             fetchRmiData();
         });
     }
+
+    // Sidebar nav: tampilkan/sembunyikan date picker & lazy-load tab
+    document.querySelectorAll('#rmiNav li[data-tab]').forEach(li => {
+        li.addEventListener('click', () => {
+            const tabId = li.getAttribute('data-tab');
+            const datePickerContainer = document.getElementById('datePickerContainer');
+            if (datePickerContainer) {
+                datePickerContainer.style.display = (tabId === 'laporan-harian' || tabId === 'overview') ? 'block' : 'none';
+            }
+            if (tabId === 'grafik-analitik') fetchGrafikAnalitik();
+            if (tabId === 'molasses') fetchMolassesTanks();
+        });
+    });
+}
+
+let analyticsData = null;
+let analyticsDays = 7;
+let analyticsMetric = 'production';
+let analyticsShiftMetric = 'gula';
+
+function setAnalyticsDays(days) {
+    analyticsDays = days;
+    document.querySelectorAll('#analyticsPeriods button').forEach(b => {
+        b.classList.toggle('active', b.dataset.days === String(days));
+    });
+    fetchGrafikAnalitik();
+}
+
+function setAnalyticsMetric(metric) {
+    analyticsMetric = metric;
+    document.querySelectorAll('#analyticsMetrics button').forEach(b => {
+        b.classList.toggle('active', b.dataset.metric === metric);
+    });
+    if (analyticsData) renderAnalyticsTrend(analyticsData);
+}
+
+function setAnalyticsShiftMetric(metric) {
+    analyticsShiftMetric = metric;
+    document.querySelectorAll('#shiftMetrics button').forEach(b => {
+        b.classList.toggle('active', b.dataset.shiftMetric === metric);
+    });
+    if (analyticsData) renderAnalyticsShift(analyticsData.shiftPerformance || []);
 }
 
 async function fetchGrafikAnalitik() {
-    const dateFrom = document.getElementById('grafikDateFrom').value;
-    const dateTo = document.getElementById('grafikDateTo').value;
+    const kpiGrid = document.getElementById('analyticsKpiGrid');
+    if (kpiGrid) kpiGrid.innerHTML = '<div class="analytics-empty" style="grid-column:1/-1;">Memuat ringkasan analitik...</div>';
+    const dateInput = document.getElementById('grafikDateTo');
+    const dateTo = dateInput?.value || document.getElementById('laporanDate')?.value || new Date().toISOString().split('T')[0];
+    // ponytail: 'month' = dari tgl 1 bulan terpilih s/d tanggal terpilih; upgrade: kirim mode ke API bila perlu
+    const daysParam = analyticsDays === 'month'
+        ? new Date(`${dateTo}T00:00:00`).getDate()
+        : analyticsDays;
+
     try {
-        const res = await fetch(`/api/rmi-balance/grafik?date_from=${dateFrom}&date_to=${dateTo}`).then(r => r.json());
-        if (res.status === 'success') {
-            renderGrafikAnalitik(res.data);
-        }
+        const res = await fetch(`/api/rmi-balance/grafik-analitik?date=${encodeURIComponent(dateTo)}&days=${daysParam}`).then(r => r.json());
+        if (res.status !== 'success') throw new Error(res.message || 'Respons API tidak valid');
+        analyticsData = res.data;
+        renderGrafikAnalitik(analyticsData);
     } catch (err) {
-        console.error("Failed to fetch Grafik Analitik:", err);
+        console.error('Failed to fetch Grafik Analitik:', err);
+        if (kpiGrid) kpiGrid.innerHTML = '<div class="analytics-empty" style="grid-column:1/-1;"><i class="fa-solid fa-circle-exclamation"></i> Gagal memuat analitik.</div>';
     }
+}
+
+function analyticsNumber(value, decimals = 1) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+    return Number(value).toLocaleString('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function analyticsDateLabel(value) {
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 }
 
 function renderGrafikAnalitik(data) {
-    const labels = data.tren.map(d => {
-        const dt = new Date(d.tanggal);
-        return `${dt.getDate()}/${dt.getMonth() + 1}`;
+    renderAnalyticsKpis(data.kpi || {});
+    renderAnalyticsTrend(data);
+    renderAnalyticsShift(data.shiftPerformance || []);
+    renderAnalyticsInsights(data.insights || []);
+}
+
+function renderAnalyticsKpis(kpi) {
+    const grid = document.getElementById('analyticsKpiGrid');
+    if (!grid) return;
+    const stockChange = Number(kpi.stockChangeGula || 0);
+    const stockSign = stockChange > 0 ? '+' : '';
+    const cards = [
+        ['Rata-rata Produksi Gula', `${analyticsNumber(kpi.avgGulaPerDay)} MT`, `${analyticsNumber(kpi.totalGula)} MT total`],
+        ['Rata-rata Cane-In', `${analyticsNumber(kpi.avgCanePerDay)} MT`, `${analyticsNumber(kpi.totalCane)} MT total`],
+        ['Yield Gula', kpi.avgYieldGula == null ? '—' : `${analyticsNumber(kpi.avgYieldGula, 2)}%`, 'Produksi gula / cane-in'],
+        ['Yield Molasses', kpi.avgYieldMolasses == null ? '—' : `${analyticsNumber(kpi.avgYieldMolasses, 2)}%`, 'Molasses masuk / cane-in'],
+        ['Perubahan Stok Gula', `${stockSign}${analyticsNumber(stockChange)} MT`, `${kpi.daysWithData || 0} hari data`],
+    ];
+    grid.innerHTML = cards.map(([label, value, note]) => `
+        <div class="analytics-kpi">
+            <span class="analytics-kpi-label">${label}</span>
+            <strong class="analytics-kpi-value">${value}</strong>
+            <span class="analytics-kpi-note">${note}</span>
+        </div>`).join('');
+}
+
+function renderAnalyticsTrend(data) {
+    const metricSets = {
+        production: {
+            unit: 'MT',
+            datasets: [
+                ['Cane-In', 'cane', '#f0c000'], ['GKM', 'gkm', '#58a6ff'],
+                ['GKB', 'gkb', '#bc8cff'], ['Molasses', 'molasses', '#3fb950']
+            ]
+        },
+        yield: {
+            unit: '%',
+            datasets: [['Yield Gula', 'yieldGula', '#58a6ff'], ['Yield Molasses', 'yieldMolasses', '#3fb950']]
+        },
+        stock: {
+            unit: 'MT',
+            datasets: [['Stok Gula', 'stockGula', '#58a6ff'], ['Stok Molasses', 'stockMolasses', '#3fb950']]
+        }
+    };
+    const selected = metricSets[analyticsMetric] || metricSets.production;
+    clearChart('chartAnalyticsTrend');
+    const ctx = getCtxSafe('chartAnalyticsTrend');
+    if (!ctx) return;
+    chartInstances.chartAnalyticsTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.chartLabels ? data.chartLabels.map(l => analyticsDateLabel(l)) : [],
+            datasets: selected.datasets.map(([label, key, color]) => ({
+                label,
+                data: data.chartData?.[key] || [],
+                borderColor: color,
+                backgroundColor: color.replace(')', ', .1)').replace('rgb', 'rgba'),
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                tension: 0.3,
+                fill: false
+            }))
+        },
+        options: { responsive: true, maintainAspectRatio: false }
     });
+}
 
-    // Chart Produksi
-    clearChart('chartGrafikProduksi');
-    const ctxProd = getCtxSafe('chartGrafikProduksi');
-    if (ctxProd) {
-        chartInstances['chartGrafikProduksi'] = new Chart(ctxProd, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Produksi Gula', data: data.tren.map(d => d.produksiGula), borderColor: '#58a6ff', tension: 0.3 },
-                    { label: 'Produksi Molasses', data: data.tren.map(d => d.produksiMolasses), borderColor: '#3fb950', tension: 0.3 }
-                ]
+function renderAnalyticsShift(shifts) {
+    const canvasId = 'chartAnalyticsShift';
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    const metricConf = {
+        gula:     { label: 'Produksi Gula (MT)', unit: 'MT', color: '#58a6ff' },
+        cane:     { label: 'Cane-In (MT)',       unit: 'MT', color: '#f0c000' },
+        molasses: { label: 'Molasses (MT)',      unit: 'MT', color: '#3fb950' },
+        yieldGula:{ label: 'Yield Gula (%)',     unit: '%',  color: '#bc8cff' }
+    };
+    const conf = metricConf[analyticsShiftMetric] || metricConf.gula;
+    const labels = shifts.map(row => `Shift ${row.shift}`);
+    const values = shifts.map(row => Number(row[analyticsShiftMetric]) || 0);
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: conf.label,
+                data: values,
+                backgroundColor: values.map((_, i) => ['#58a6ff', '#3fb950', '#f0c000', '#bc8cff'][i % 4]),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => `${conf.label}: ${analyticsNumber(c.parsed.y)} ${conf.unit}` } }
             },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-    }
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: v => analyticsNumber(v, 0) + ' ' + conf.unit } }
+            }
+        }
+    });
+}
 
-    // Chart Delivery
-    clearChart('chartGrafikDelivery');
-    const ctxDel = getCtxSafe('chartGrafikDelivery');
-    if (ctxDel) {
-        chartInstances['chartGrafikDelivery'] = new Chart(ctxDel, {
-            type: 'bar',
-            data: {
-                labels: data.delivery.map(d => {
-                    const dt = new Date(d.tanggal); return `${dt.getDate()}/${dt.getMonth() + 1}`;
-                }),
-                datasets: [
-                    { label: 'Gula Plan', data: data.delivery.map(d => d.gulaPlan), backgroundColor: 'rgba(88, 166, 255, 0.4)' },
-                    { label: 'Gula Actual', data: data.delivery.map(d => d.gulaActual), backgroundColor: '#58a6ff' },
-                    { label: 'Molasses Plan', data: data.delivery.map(d => d.molSchedule), backgroundColor: 'rgba(240, 192, 0, 0.4)' },
-                    { label: 'Molasses Actual', data: data.delivery.map(d => d.molActual), backgroundColor: '#f0c000' }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-    }
+function renderAnalyticsInsights(insights) {
+    const container = document.getElementById('analyticsInsights');
+    if (!container) return;
+    container.innerHTML = insights.map(item => `
+        <div class="insight-item">
+            <i class="fa-solid fa-lightbulb"></i>
+            <div>
+                <strong>${item.title}</strong>
+                <p>${item.description}</p>
+            </div>
+        </div>
+    `).join('') || '<div class="analytics-empty">Tidak ada insight untuk periode ini.</div>';
+}
 
-    // Chart Balance
-    clearChart('chartGrafikBalance');
-    const ctxBal = getCtxSafe('chartGrafikBalance');
-    if (ctxBal) {
-        chartInstances['chartGrafikBalance'] = new Chart(ctxBal, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Balance Gula (GKP)', data: data.tren.map(d => d.gulaEndBalance), borderColor: '#bc8cff', backgroundColor: 'rgba(188,140,255,0.1)', fill: true, tension: 0.3 },
-                    { label: 'Balance Molasses', data: data.tren.map(d => d.molassesEndBalance), borderColor: '#ff7b72', backgroundColor: 'rgba(255,123,114,0.1)', fill: true, tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+async function fetchMolassesTanks(existingData = null) {
+    try {
+        const selectedDate = document.getElementById('laporanDate')?.value || '';
+        const [stockRes, settingsRes] = await Promise.all([
+            existingData ? Promise.resolve({ status: 'success', data: existingData }) : fetch(`/api/rmi-balance/molasses-harian?days=${document.getElementById('molassesTrendDays')?.value || 30}&date=${encodeURIComponent(selectedDate)}`).then(r => r.json()),
+            fetch('/api/rmi-balance/settings').then(r => r.json())
+        ]);
+        if (stockRes.status !== 'success' || settingsRes.status !== 'success') throw new Error('Data tangki tidak tersedia');
+        const rows = stockRes.data || [];
+        const eligible = selectedDate
+            ? rows.filter(row => {
+                const d = new Date(row.tanggal);
+                if(isNaN(d)) return true;
+                return d.toISOString().split('T')[0] <= selectedDate;
+            })
+            : rows;
+        const settings = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
+        renderMolassesTanks(eligible.at(-1), settings || {});
+        renderMolassesTrend(eligible);
+    } catch (error) {
+        console.error('Failed to fetch molasses tanks:', error);
+        const molTankDate = document.getElementById('molTankDate');
+        if (molTankDate) molTankDate.textContent = 'Gagal memuat posisi tangki';
     }
 }
 
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-    initOverviewControls();
-    initDates();
-    fetchRmiData();
-});
-
-// Update event listener for tabs to handle custom actions
-document.querySelectorAll('#rmiNav li[data-tab]').forEach(li => {
-    li.addEventListener('click', function () {
-        const tabId = this.getAttribute('data-tab');
-
-        // Show/hide date picker for Laporan Harian
-        if (tabId === 'laporan-harian') {
-            document.getElementById('datePickerContainer').style.display = 'block';
-            const lhDate = document.getElementById('laporanDate').value;
-            if (lhDate && typeof currentLhDate !== 'undefined') {
-                const parsedDate = new Date(lhDate + 'T00:00:00');
-                if (!isNaN(parsedDate.getTime())) {
-                    currentLhDate = parsedDate;
-                }
-            }
-            if (typeof updateLhDateDisplay === 'function') {
-                updateLhDateDisplay();
-            } else if (typeof fetchLaporanHarian === 'function') {
-                fetchLaporanHarian();
-            }
-        } else {
-            document.getElementById('datePickerContainer').style.display = 'none';
+function renderMolassesTanks(row, settings) {
+    const dateEl = document.getElementById('molTankDate');
+    if (dateEl) {
+        if (!row) {
+            dateEl.textContent = 'Belum ada data';
+            return;
         }
+        const dt = new Date(row.tanggal);
+        dateEl.textContent = `Posisi: ${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
+    }
 
-        if (tabId === 'grafik-analitik') {
-            fetchGrafikAnalitik();
+    const tanks = [
+        ['A', Number(row?.tank_a || 0), Number(settings?.molasses_tank_a_capacity || 0)],
+        ['B', Number(row?.tank_b || 0), Number(settings?.molasses_tank_b_capacity || 0)]
+    ];
+
+    tanks.forEach(([id, stock, capacity]) => {
+        const percentRaw = capacity > 0 ? (stock / capacity) * 100 : 0;
+        const percent = Math.min(Math.max(percentRaw, 0), 100);
+        
+        const liqEl = document.getElementById(`molTankLiquid${id}`);
+        const pctEl = document.getElementById(`molTankPercent${id}`);
+        const statEl = document.getElementById(`molTankStats${id}`);
+        
+        if (liqEl) liqEl.style.height = `${percent}%`;
+        if (pctEl) pctEl.textContent = `${percentRaw.toFixed(1)}%`;
+        if (statEl) statEl.innerHTML = `<strong>${stock.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 5 })} MT</strong><br><small>Kapasitas: ${capacity.toLocaleString('id-ID')} MT</small>`;
+    });
+}
+
+function renderMolassesTrend(data) {
+    const canvasId = 'chartMolassesTrend';
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx || !data.length) return;
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(row => analyticsDateLabel(String(row.tanggal).slice(0, 10))),
+            datasets: [
+                { label: 'Tangki A', data: data.map(row => Number(row.tank_a || 0)), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,.08)', tension: .3, pointRadius: 3 },
+                { label: 'Tangki B', data: data.map(row => Number(row.tank_b || 0)), borderColor: '#bc8cff', backgroundColor: 'rgba(188,140,255,.08)', tension: .3, pointRadius: 3 },
+                { label: 'Total A+B', data: data.map(row => Number(row.tank_a || 0) + Number(row.tank_b || 0)), borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,.1)', fill: true, tension: .3, borderWidth: 2.5, pointRadius: 3 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { tooltip: { callbacks: { label: context => context.dataset.label + ': ' + analyticsNumber(context.parsed.y) + ' MT' } } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: false, ticks: { callback: value => analyticsNumber(value, 0) + ' MT' } }
+            }
         }
     });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDates();
+    initOverviewControls();
+    fetchRmiData();
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            const tabId = this.dataset.target;
+            document.getElementById(`tab-${tabId}`)?.classList.add('active');
+            const pageTitle = document.getElementById('pageTitle');
+            if (pageTitle) pageTitle.textContent = this.textContent.trim();
+            window.dispatchEvent(new Event('resize'));
+            
+            if (tabId === 'laporan-harian') {
+                const datePickerContainer = document.getElementById('datePickerContainer');
+                if (datePickerContainer) datePickerContainer.style.display = 'block';
+                
+                const lhDate = document.getElementById('laporanDate')?.value;
+                if (lhDate && typeof currentLhDate !== 'undefined') {
+                    const parsedDate = new Date(lhDate + 'T00:00:00');
+                    if (!isNaN(parsedDate.getTime())) {
+                        currentLhDate = parsedDate;
+                    }
+                }
+                if (typeof updateLhDateDisplay === 'function') {
+                    updateLhDateDisplay();
+                } else if (typeof fetchLaporanHarian === 'function') {
+                    fetchLaporanHarian();
+                }
+            } else {
+                const datePickerContainer = document.getElementById('datePickerContainer');
+                if (datePickerContainer) datePickerContainer.style.display = 'none';
+            }
+
+            if (tabId === 'grafik-analitik') {
+                fetchGrafikAnalitik();
+            }
+            if (tabId === 'molasses') {
+                fetchMolassesTanks();
+            }
+        });
+    });
+
+    const grafikDate = document.getElementById('grafikDateTo');
+    if (grafikDate) {
+        if (!grafikDate.value) grafikDate.value = document.getElementById('laporanDate')?.value || new Date().toISOString().split('T')[0];
+        grafikDate.addEventListener('change', fetchGrafikAnalitik);
+    }
+    
+    // Also trigger fetch on Analytics Days changes
+    document.querySelectorAll('#analyticsPeriods button').forEach(b => {
+        b.addEventListener('click', () => setAnalyticsDays(b.dataset.days));
+    });
+
+    document.querySelectorAll('#analyticsMetrics button').forEach(b => {
+        b.addEventListener('click', () => setAnalyticsMetric(b.dataset.metric));
+    });
+
+    document.querySelectorAll('#shiftMetrics button').forEach(b => {
+        b.addEventListener('click', () => setAnalyticsShiftMetric(b.dataset.shiftMetric));
+    });
+
+    document.getElementById('deliveryHistoryDays')?.addEventListener('change', fetchDeliveryHistory);
+    document.getElementById('stockHistoryDays')?.addEventListener('change', fetchStockHistory);
 });
+
+// Update the fetchRmiData to also fetch molasses tanks if possible
+if (typeof fetchRmiData === 'function') {
+    const originalFetchRmiData = fetchRmiData;
+    fetchRmiData = async function() {
+        await originalFetchRmiData();
+        fetchMolassesTanks();
+        
+        // Also update grafikDateTo if laporanDate changes
+        const grafikDate = document.getElementById('grafikDateTo');
+        const selectedDate = document.getElementById('laporanDate')?.value;
+        if (grafikDate && selectedDate) {
+            grafikDate.value = selectedDate;
+        }
+    };
+}

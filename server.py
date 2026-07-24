@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, session, redirect, url_for, render_template
+from flask import Flask, jsonify, request, send_from_directory, session, redirect, url_for, render_template, send_file
 from flask_cors import CORS
 from datetime import datetime
 import secrets
@@ -313,6 +313,31 @@ def api_close_po_stock():
         return jsonify({"status": "error", "message": "Database error"}), 500
     return jsonify({"status": "success"})
 
+@app.route('/api/po-unmonitored', methods=['GET'])
+def api_po_unmonitored():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak. Khusus Admin!"}), 403
+    data = queries.get_unmonitored_pos()
+    return jsonify({"status": "success", "data": data})
+
+# Toggle PO visibility di Monitor (admin only)
+@app.route('/api/po-monitor-toggle', methods=['POST'])
+def api_toggle_po_monitor():
+    if not is_logged_in():
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
+    if not is_admin():
+        return jsonify({"status": "error", "message": "Akses ditolak. Khusus Admin!"}), 403
+
+    body = request.get_json()
+    if not body or 'nomor_po' not in body:
+        return jsonify({"status": "error", "message": "Missing nomor_po"}), 400
+    ok = queries.set_po_monitored(body['nomor_po'], bool(body.get('is_monitored', 1)))
+    if not ok:
+        return jsonify({"status": "error", "message": "Database error"}), 500
+    return jsonify({"status": "success"})
+
 @app.route('/api/po-stock', methods=['POST'])
 def api_save_po_stock():
     if not is_logged_in():
@@ -480,17 +505,23 @@ def api_rmi_balance_overview_v2():
 @app.route('/api/rmi-balance/stok-harian')
 def api_rmi_balance_stok_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_stok_harian()})
+    date_str = request.args.get('date')
+    days = request.args.get('days', 90, type=int)
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_stok_harian(date_str, days)})
 
 @app.route('/api/rmi-balance/delivery-harian')
 def api_rmi_balance_delivery_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_delivery_harian()})
+    date_str = request.args.get('date')
+    days = request.args.get('days', 90, type=int)
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_delivery_harian(date_str, days)})
 
 @app.route('/api/rmi-balance/molasses-harian')
 def api_rmi_balance_molasses_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_molasses_harian()})
+    date_str = request.args.get('date')
+    days = request.args.get('days', 90, type=int)
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_molasses_harian(date_str, days)})
 
 @app.route('/api/rmi-balance/lokasi')
 def api_rmi_balance_lokasi():
@@ -506,11 +537,20 @@ def api_rmi_balance_settings():
         if not is_admin(): return jsonify({"status": "error", "message": "Khusus Admin!"}), 403
         body = request.get_json(silent=True) or {}
         gula_cap = body.get('gula_capacity', 22000)
-        mol_cap = body.get('molasses_capacity', 30000)
+        tank_a_cap = body.get('molasses_tank_a_capacity', 15000)
+        tank_b_cap = body.get('molasses_tank_b_capacity', 15000)
+        try:
+            gula_cap = float(gula_cap)
+            tank_a_cap = float(tank_a_cap)
+            tank_b_cap = float(tank_b_cap)
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Kapasitas harus berupa angka"}), 400
+        if gula_cap <= 0 or tank_a_cap <= 0 or tank_b_cap <= 0:
+            return jsonify({"status": "error", "message": "Kapasitas harus lebih dari 0"}), 400
         milling_start_date = body.get('milling_start_date') or None
         if milling_start_date and not queries.rmi_balance._valid_date_str(milling_start_date):
             return jsonify({"status": "error", "message": "Format tanggal awal giling harus YYYY-MM-DD"}), 400
-        ok = queries.rmi_balance.update_settings(gula_cap, mol_cap, milling_start_date)
+        ok = queries.rmi_balance.update_settings(gula_cap, tank_a_cap, tank_b_cap, milling_start_date)
         if ok:
             return jsonify({"status": "success"})
         return jsonify({"status": "error", "message": "Gagal update setting"}), 500
@@ -520,6 +560,20 @@ def api_rmi_balance_laporan_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
     date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     return jsonify({"status": "success", "data": queries.rmi_balance.get_laporan_harian(date_str)})
+
+@app.route('/api/rmi-balance/export-excel')
+def api_rmi_balance_export_excel():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    import app_queries.excel_export
+    out = app_queries.excel_export.export_laporan_harian_to_excel(date_str, 'templates/excel/draft.xlsx')
+    
+    return send_file(
+        out, 
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True, 
+        download_name=f'Daily_Report_RMI_{date_str}.xlsx'
+    )
 
 @app.route('/api/rmi-balance/grafik')
 def api_rmi_balance_grafik():

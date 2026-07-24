@@ -18,8 +18,8 @@
         <span class="status-badge active" id="lh-giling-status"
           style="background: var(--accent-green-dim); color: var(--accent-green); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">●
           Giling aktif</span>
-        <button class="btn-primary" style="display: flex; align-items: center; gap: 6px;"><i
-            class="fa-solid fa-file-pdf"></i> Export</button>
+        <button class="btn-primary" id="lh-btn-export" style="display: flex; align-items: center; gap: 6px;"><i
+            class="fa-solid fa-file-excel"></i> Export Excel</button>
       </div>
     </div>
   </div>
@@ -53,6 +53,29 @@
     .lh-tab.active {
       color: var(--accent-green);
       border-bottom-color: var(--accent-green);
+    }
+
+    .audit-card {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .lh-cane-summary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .lh-cane-period {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      text-transform: none;
+      font-weight: 500;
     }
 
     /* Stock Position */
@@ -614,11 +637,7 @@
         </div>
       </div>
     </div>
-  </div>
-
-</div>
-
-</div><!-- end lh-tab-summary -->
+  </div><!-- end lh-tab-summary -->
 
 <div id="lh-tab-stock-gula" class="lh-tab-content" style="display: none;">
   <div class="mockup-flag"><i class="fa-solid fa-database"></i> DATA LIVE — SUMBER: DATABASE RMI</div>
@@ -672,8 +691,8 @@
   </div>
 
   <!-- B. DETAIL REJECT -->
-  <div class="audit-card" style="display: none;">
-    <div class="audit-title"><span class="audit-letter">B</span> Detail Reject</div>
+  <div class="audit-card" id="card-detail-reject">
+    <div class="audit-title"><span class="audit-letter">C</span> Detail Reject</div>
     <table class="audit-table">
       <thead>
         <tr>
@@ -681,7 +700,7 @@
           <th>Qty (Ton)</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="lh-detail-reject-body">
         <tr>
           <td class="label">Mix Colour / Metal Detector</td>
           <td>12,40</td>
@@ -723,8 +742,8 @@
   </div>
 
   <!-- C. REMELT REJECT -->
-  <div class="audit-card" style="display: none;">
-    <div class="audit-title"><span class="audit-letter">C</span> Remelt Reject</div>
+  <div class="audit-card" id="card-detail-remelt">
+    <div class="audit-title"><span class="audit-letter">D</span> Remelt Reject</div>
     <table class="audit-table">
       <thead>
         <tr>
@@ -732,7 +751,7 @@
           <th>Qty (Ton)</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="lh-detail-remelt-body">
         <tr>
           <td class="label">Remelt Mix Colour / Metal Detector</td>
           <td>9,60</td>
@@ -777,29 +796,12 @@
     </table>
   </div>
 
-  <div class="audit-card">
-    <div class="audit-title"><span class="audit-letter">C</span> Posisi Stock</div>
-    <table class="audit-table">
-      <thead>
-        <tr>
-          <th>Lokasi</th>
-          <th>Qty (Ton)</th>
-        </tr>
-      </thead>
-      <tbody id="lh-stock-location">
-        <tr>
-          <td colspan="2">Memuat data...</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
 
-  <!-- D. STOCK POSITION (unified) -->
-  <div class="audit-card" style="display: none;">
+  <!-- E. POSISI STOCK (UNIFIED) -->
+  <div class="audit-card" id="card-stock-position">
     <div
       style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-      <div class="audit-title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;"><span
-          class="audit-letter">D</span> Stock Position</div>
+      <div class="audit-title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;"><span class="audit-letter">E</span> Posisi Stock</div>
       <span style="font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">Klik lokasi
         untuk detail</span>
     </div>
@@ -1010,15 +1012,255 @@
   </div>
 </div>
 
+
 <div id="lh-tab-delivery" class="lh-tab-content" style="display: none;">
-  <!-- Content for Detail Delivery -->
+  <div class="mockup-flag"><i class="fa-solid fa-truck-fast"></i> DELIVERY PLAN VS ACTUAL</div>
+
+  <!-- SUMMARY CARDS -->
+  <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+    
+    <!-- SUMMARY GULA (Blue Theme) -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: rgba(88, 166, 255, 0.03); border: 1px solid var(--accent-blue); border-radius: var(--radius-md); padding: 16px;">
+      <div style="border-right: 1px solid var(--border-color); padding-right: 16px;">
+        <div style="font-size: 11px; color: var(--accent-blue); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;"><i class="fa-solid fa-cube"></i> Plan Delivery Gula</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Sora', sans-serif;" id="lh-del-gula-sum-plan">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">GKB + GKM (Ton)</div>
+      </div>
+      <div style="border-right: 1px solid var(--border-color); padding: 0 16px;">
+        <div style="font-size: 11px; color: var(--accent-blue); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;"><i class="fa-solid fa-truck-fast"></i> Actual SO Gula</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Sora', sans-serif;" id="lh-del-gula-sum-actual">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Total Dikirim (Ton)</div>
+      </div>
+      <div style="padding-left: 16px;">
+        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;" id="lh-del-gula-diff-label">Defisit / Surplus</div>
+        <div style="font-size: 24px; font-weight: 700; font-family: 'Sora', sans-serif;" id="lh-del-gula-sum-diff">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="lh-del-gula-sum-pct">0.00% Diff</div>
+      </div>
+    </div>
+
+    <!-- SUMMARY MOLASSES (Green Theme) -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: rgba(63, 185, 80, 0.03); border: 1px solid var(--accent-green); border-radius: var(--radius-md); padding: 16px;">
+      <div style="border-right: 1px solid var(--border-color); padding-right: 16px;">
+        <div style="font-size: 11px; color: var(--accent-green); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;"><i class="fa-solid fa-flask"></i> Plan Delivery Molasses</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Sora', sans-serif;" id="lh-del-mol-sum-plan">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Schedule (Ton)</div>
+      </div>
+      <div style="border-right: 1px solid var(--border-color); padding: 0 16px;">
+        <div style="font-size: 11px; color: var(--accent-green); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;"><i class="fa-solid fa-truck-fast"></i> Actual SO Molasses</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Sora', sans-serif;" id="lh-del-mol-sum-actual">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Total Dikirim (Ton)</div>
+      </div>
+      <div style="padding-left: 16px;">
+        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;" id="lh-del-mol-diff-label">Defisit / Surplus</div>
+        <div style="font-size: 24px; font-weight: 700; font-family: 'Sora', sans-serif;" id="lh-del-mol-sum-diff">0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="lh-del-mol-sum-pct">0.00% Diff</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- A. DELIVERY GULA -->
+  <div class="audit-card">
+    <div class="audit-title"><span class="audit-letter">A</span> Delivery Gula (GKB & GKM)</div>
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Kategori</th>
+          <th style="text-align: right;">GKB (Ton)</th>
+          <th style="text-align: right;">GKM (Ton)</th>
+          <th style="text-align: right;">Total (Ton)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label" style="color: var(--text-secondary);">Delivery Plan</td>
+          <td style="text-align: right;" id="lh-del-gkb-plan">0.00</td>
+          <td style="text-align: right;" id="lh-del-gkm-plan">0.00</td>
+          <td style="text-align: right; font-weight: 600;" id="lh-del-gula-plan-tot">0.00</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--accent-blue);">Actual SO (Move Out)</td>
+          <td style="text-align: right; color: var(--accent-blue);" id="lh-del-gkb-act">0.00</td>
+          <td style="text-align: right; color: var(--accent-blue);" id="lh-del-gkm-act">0.00</td>
+          <td style="text-align: right; font-weight: 600; color: var(--accent-blue);" id="lh-del-gula-act-tot">0.00</td>
+        </tr>
+        <tr class="total">
+          <td class="label">Diff Delivery</td>
+          <td style="text-align: right;" id="lh-del-gkb-diff">0.00</td>
+          <td style="text-align: right;" id="lh-del-gkm-diff">0.00</td>
+          <td style="text-align: right;" id="lh-del-gula-diff-tot">0.00</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--text-muted); font-size: 11px;">% Diff</td>
+          <td style="text-align: right; color: var(--text-muted); font-size: 11px;" id="lh-del-gkb-pct">0.00%</td>
+          <td style="text-align: right; color: var(--text-muted); font-size: 11px;" id="lh-del-gkm-pct">0.00%</td>
+          <td style="text-align: right; font-weight: 600; font-size: 11px;" id="lh-del-gula-pct-tot">0.00%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- B. DELIVERY MOLASSES -->
+  <div class="audit-card">
+    <div class="audit-title"><span class="audit-letter">B</span> Delivery Molasses</div>
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Kategori</th>
+          <th style="text-align: right;">Total (Ton)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label" style="color: var(--text-secondary);">Total Plan</td>
+          <td style="text-align: right;" id="lh-del-mol-plan">0.00</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--accent-blue);">Actual SO (Move Out)</td>
+          <td style="text-align: right; color: var(--accent-blue); font-weight: 600;" id="lh-del-mol-act">0.00</td>
+        </tr>
+        <tr class="total">
+          <td class="label">Diff Delivery</td>
+          <td style="text-align: right;" id="lh-del-mol-diff">0.00</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--text-muted); font-size: 11px;">% Diff</td>
+          <td style="text-align: right; font-weight: 600; font-size: 11px;" id="lh-del-mol-pct">0.00%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
+  
 <div id="lh-tab-molasses-cane" class="lh-tab-content" style="display: none;">
-  <!-- Content for Molasses & Cane -->
+  <div class="mockup-flag"><i class="fa-solid fa-flask"></i> MOLASSES & CANE BALANCE</div>
+
+  <!-- A. CANE IN (TEBU MASUK) - Brown/Gold Theme -->
+  <div class="audit-card" style="border-top: 3px solid #d4a373;">
+    <div class="audit-title" style="color: #bc6c25;"><span class="audit-letter" style="background: #fefae0; color: #bc6c25; border-color: #bc6c25;">A</span> Cane In (Tebu & Raw Sugar)</div>
+    
+    <div class="lh-cane-summary">
+      <div>
+        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Tebu Masuk Hari Ini</div>
+        <div style="font-size: 24px; font-weight: 700; color: #bc6c25; font-family: 'Sora', sans-serif;"><span id="lh-mc-cane-today">0.00</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">Ton</span></div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;" id="lh-mc-truck-today">0 Ritase Truck</div>
+      </div>
+      <div style="border-left: 1px solid var(--border-color); padding-left: 16px;">
+        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Todate Tebu Masuk</div>
+        <div class="lh-cane-period" id="lh-mc-cane-period">Dari awal giling s/d tanggal laporan</div>
+        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: 'Sora', sans-serif;"><span id="lh-mc-cane-kumulatif">0.00</span> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">Ton</span></div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;" id="lh-mc-truck-kumulatif">0 Ritase Truck</div>
+      </div>
+    </div>
+
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Shift</th>
+          <th style="text-align: right;">Ritase (Truck)</th>
+          <th style="text-align: right;">Netto Tebu (Ton)</th>
+        </tr>
+      </thead>
+      <tbody id="lh-mc-cane-shift-body">
+        <tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- B. BALANCE MOLASSES - Green Theme -->
+  <div class="audit-card" style="border-top: 3px solid var(--accent-green); margin-top: 24px;">
+    <div class="audit-title" style="color: var(--accent-green);"><span class="audit-letter" style="background: rgba(63, 185, 80, 0.1); color: var(--accent-green); border-color: var(--accent-green);">B</span> Balance Molasses Harian</div>
+    
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Keterangan</th>
+          <th style="text-align: right;">Qty (Ton)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label" style="color: var(--text-secondary);">Begin Inv (Stok Awal)</td>
+          <td style="text-align: right;" id="lh-mc-mol-begin">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank A</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-begin-a">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank B</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-begin-b">0.00</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--accent-blue);"><i class="fa-solid fa-plus" style="font-size: 10px;"></i> Molass In (Produksi)</td>
+          <td style="text-align: right; color: var(--accent-blue); font-weight: 600;" id="lh-mc-mol-in">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Raw Sugar In</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-rawsugar">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Yield (Molasses ÷ Cane)</td>
+          <td style="text-align: right; font-size: 11px; color: var(--accent-green); font-weight: 600;" id="lh-mc-mol-yield">—</td>
+        </tr>
+        <tr>
+          <td class="label" style="color: var(--accent-orange);"><i class="fa-solid fa-minus" style="font-size: 10px;"></i> Move Out (Total Actual)</td>
+          <td style="text-align: right; color: var(--accent-orange); font-weight: 600;" id="lh-mc-mol-out">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank A</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-out-a">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank B</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-out-b">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: #a371f7;">↳ Plan Delivery</td>
+          <td style="text-align: right; font-size: 11px; color: #a371f7;" id="lh-mc-mol-plan">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: var(--text-secondary);">↳ Selisih (Diff)</td>
+          <td style="text-align: right; font-size: 11px; color: var(--text-secondary);" id="lh-mc-mol-diff">0.00</td>
+        </tr>
+        <tr>
+          <td style="padding-left: 24px; font-size: 11px; color: #a371f7;">↳ Plan Besok (H+1)</td>
+          <td style="text-align: right; font-size: 11px; color: #a371f7;" id="lh-mc-mol-next-schedule">0.00</td>
+        </tr>
+        <tr class="total">
+          <td class="label" style="color: var(--accent-green);">Ending Inv (Total Stok Akhir)</td>
+          <td style="text-align: right; color: var(--accent-green); font-size: 16px;" id="lh-mc-mol-end">0.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Cumulative Delivery Diff -->
+    <div style="padding: 12px 16px; background: rgba(0,0,0,0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <div style="font-size: 12px; color: var(--text-secondary);">
+        Kumulatif Delivery (todate): Plan <strong style="color: var(--text-primary);" id="lh-mc-cum-plan">0.00</strong> · Actual <strong style="color: var(--text-primary);" id="lh-mc-cum-actual">0.00</strong>
+      </div>
+      <span class="badge" id="lh-mc-cum-badge" style="margin-top: 0;">—</span>
+    </div>
+    
+    <!-- Utilization Capacity -->
+    <div style="padding: 16px; background: rgba(0,0,0,0.02); border-top: 1px solid var(--border-color);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">% Utilization Cap (Tangki)</span>
+        <span style="font-size: 12px; color: var(--text-secondary);" id="lh-mc-cap-text">0 / 30,000 Ton (0%)</span>
+      </div>
+      <div style="height: 12px; background: var(--bg-secondary); border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color);">
+        <div id="lh-mc-cap-bar" style="height: 100%; width: 0%; background: var(--accent-green); transition: width 0.5s ease;"></div>
+      </div>
+      <div style="display: flex; gap: 24px; margin-top: 12px;">
+         <div style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-database" style="color: #6c757d;"></i> Tank A: <strong style="color: var(--text-primary);" id="lh-mc-tank-a">0.00</strong></div>
+         <div style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-database" style="color: #6c757d;"></i> Tank B: <strong style="color: var(--text-primary);" id="lh-mc-tank-b">0.00</strong></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- TAB CONTENT: GRAFIK & ANALITIK -->
+  <!-- TAB CONTENT: GRAFIK & ANALITIK -->
 <div id="lh-tab-grafik" class="lh-tab-content" style="display: none;">
   <!-- Filter Header -->
   <div
@@ -1029,6 +1271,8 @@
         style="background: var(--bg-primary); border: 1px solid var(--border-subtle); padding: 6px 12px; border-radius: 4px; font-weight: 600; color: var(--accent-blue); font-size: 13px; display: flex; align-items: center; gap: 8px;">
         <i class="fa-regular fa-calendar"></i> <span id="lh-grafik-date-range">...</span>
       </div>
+      <button class="btn-outline lh-grafik-btn-period" data-days="1"
+        style="padding: 6px 12px; font-size: 12px; border-radius: 4px;">1 hari</button>
       <button class="btn-outline lh-grafik-btn-period active" data-days="7"
         style="padding: 6px 12px; font-size: 12px; border-radius: 4px;">7 hari</button>
       <button class="btn-outline lh-grafik-btn-period" data-days="30"
@@ -1200,6 +1444,7 @@
   </div>
 
 </div>
+</div><!-- end laporan-harian-root -->
 <script>
   // Logic tab handler specific for Laporan Harian
   function showTabLH(tabName, el) {

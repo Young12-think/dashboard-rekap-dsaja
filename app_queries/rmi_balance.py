@@ -1,4 +1,4 @@
-from .db_core import dec, query, get_db
+﻿from .db_core import dec, query, get_db
 
 def ensure_rmi_settings():
     conn = get_db()
@@ -10,6 +10,8 @@ def ensure_rmi_settings():
                 id INT PRIMARY KEY DEFAULT 1,
                 gula_capacity DECIMAL(14,2) DEFAULT 22000,
                 molasses_capacity DECIMAL(14,2) DEFAULT 30000,
+                molasses_tank_a_capacity DECIMAL(14,2) DEFAULT 15000,
+                molasses_tank_b_capacity DECIMAL(14,2) DEFAULT 15000,
                 milling_start_date DATE NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB
@@ -18,6 +20,20 @@ def ensure_rmi_settings():
         cur.execute("SHOW COLUMNS FROM rmi_settings LIKE 'milling_start_date'")
         if not cur.fetchone():
             cur.execute("ALTER TABLE rmi_settings ADD COLUMN milling_start_date DATE NULL AFTER molasses_capacity")
+            conn.commit()
+        cur.execute("SHOW COLUMNS FROM rmi_settings LIKE 'molasses_tank_a_capacity'")
+        if not cur.fetchone():
+            cur.execute("""
+                ALTER TABLE rmi_settings
+                ADD COLUMN molasses_tank_a_capacity DECIMAL(14,2) NULL AFTER molasses_capacity,
+                ADD COLUMN molasses_tank_b_capacity DECIMAL(14,2) NULL AFTER molasses_tank_a_capacity
+            """)
+            cur.execute("""
+                UPDATE rmi_settings SET
+                    molasses_tank_a_capacity = molasses_capacity / 2,
+                    molasses_tank_b_capacity = molasses_capacity / 2
+                WHERE id = 1
+            """)
             conn.commit()
         # Ensure row 1 exists
         cur.execute("INSERT IGNORE INTO rmi_settings (id, gula_capacity, molasses_capacity) VALUES (1, 22000, 30000)")
@@ -61,12 +77,20 @@ def ensure_data_timbang_clean_column():
 
 def get_settings():
     ensure_rmi_settings()
-    res = query("SELECT gula_capacity, molasses_capacity, milling_start_date FROM rmi_settings WHERE id = 1")
+    res = query("""
+        SELECT gula_capacity, molasses_capacity,
+               COALESCE(molasses_tank_a_capacity, molasses_capacity / 2) as molasses_tank_a_capacity,
+               COALESCE(molasses_tank_b_capacity, molasses_capacity / 2) as molasses_tank_b_capacity,
+               milling_start_date
+        FROM rmi_settings WHERE id = 1
+    """)
     if res:
         return dec(res[0])
-    return {"gula_capacity": 22000, "molasses_capacity": 30000, "milling_start_date": None}
+    return {"gula_capacity": 22000, "molasses_capacity": 30000,
+            "molasses_tank_a_capacity": 15000, "molasses_tank_b_capacity": 15000,
+            "milling_start_date": None}
 
-def update_settings(gula_capacity, molasses_capacity, milling_start_date):
+def update_settings(gula_capacity, tank_a_capacity, tank_b_capacity, milling_start_date):
     ensure_rmi_settings()
     conn = get_db()
     if not conn: return False
@@ -74,9 +98,12 @@ def update_settings(gula_capacity, molasses_capacity, milling_start_date):
         cur = conn.cursor()
         cur.execute("""
             UPDATE rmi_settings 
-            SET gula_capacity = %s, molasses_capacity = %s, milling_start_date = %s
+            SET gula_capacity = %s, molasses_capacity = %s,
+                molasses_tank_a_capacity = %s, molasses_tank_b_capacity = %s,
+                milling_start_date = %s
             WHERE id = 1
-        """, (gula_capacity, molasses_capacity, milling_start_date))
+        """, (gula_capacity, tank_a_capacity + tank_b_capacity,
+              tank_a_capacity, tank_b_capacity, milling_start_date))
         conn.commit()
         cur.close()
         return True
@@ -104,9 +131,10 @@ def get_overview():
     if settings['gula_capacity'] > 0:
         gula_util = (total_gula / float(settings['gula_capacity'])) * 100
 
-    # Molasses Stock
+    # Molasses Stock (kg di DB → ton)
     mol_stok = query("""
-        SELECT stok_akhir_tanka, stok_akhir_tankb 
+        SELECT COALESCE(stok_akhir_tanka,0)/1000 as stok_akhir_tanka,
+               COALESCE(stok_akhir_tankb,0)/1000 as stok_akhir_tankb
         FROM mol_stok_tangki 
         ORDER BY tanggal DESC LIMIT 1
     """)
@@ -324,7 +352,7 @@ def get_overview_v2(date_str=None):
                 FROM gudang_luar_stok
                 WHERE tanggal <= %s
             )
-        ) s ON m.id_gudang = COALESCE(s.id_gudang, s.id_gudang_luar)
+        ) s ON m.id = COALESCE(s.id_gudang, s.id_gudang_luar)
         ORDER BY COALESCE(s.stok_akhir, 0) DESC, m.nama_gudang ASC
     """, (report_date,))) or []
     out_site = sum(float(row.get('stok_akhir') or 0) for row in lokasi_rows)
@@ -339,7 +367,8 @@ def get_overview_v2(date_str=None):
     ])
 
     mol_stok = dec(query("""
-        SELECT stok_akhir_tanka, stok_akhir_tankb
+        SELECT COALESCE(stok_akhir_tanka,0)/1000 as stok_akhir_tanka,
+               COALESCE(stok_akhir_tankb,0)/1000 as stok_akhir_tankb
         FROM mol_stok_tangki
         WHERE tanggal = %s
         LIMIT 1
@@ -504,39 +533,59 @@ def get_overview_v2(date_str=None):
         }
     }
 
-def get_stok_harian():
+def get_stok_harian(end_date=None, days=90):
+    end_date = _valid_date_str(end_date) or _resolve_overview_date()
+    days = max(1, min(int(days), 366))
     sql = """
         SELECT tanggal, 
                COALESCE(stok_akhir_gkm, 0) as gkm,
                COALESCE(stok_akhir_gkb, 0) as gkb,
+               COALESCE(stok_akhir_reject, 0) as reject,
                COALESCE(stok_akhir_gkm, 0) + COALESCE(stok_akhir_gkb, 0) as total_stok
         FROM gula_stok 
-        WHERE tanggal >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+        WHERE tanggal BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
         ORDER BY tanggal ASC
     """
-    return dec(query(sql)) or []
+    return dec(query(sql, (end_date, days - 1, end_date))) or []
 
-def get_delivery_harian():
+def get_delivery_harian(end_date=None, days=90):
+    end_date = _valid_date_str(end_date) or _resolve_overview_date()
+    days = max(1, min(int(days), 366))
     sql = """
-        SELECT tanggal, 
-               COALESCE(plan_delivery, 0) as plan, 
-               COALESCE(actual_delivery, 0) as actual
-        FROM gula_delivery 
-        WHERE tanggal >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
-        ORDER BY tanggal ASC
+        SELECT t.tanggal,
+               CASE WHEN COALESCE(gd.plan_delivery, 0) <> 0 THEN gd.plan_delivery
+                    ELSE COALESCE(gd.plan_delivery_gkm, 0) + COALESCE(gd.plan_delivery_gkb, 0) END as plan,
+               CASE WHEN COALESCE(gd.actual_delivery, 0) <> 0 THEN gd.actual_delivery
+                    ELSE COALESCE(gd.delivery_gkm, 0) + COALESCE(gd.delivery_gkb, 0) END as actual,
+               COALESCE(gd.plan_delivery_gkm, 0) as plan_gkm,
+               COALESCE(gd.plan_delivery_gkb, 0) as plan_gkb,
+               COALESCE(gd.delivery_gkm, 0) as actual_gkm,
+               COALESCE(gd.delivery_gkb, 0) as actual_gkb,
+               COALESCE(md.plan_delivery, 0)/1000 as mol_plan,
+               (COALESCE(md.actual_tank_a, 0) + COALESCE(md.actual_tank_b, 0))/1000 as mol_actual
+        FROM (
+            SELECT tanggal FROM gula_delivery WHERE tanggal BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
+            UNION
+            SELECT tanggal FROM mol_delivery WHERE tanggal BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
+        ) t
+        LEFT JOIN gula_delivery gd ON gd.tanggal = t.tanggal
+        LEFT JOIN mol_delivery md ON md.tanggal = t.tanggal
+        ORDER BY t.tanggal ASC
     """
-    return dec(query(sql)) or []
+    return dec(query(sql, (end_date, days - 1, end_date, end_date, days - 1, end_date))) or []
 
-def get_molasses_harian():
+def get_molasses_harian(end_date=None, days=90):
+    end_date = _valid_date_str(end_date) or _resolve_overview_date()
+    days = max(1, min(int(days), 366))
     sql = """
         SELECT tanggal, 
-               COALESCE(stok_akhir_tanka, 0) as tank_a, 
-               COALESCE(stok_akhir_tankb, 0) as tank_b
+               COALESCE(stok_akhir_tanka, 0)/1000 as tank_a, 
+               COALESCE(stok_akhir_tankb, 0)/1000 as tank_b
         FROM mol_stok_tangki 
-        WHERE tanggal >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+        WHERE tanggal BETWEEN DATE_SUB(%s, INTERVAL %s DAY) AND %s
         ORDER BY tanggal ASC
     """
-    return dec(query(sql)) or []
+    return dec(query(sql, (end_date, days - 1, end_date))) or []
 
 def get_lokasi_stok():
     sql = """
@@ -546,7 +595,7 @@ def get_lokasi_stok():
             SELECT id_gudang_luar, id_gudang, COALESCE(stok_akhir, stok_ton, 0) as stok_akhir
             FROM gudang_luar_stok
             WHERE tanggal = (SELECT MAX(tanggal) FROM gudang_luar_stok)
-        ) s ON m.id_gudang = COALESCE(s.id_gudang, s.id_gudang_luar)
+        ) s ON m.id = COALESCE(s.id_gudang, s.id_gudang_luar)
         ORDER BY m.nama_gudang ASC
     """
     return dec(query(sql)) or []
@@ -603,13 +652,14 @@ def get_laporan_harian(date_str):
             WHERE tanggal = (
                 SELECT MAX(tanggal) FROM gudang_luar_stok WHERE tanggal <= %s
             )
-        ) s ON m.id_gudang = COALESCE(s.id_gudang, s.id_gudang_luar)
+        ) s ON m.id = COALESCE(s.id_gudang, s.id_gudang_luar)
         ORDER BY COALESCE(s.stok_akhir, 0) DESC, m.nama_gudang ASC
     """, (date_str,))) or []
 
     # Gula Delivery
     gula_del = query("""
-        SELECT plan_delivery, actual_delivery FROM gula_delivery WHERE tanggal = %s LIMIT 1
+        SELECT plan_delivery, actual_delivery, plan_delivery_gkm, plan_delivery_gkb, delivery_gkm, delivery_gkb
+        FROM gula_delivery WHERE tanggal = %s LIMIT 1
     """, (date_str,))
     g_del = dec(gula_del[0]) if gula_del else {}
 
@@ -620,9 +670,12 @@ def get_laporan_harian(date_str):
     """, (date_str,))
     g_del_bsk = dec(gula_del_besok[0]) if gula_del_besok else {}
 
-    # Molasses Stok
+    # Molasses Stok (kg di DB → ton)
     mol_stok = query("""
-        SELECT stok_awal_tanka, stok_awal_tankb, stok_akhir_tanka, stok_akhir_tankb 
+        SELECT COALESCE(stok_awal_tanka,0)/1000 as stok_awal_tanka,
+               COALESCE(stok_awal_tankb,0)/1000 as stok_awal_tankb,
+               COALESCE(stok_akhir_tanka,0)/1000 as stok_akhir_tanka,
+               COALESCE(stok_akhir_tankb,0)/1000 as stok_akhir_tankb
         FROM mol_stok_tangki WHERE tanggal = %s LIMIT 1
     """, (date_str,))
     m_stok = dec(mol_stok[0]) if mol_stok else {}
@@ -631,8 +684,9 @@ def get_laporan_harian(date_str):
     m_penerimaan = dec(query("""
         SELECT shift, raw_sugar, cane_tebu FROM mol_penerimaan WHERE tanggal = %s
     """, (date_str,))) or []
-    
+
     mol_prod_shift = {'1': 0, '2': 0, '3': 0, 'total': 0}
+    raw_sugar_total = 0
     for p in m_penerimaan:
         s = str(p.get('shift'))
         if s in ['1','2','3']:
@@ -640,34 +694,62 @@ def get_laporan_harian(date_str):
             ct = float(p.get('cane_tebu', 0) or 0)
             mol_prod_shift[s] = rs + ct
             mol_prod_shift['total'] += mol_prod_shift[s]
+            raw_sugar_total += rs
 
     cane_timbang = _get_cane_from_timbang(date_str)
     cane_shift = [
-        {'shift': row['shift'], 'caneKg': row['netto_kg'], 'truck': row['ritase']}
+        {'shift': row['shift'], 'caneKg': row['netto_ton'], 'truck': row['ritase']}
         for row in cane_timbang['per_shift']
         if row['shift'] in [1, 2, 3]
     ]
-    cane_hari_ini = cane_timbang['cane_netto_kg']
+    cane_hari_ini = cane_timbang['cane_netto_kg'] / 1000
     truck_hari_ini = cane_timbang['cane_ritase']
 
-    cane_prev_res = dec(query("""
-        SELECT
-            COUNT(DISTINCT COALESCE(NULLIF(NoSystem, 0), id)) as total_truck,
-            SUM(ABS(COALESCE(Qty_Netto, 0))) as total_cane
-        FROM data_timbang 
-        WHERE UPPER(TRIM(Type)) = 'TEBU'
-          AND Tanggal_Keluar_Clean < %s
-    """, (date_str,), one=True)) or {}
-    truck_kumulatif_prev = int(cane_prev_res.get('total_truck') or 0)
-    cane_kumulatif_prev = float(cane_prev_res.get('total_cane') or 0)
+    settings = get_settings()
+    milling_start = settings.get('milling_start_date')
+    cane_to_date = _get_cane_to_date(milling_start, date_str)
 
     # Molasses Delivery
     mol_del = query("""
-        SELECT plan_delivery, actual_tank_a, actual_tank_b FROM mol_delivery WHERE tanggal = %s LIMIT 1
+        SELECT plan_delivery, actual_tank_a, actual_tank_b, jml_truck, next_schedule FROM mol_delivery WHERE tanggal = %s LIMIT 1
     """, (date_str,))
     m_del = dec(mol_del[0]) if mol_del else {}
     m_actual_del = float(m_del.get('actual_tank_a',0) or 0) + float(m_del.get('actual_tank_b',0) or 0)
     m_plan_del = float(m_del.get('plan_delivery',0) or 0)
+
+    # Molasses delivery kumulatif (todate) untuk % diff, sejak awal giling
+    m_del_cum = {'plan': 0, 'actual': 0}
+    if milling_start:
+        cum_res = dec(query("""
+            SELECT COALESCE(SUM(plan_delivery),0) as plan,
+                   COALESCE(SUM(COALESCE(actual_tank_a,0)+COALESCE(actual_tank_b,0)),0) as actual
+            FROM mol_delivery WHERE tanggal BETWEEN %s AND %s
+        """, (milling_start, date_str), one=True)) or {}
+        m_del_cum['plan'] = float(cum_res.get('plan') or 0)
+        m_del_cum['actual'] = float(cum_res.get('actual') or 0)
+
+    # Yield molasses = produksi molasses / cane masuk hari ini (ton)
+    cane_today_ton = float(cane_hari_ini or 0)
+    mol_yield = (mol_prod_shift['total'] / cane_today_ton * 100) if cane_today_ton > 0 else None
+
+
+    # 1. Detail Reject per jenis (tonase)
+    detail_reject_res = dec(query('''
+        SELECT jenis_reject as jenis, SUM(COALESCE(jumlah_kg,0)) / 1000 as qty
+        FROM gula_reject_log
+        WHERE tanggal = %s
+        GROUP BY jenis_reject
+        ORDER BY qty DESC
+    ''', (date_str,))) or []
+
+    # 2. Detail Remelt per jenis (tonase)
+    detail_remelt_res = dec(query('''
+        SELECT jenis_reject as jenis, SUM(COALESCE(jumlah_kg,0)) / 1000 as qty
+        FROM gula_remelt_log
+        WHERE tanggal = %s
+        GROUP BY jenis_reject
+        ORDER BY qty DESC
+    ''', (date_str,))) or []
 
     return {
         "tanggal": date_str,
@@ -678,12 +760,18 @@ def get_laporan_harian(date_str):
             "delivery": {
                 "plan": float(g_del.get('plan_delivery', 0) or 0),
                 "actual": float(g_del.get('actual_delivery', 0) or 0),
-                "diff": float(g_del.get('plan_delivery', 0) or 0) - float(g_del.get('actual_delivery', 0) or 0)
+                "diff": float(g_del.get('plan_delivery', 0) or 0) - float(g_del.get('actual_delivery', 0) or 0),
+                "planGkm": float(g_del.get('plan_delivery_gkm', 0) or 0),
+                "planGkb": float(g_del.get('plan_delivery_gkb', 0) or 0),
+                "actGkm": float(g_del.get('delivery_gkm', 0) or 0),
+                "actGkb": float(g_del.get('delivery_gkb', 0) or 0)
             },
             "endBalance": float(g_stok.get('stok_akhir_gkm',0) or 0) + float(g_stok.get('stok_akhir_gkb',0) or 0),
             "stokGkb": float(g_stok.get('stok_akhir_gkb',0) or 0),
             "stokGkm": float(g_stok.get('stok_akhir_gkm',0) or 0),
             "reject": float(g_stok.get('stok_akhir_reject',0) or 0),
+            "detailReject": detail_reject_res,
+            "detailRemelt": detail_remelt_res,
             "stockPosition": {
                 "outsite": sum(float(row.get('stok_akhir') or 0) for row in lokasi_rows),
                 "locations": [
@@ -702,19 +790,34 @@ def get_laporan_harian(date_str):
         },
         "molasses": {
             "openBalance": float(m_stok.get('stok_awal_tanka',0) or 0) + float(m_stok.get('stok_awal_tankb',0) or 0),
+            "openTankA": float(m_stok.get('stok_awal_tanka',0) or 0),
+            "openTankB": float(m_stok.get('stok_awal_tankb',0) or 0),
             "produksi": mol_prod_shift,
+            "rawSugarIn": raw_sugar_total,
+            "yield": mol_yield,
+            "capacity": float(settings.get('molasses_capacity') or 30000),
             "delivery": {
                 "schedule": m_plan_del,
                 "actual": m_actual_del,
-                "diff": m_plan_del - m_actual_del
+                "diff": m_plan_del - m_actual_del,
+                "actTankA": float(m_del.get('actual_tank_a',0) or 0),
+                "actTankB": float(m_del.get('actual_tank_b',0) or 0),
+                "jmlTruck": int(m_del.get('jml_truck',0) or 0),
+                "nextSchedule": float(m_del.get('next_schedule',0) or 0),
+                "cumPlan": m_del_cum['plan'],
+                "cumActual": m_del_cum['actual'],
+                "cumDiff": m_del_cum['actual'] - m_del_cum['plan'],
+                "cumDiffPct": ((m_del_cum['actual'] - m_del_cum['plan']) / m_del_cum['plan'] * 100) if m_del_cum['plan'] > 0 else None
             },
             "endBalance": float(m_stok.get('stok_akhir_tanka',0) or 0) + float(m_stok.get('stok_akhir_tankb',0) or 0),
             "tankA": float(m_stok.get('stok_akhir_tanka',0) or 0),
             "tankB": float(m_stok.get('stok_akhir_tankb',0) or 0)
         },
         "cane": {
-            "kumulatif": cane_kumulatif_prev,
-            "kumulatifTruck": truck_kumulatif_prev,
+            "kumulatif": cane_to_date['cane_netto_to_date'],
+            "kumulatifTruck": cane_to_date['cane_ritase_to_date'],
+            "millingStartDate": _date_to_str(milling_start),
+            "reportDate": date_str,
             "hariIni": cane_hari_ini,
             "hariIniTruck": truck_hari_ini,
             "perShift": cane_shift
@@ -727,10 +830,10 @@ def get_grafik_laporan(date_from, date_to):
         SELECT 
             gs.tanggal,
             COALESCE(gs.stok_akhir_gkm,0) + COALESCE(gs.stok_akhir_gkb,0) as gulaEndBalance,
-            COALESCE(ms.stok_akhir_tanka,0) + COALESCE(ms.stok_akhir_tankb,0) as molassesEndBalance,
+            (COALESCE(ms.stok_akhir_tanka,0) + COALESCE(ms.stok_akhir_tankb,0))/1000 as molassesEndBalance,
             (SELECT SUM(COALESCE(gkm_crushing,0)+COALESCE(gkm_melting,0)+COALESCE(gkb_crushing,0)+COALESCE(gkb_melting,0)) FROM gula_penerimaan p WHERE p.tanggal = gs.tanggal) as produksiGula,
             (SELECT SUM(COALESCE(raw_sugar,0)+COALESCE(cane_tebu,0)) FROM mol_penerimaan m WHERE m.tanggal = gs.tanggal) as produksiMolasses,
-            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0))) FROM data_timbang t WHERE UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean = gs.tanggal) as caneHariIni
+            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0)))/1000 FROM data_timbang t WHERE UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean = gs.tanggal) as caneHariIni
         FROM gula_stok gs
         LEFT JOIN mol_stok_tangki ms ON gs.tanggal = ms.tanggal
         WHERE gs.tanggal BETWEEN %s AND %s
@@ -759,7 +862,7 @@ def get_grafik_laporan(date_from, date_to):
             gp.shift,
             AVG(COALESCE(gp.gkm_crushing,0)+COALESCE(gp.gkm_melting,0)+COALESCE(gp.gkb_crushing,0)+COALESCE(gp.gkb_melting,0)) as avgGula,
             (SELECT AVG(COALESCE(raw_sugar,0)+COALESCE(cane_tebu,0)) FROM mol_penerimaan m WHERE m.shift = gp.shift AND m.tanggal BETWEEN %s AND %s) as avgMolasses,
-            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0))) / NULLIF(COUNT(DISTINCT t.Tanggal_Keluar_Clean), 0) FROM data_timbang t WHERE t.Shift = gp.shift AND UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean BETWEEN %s AND %s) as avgCane
+            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0)))/1000 / NULLIF(COUNT(DISTINCT t.Tanggal_Keluar_Clean), 0) FROM data_timbang t WHERE t.Shift = gp.shift AND UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean BETWEEN %s AND %s) as avgCane
         FROM gula_penerimaan gp
         WHERE gp.tanggal BETWEEN %s AND %s
         GROUP BY gp.shift
@@ -773,6 +876,7 @@ def get_grafik_laporan(date_from, date_to):
 
 def get_grafik_analitik(end_date_str, days=7):
     from datetime import datetime, timedelta
+    end_date_str = _valid_date_str(end_date_str) or _resolve_overview_date()
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
     start_date = end_date - timedelta(days=days-1)
     date_from = start_date.strftime('%Y-%m-%d')
@@ -785,13 +889,13 @@ def get_grafik_analitik(end_date_str, days=7):
             COALESCE(gs.stok_akhir_gkm,0) as gkmEndBalance,
             COALESCE(gs.stok_akhir_gkb,0) as gkbEndBalance,
             (COALESCE(gs.stok_akhir_gkm,0) + COALESCE(gs.stok_akhir_gkb,0)) as gulaEndBalance,
-            COALESCE(ms.stok_akhir_tanka,0) + COALESCE(ms.stok_akhir_tankb,0) as molassesEndBalance,
+            (COALESCE(ms.stok_akhir_tanka,0) + COALESCE(ms.stok_akhir_tankb,0))/1000 as molassesEndBalance,
             
             (SELECT SUM(COALESCE(gkm_crushing,0)+COALESCE(gkm_melting,0)) FROM gula_penerimaan p WHERE p.tanggal = gs.tanggal) as produksiGkm,
             (SELECT SUM(COALESCE(gkb_crushing,0)+COALESCE(gkb_melting,0)) FROM gula_penerimaan p WHERE p.tanggal = gs.tanggal) as produksiGkb,
             
             (SELECT SUM(COALESCE(raw_sugar,0)+COALESCE(cane_tebu,0)) FROM mol_penerimaan m WHERE m.tanggal = gs.tanggal) as produksiMolasses,
-            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0))) FROM data_timbang t WHERE UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean = gs.tanggal) as caneHariIni
+            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0)))/1000 FROM data_timbang t WHERE UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean = gs.tanggal) as caneHariIni
         FROM gula_stok gs
         LEFT JOIN mol_stok_tangki ms ON gs.tanggal = ms.tanggal
         WHERE gs.tanggal BETWEEN %s AND %s
@@ -813,77 +917,247 @@ def get_grafik_analitik(end_date_str, days=7):
     """, (date_from, date_to))
     delivery = dec(del_res) or []
 
-    # Shift Summary Average over the period
-    shift_sum = dec(query("""
-        SELECT 
-            gp.shift,
-            AVG(COALESCE(gp.gkm_crushing,0)+COALESCE(gp.gkm_melting,0)) as avgGkm,
-            (SELECT AVG(COALESCE(raw_sugar,0)+COALESCE(cane_tebu,0)) FROM mol_penerimaan m WHERE m.shift = gp.shift AND m.tanggal BETWEEN %s AND %s) as avgMolasses,
-            (SELECT SUM(ABS(COALESCE(t.Qty_Netto,0))) / NULLIF(COUNT(DISTINCT t.Tanggal_Keluar_Clean), 0) FROM data_timbang t WHERE t.Shift = gp.shift AND UPPER(TRIM(t.Type)) = 'TEBU' AND t.Tanggal_Keluar_Clean BETWEEN %s AND %s) as avgCane
-        FROM gula_penerimaan gp
-        WHERE gp.tanggal BETWEEN %s AND %s
-        GROUP BY gp.shift
-    """, (date_from, date_to, date_from, date_to, date_from, date_to))) or []
+    # ── Compute derived analytics from the raw trend rows ──
+    def _f(v):
+        try:
+            return float(v) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
 
-    # Format shift summary output to list of dicts with statuses
-    formatted_shifts = []
-    for s in shift_sum:
-        sh = s.get('shift')
-        gkm = float(s.get('avgGkm') or 0)
-        mol = float(s.get('avgMolasses') or 0)
-        cane = float(s.get('avgCane') or 0)
-        
-        status = 'Normal'
-        if gkm > 130 and cane > 3600000:
-            status = 'Terbaik'
-            
-        formatted_shifts.append({
-            'shift': sh,
-            'avgGkm': gkm,
-            'avgMolasses': mol,
-            'avgCane': cane,
-            'status': status
+    def _avg(vals):
+        vals = [v for v in vals if v is not None]
+        return sum(vals) / len(vals) if vals else 0.0
+
+    # Per-day derived rows
+    rows = []
+    for t in tren:
+        cane = _f(t.get('caneHariIni'))
+        gkm = _f(t.get('produksiGkm'))
+        gkb = _f(t.get('produksiGkb'))
+        mol = _f(t.get('produksiMolasses'))
+        gula = gkm + gkb
+        stock_gula = _f(t.get('gulaEndBalance'))
+        stock_mol = _f(t.get('molassesEndBalance'))
+        yield_gula = (gula / cane * 100) if cane > 0 else None
+        yield_mol = (mol / cane * 100) if cane > 0 else None
+        rows.append({
+            'tanggal': str(t.get('tanggal')),
+            'cane': round(cane, 2),
+            'gkm': round(gkm, 2),
+            'gkb': round(gkb, 2),
+            'molasses': round(mol, 2),
+            'gula': round(gula, 2),
+            'stockGula': round(stock_gula, 2),
+            'stockMolasses': round(stock_mol, 2),
+            'yieldGula': round(yield_gula, 2) if yield_gula is not None else None,
+            'yieldMolasses': round(yield_mol, 2) if yield_mol is not None else None,
         })
 
-    # Alert Calculation for End Date
-    mol_defisit_alert = None
-    gula_on_track = None
-    
-    # Get last delivery for defisit
-    if delivery:
-        last_del = delivery[-1]
-        if last_del.get('molDefisit', 0) > 0:
-            mol_defisit_alert = {
-                "schedule": float(last_del.get('molSchedule', 0)),
-                "actual": float(last_del.get('molActual', 0)),
-                "defisit": float(last_del.get('molDefisit', 0))
-            }
-            
-    # Get last gula end balance
-    if tren:
-        last_tren = tren[-1]
-        end_bal = float(last_tren.get('gulaEndBalance', 0))
-        if end_bal > 1000: # Threshold aman dummy
-            gula_on_track = {
-                "endBalance": end_bal
-            }
+    # KPI periode
+    total_cane = sum(r['cane'] for r in rows)
+    total_gkm = sum(r['gkm'] for r in rows)
+    total_gkb = sum(r['gkb'] for r in rows)
+    total_gula = total_gkm + total_gkb
+    total_mol = sum(r['molasses'] for r in rows)
+    days_with_data = len(rows)
 
-    # Format Tren Data (ensure all dates in range exist, but for now just pass SQL result)
-    # Convert dates to string for JSON serialization
-    for t in tren:
-        if t.get('tanggal'): t['tanggal'] = str(t['tanggal'])
-    for d in delivery:
-        if d.get('tanggal'): d['tanggal'] = str(d['tanggal'])
+    avg_gula_per_day = total_gula / days_with_data if days_with_data > 0 else 0
+    avg_cane_per_day = total_cane / days_with_data if days_with_data > 0 else 0
+    avg_yield_gula = (total_gula / total_cane * 100) if total_cane > 0 else None
+    avg_yield_mol = (total_mol / total_cane * 100) if total_cane > 0 else None
+
+    # Perubahan stok: dari pertama ke terakhir
+    stock_change_gula = (rows[-1]['stockGula'] - rows[0]['stockGula']) if len(rows) >= 2 else 0
+    stock_change_mol = (rows[-1]['stockMolasses'] - rows[0]['stockMolasses']) if len(rows) >= 2 else 0
+
+    kpi = {
+        'avgGulaPerDay': round(avg_gula_per_day, 2),
+        'avgCanePerDay': round(avg_cane_per_day, 2),
+        'avgYieldGula': round(avg_yield_gula, 2) if avg_yield_gula is not None else None,
+        'avgYieldMolasses': round(avg_yield_mol, 2) if avg_yield_mol is not None else None,
+        'stockChangeGula': round(stock_change_gula, 2),
+        'stockChangeMolasses': round(stock_change_mol, 2),
+        'daysWithData': days_with_data,
+        'totalGula': round(total_gula, 2),
+        'totalCane': round(total_cane, 2),
+        'totalMolasses': round(total_mol, 2),
+    }
+
+    # ── Shift performance ──
+    shift_rows = dec(query("""
+        SELECT
+            shifts.shift,
+            COALESCE(g.gkm, 0) AS gkm,
+            COALESCE(g.gkb, 0) AS gkb,
+            COALESCE(m.molasses, 0) AS molasses,
+            COALESCE(c.cane, 0) AS cane
+        FROM (
+            SELECT shift FROM gula_penerimaan WHERE tanggal BETWEEN %s AND %s
+            UNION
+            SELECT shift FROM mol_penerimaan WHERE tanggal BETWEEN %s AND %s
+            UNION
+            SELECT Shift AS shift FROM data_timbang
+            WHERE Tanggal_Keluar_Clean BETWEEN %s AND %s AND UPPER(TRIM(Type)) = 'TEBU'
+        ) shifts
+        LEFT JOIN (
+            SELECT shift,
+                   SUM(COALESCE(gkm_crushing, 0) + COALESCE(gkm_melting, 0)) AS gkm,
+                   SUM(COALESCE(gkb_crushing, 0) + COALESCE(gkb_melting, 0)) AS gkb
+            FROM gula_penerimaan WHERE tanggal BETWEEN %s AND %s GROUP BY shift
+        ) g ON g.shift = shifts.shift
+        LEFT JOIN (
+            SELECT shift, SUM(COALESCE(raw_sugar, 0) + COALESCE(cane_tebu, 0)) AS molasses
+            FROM mol_penerimaan WHERE tanggal BETWEEN %s AND %s GROUP BY shift
+        ) m ON m.shift = shifts.shift
+        LEFT JOIN (
+            SELECT Shift AS shift, SUM(ABS(COALESCE(Qty_Netto, 0))) / 1000 AS cane
+            FROM data_timbang
+            WHERE Tanggal_Keluar_Clean BETWEEN %s AND %s AND UPPER(TRIM(Type)) = 'TEBU'
+            GROUP BY Shift
+        ) c ON c.shift = shifts.shift
+    """, (date_from, date_to, date_from, date_to, date_from, date_to,
+          date_from, date_to, date_from, date_to, date_from, date_to))) or []
+
+    shift_data = {}
+    for s in shift_rows:
+        sh = str(s.get('shift'))
+        shift_data[sh] = {
+            'cane': _f(s.get('cane')),
+            'gkm': _f(s.get('gkm')),
+            'gkb': _f(s.get('gkb')),
+            'molasses': _f(s.get('molasses')),
+        }
+
+    shift_perf = []
+    for sh in sorted(shift_data.keys()):
+        d = shift_data[sh]
+        gula_total = d['gkm'] + d['gkb']
+        yield_g = (gula_total / d['cane'] * 100) if d['cane'] > 0 else None
+        yield_m = (d['molasses'] / d['cane'] * 100) if d['cane'] > 0 else None
+        shift_perf.append({
+            'shift': sh,
+            'cane': round(d['cane'], 2),
+            'gkm': round(d['gkm'], 2),
+            'gkb': round(d['gkb'], 2),
+            'gula': round(gula_total, 2),
+            'molasses': round(d['molasses'], 2),
+            'yieldGula': round(yield_g, 2) if yield_g is not None else None,
+            'yieldMolasses': round(yield_m, 2) if yield_m is not None else None,
+        })
+
+    # ── Insights otomatis ──
+    insights = []
+
+    if len(rows) >= 2:
+        # Hari produksi tertinggi/terendah
+        by_gula = [(r['tanggal'], r['gula']) for r in rows if r['gula'] > 0]
+        if by_gula:
+            hi = max(by_gula, key=lambda x: x[1])
+            lo = min(by_gula, key=lambda x: x[1])
+            insights.append({
+                'type': 'extreme',
+                'icon': 'fa-arrow-up',
+                'color': '#3fb950',
+                'title': f'Produksi tertinggi: {hi[1]:,.1f} MT pada {hi[0]}',
+                'detail': f'Terendah: {lo[1]:,.1f} MT pada {lo[0]}',
+            })
+
+        # Yield turun tajam
+        if avg_yield_gula is not None:
+            for r in rows:
+                if r['yieldGula'] is not None and r['yieldGula'] < avg_yield_gula * 0.85:
+                    insights.append({
+                        'type': 'warning',
+                        'icon': 'fa-triangle-exclamation',
+                        'color': '#f85149',
+                        'title': f'Yield gula turun di {r["tanggal"]}',
+                        'detail': f'Yield {r["yieldGula"]:.1f}% vs rata-rata {avg_yield_gula:.1f}%',
+                    })
+                    break
+
+        # Stok naik/turun
+        if stock_change_gula != 0:
+            direction = 'naik' if stock_change_gula > 0 else 'turun'
+            insights.append({
+                'type': 'stock',
+                'icon': 'fa-arrow-trend-up' if stock_change_gula > 0 else 'fa-arrow-trend-down',
+                'color': '#3fb950' if stock_change_gula > 0 else '#f85149',
+                'title': f'Stok gula {direction} {abs(stock_change_gula):,.1f} MT dalam {days_with_data} hari',
+                'detail': f'Dari {rows[0]["stockGula"]:,.1f} menjadi {rows[-1]["stockGula"]:,.1f} MT',
+            })
+
+        # Hari tanpa data
+        missing = [r['tanggal'] for r in rows if r['gula'] == 0 and r['cane'] == 0]
+        if missing:
+            insights.append({
+                'type': 'missing',
+                'icon': 'fa-circle-info',
+                'color': '#d29922',
+                'title': f'{len(missing)} hari tanpa data produksi',
+                'detail': f'Tanggal: {", ".join(missing[:5])}{"..." if len(missing) > 5 else ""}',
+            })
+
+        # Shift terbaik per metrik
+        if shift_perf:
+            best_cane = max(shift_perf, key=lambda x: x['cane'])
+            best_gula = max(shift_perf, key=lambda x: x['gula'])
+            if best_cane['shift'] != best_gula['shift']:
+                insights.append({
+                    'type': 'shift',
+                    'icon': 'fa-ranking-star',
+                    'color': '#58a6ff',
+                    'title': f'Shift {best_gula["shift"]} terbaik untuk produksi gula',
+                    'detail': f'Shift {best_cane["shift"]} terbaik untuk cane-in. Keduanya berbeda — perlu investigasi.',
+                })
+            else:
+                insights.append({
+                    'type': 'shift',
+                    'icon': 'fa-ranking-star',
+                    'color': '#3fb950',
+                    'title': f'Shift {best_gula["shift"]} unggul di semua metrik',
+                    'detail': f'Cane-in {best_gula["cane"]:,.1f} MT, Gula {best_gula["gula"]:,.1f} MT',
+                })
+
+    # ── Chart data ──
+    chart_labels = [r['tanggal'] for r in rows]
+    chart_data = {
+        'cane': [r['cane'] for r in rows],
+        'gkm': [r['gkm'] for r in rows],
+        'gkb': [r['gkb'] for r in rows],
+        'molasses': [r['molasses'] for r in rows],
+        'gula': [r['gula'] for r in rows],
+        'stockGula': [r['stockGula'] for r in rows],
+        'stockMolasses': [r['stockMolasses'] for r in rows],
+        'yieldGula': [r['yieldGula'] for r in rows],
+        'yieldMolasses': [r['yieldMolasses'] for r in rows],
+    }
+
+    # Delivery summary (for KPI only, not duplicated chart)
+    del_summary = {
+        'gulaPlan': sum(_f(d.get('gulaPlan')) for d in delivery),
+        'gulaActual': sum(_f(d.get('gulaActual')) for d in delivery),
+        'molSchedule': sum(_f(d.get('molSchedule')) for d in delivery),
+        'molActual': sum(_f(d.get('molActual')) for d in delivery),
+    }
+    del_summary['gulaAchievement'] = round((del_summary['gulaActual'] / del_summary['gulaPlan'] * 100), 1) if del_summary['gulaPlan'] > 0 else None
+    del_summary['molAchievement'] = round((del_summary['molActual'] / del_summary['molSchedule'] * 100), 1) if del_summary['molSchedule'] > 0 else None
 
     return {
         "date_from": date_from,
         "date_to": date_to,
         "days": days,
-        "tren": tren,
-        "delivery": delivery,
-        "shiftSummary": formatted_shifts,
-        "alerts": {
-            "molassesDefisit": mol_defisit_alert,
-            "gulaOnTrack": gula_on_track
-        }
+        "kpi": kpi,
+        "chartLabels": chart_labels,
+        "chartData": chart_data,
+        "shiftPerformance": shift_perf,
+        "insights": insights,
+        "deliverySummary": del_summary,
+        "delivery": [
+            {
+                "tanggal": str(d.get('tanggal')),
+                "molSchedule": _f(d.get('molSchedule')),
+                "molActual": _f(d.get('molActual')),
+                "molDefisit": _f(d.get('molDefisit')),
+            } for d in delivery
+        ],
     }

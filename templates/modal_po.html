@@ -26,3 +26,32 @@
                 </div>
             </div>
 
+            <!-- Monitoring PO Modal (Mini list to add POs) -->
+            <div class="modal-overlay" id="modalPoMiniOverlay">
+                <div class="modal-box" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3><i class="fa-solid fa-file-lines"></i> Tambah ke Monitoring PO</h3>
+                        <button class="modal-close" id="modalPoMiniClose">&times;</button>
+                    </div>
+                    <div style="padding: 10px; border-bottom: 1px solid var(--border-color);">
+                        <input type="text" id="searchInputPoMini" class="form-input" placeholder="Cari Nomor PO..." style="width: 100%;" autocomplete="off">
+                    </div>
+                    <div class="modal-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+                        <table class="data-table" style="margin: 0; border-radius: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left;">NOMOR PO</th>
+                                    <th style="text-align:left;">ITEM</th>
+                                    <th>QTY SJ (KG)</th>
+                                    <th>STATUS</th>
+                                    <th>AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poMiniListBody">
+                                <tr><td colspan="5" class="loading-cell"><div class="loader"></div> Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+

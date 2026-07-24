@@ -298,6 +298,111 @@ const ICONS = {
     'DEFAULT': 'fa-weight-scale'
 };
 
+const NEO_COLORS = [
+    { bg: '#88AAEE', border: '#000000' }, // Blue
+    { bg: '#88D66C', border: '#000000' }, // Green
+    { bg: '#FFD93D', border: '#000000' }, // Yellow
+    { bg: '#C4A1FF', border: '#000000' }, // Purple
+    { bg: '#FF8C42', border: '#000000' }, // Orange
+    { bg: '#77CDFF', border: '#000000' }, // Cyan
+    { bg: '#FF6B6B', border: '#000000' }, // Red
+    { bg: '#C5E17A', border: '#000000' }, // Lime
+    { bg: '#FF6EB4', border: '#000000' }, // Pink
+    { bg: '#00D4E8', border: '#000000' }, // Bright Blue
+    { bg: '#B5E550', border: '#000000' }, // Yellow Green
+    { bg: '#FFAA33', border: '#000000' }  // Mango
+];
+
+const neoBrutalismPlugin = {
+    id: 'neoBrutalism',
+    beforeUpdate(chart) {
+        const isNeo = document.body.classList.contains('neo-mode');
+        chart.data.datasets.forEach((ds, i) => {
+            // Backup original properties on first run
+            if (!ds._origBg) {
+                ds._origBg = ds.backgroundColor;
+                ds._origBorder = ds.borderColor;
+                ds._origBorderWidth = ds.borderWidth;
+                ds._origBorderRadius = ds.borderRadius;
+                ds._origPointRadius = ds.pointRadius;
+                ds._origPointBorderWidth = ds.pointBorderWidth;
+            }
+
+            if (isNeo) {
+                const c = NEO_COLORS[i % NEO_COLORS.length];
+                
+                // For bar charts: solid color, black border, 0 radius
+                if (ds.type === 'bar' || !ds.type && chart.config.type === 'bar') {
+                    ds.backgroundColor = c.bg;
+                    ds.borderColor = c.border;
+                    ds.borderWidth = 3;
+                    ds.borderRadius = 0;
+                } 
+                // For line/radar charts: pakai warna cerah per dataset, bukan hitam
+                else {
+                    ds.borderColor = c.bg;
+                    ds.backgroundColor = c.bg + '33'; // transparan ringan untuk fill area
+                    ds.borderWidth = 3;
+                    ds.pointBackgroundColor = '#fff';
+                    ds.pointBorderColor = c.bg;
+                    ds.pointBorderWidth = 2;
+                    ds.pointRadius = 5;
+                    ds.pointHoverRadius = 7;
+                }
+
+                // If dataset was manually assigned a color index via original code (e.g., colorIdx)
+                if (ds._origBg && typeof ds._origBg === 'string' && ds._origBg.startsWith('rgba')) {
+                    const matchIdx = COLORS.findIndex(cl => cl.bg === ds._origBg);
+                    if (matchIdx >= 0) {
+                        const customNeo = NEO_COLORS[matchIdx % NEO_COLORS.length];
+                        if (ds.type === 'bar' || !ds.type && chart.config.type === 'bar') {
+                            ds.backgroundColor = customNeo.bg;
+                            ds.borderColor = customNeo.border; // #000
+                        } else {
+                            ds.borderColor = customNeo.bg;
+                            ds.backgroundColor = customNeo.bg + '33';
+                            ds.pointBorderColor = customNeo.bg;
+                        }
+                    }
+                }
+            } else {
+                // Restore original
+                ds.backgroundColor = ds._origBg;
+                ds.borderColor = ds._origBorder;
+                ds.borderWidth = ds._origBorderWidth !== undefined ? ds._origBorderWidth : 1;
+                ds.borderRadius = ds._origBorderRadius;
+                ds.pointRadius = ds._origPointRadius !== undefined ? ds._origPointRadius : 3;
+                ds.pointBorderWidth = ds._origPointBorderWidth !== undefined ? ds._origPointBorderWidth : 1;
+            }
+        });
+
+        // Toggle text and grid colors
+        if (chart.options.plugins?.legend?.labels) {
+            chart.options.plugins.legend.labels.color = isNeo ? '#000' : Chart.defaults.color;
+            chart.options.plugins.legend.labels.font = { family: isNeo ? "'Space Mono', monospace" : Chart.defaults.font.family, weight: isNeo ? 'bold' : 'normal' };
+        }
+        if (chart.options.plugins?.title) {
+            chart.options.plugins.title.color = isNeo ? '#000' : Chart.defaults.color;
+            chart.options.plugins.title.font = { family: isNeo ? "'Space Mono', monospace" : Chart.defaults.font.family, weight: isNeo ? 'bold' : 'normal' };
+        }
+        if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach(scale => {
+                if (scale.grid) {
+                    scale.grid.color = isNeo ? 'rgba(0,0,0,0.1)' : Chart.defaults.borderColor;
+                    if (isNeo) scale.grid.tickLength = 0; // cleaner look
+                }
+                if (scale.ticks) {
+                    scale.ticks.color = isNeo ? '#000' : Chart.defaults.color;
+                    scale.ticks.font = { family: isNeo ? "'Space Mono', monospace" : Chart.defaults.font.family, weight: isNeo ? 'bold' : 'normal' };
+                }
+            });
+        }
+    }
+};
+
+// Register plugin globally
+Chart.register(neoBrutalismPlugin);
+
 const TOOLTIP = {
     backgroundColor: 'rgba(22,27,34,0.95)', titleColor: '#e6edf3',
     bodyColor: '#8b949e', borderColor: 'rgba(48,54,61,0.8)',

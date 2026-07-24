@@ -156,107 +156,111 @@ function initReportButtons() {
                 let targetElement = captureArea;
                 let offscreen = null;
 
-                if (mode !== 'ALL') {
-                    // Buat container offscreen untuk capture spesifik
-                    offscreen = document.createElement('div');
-                    let w = '560px';
-                    if (mode !== 'ALL_NO_TOTAL') w = '320px'; // Lebar lebih kecil jika hanya 1 shift
-                    
-                    offscreen.style.cssText = `position:fixed; left:-9999px; top:0; background:#0d1117; padding:20px; width:${w};`;
-                    document.body.appendChild(offscreen);
+                // Selalu gunakan offscreen untuk konsistensi styling hasil gambar
+                offscreen = document.createElement('div');
+                let w = mode === 'ALL' || mode === 'ALL_NO_TOTAL' ? '560px' : '320px';
+                
+                offscreen.style.cssText = `position:fixed; left:-9999px; top:0; background:#0d1117; padding:20px; width:${w};`;
+                document.body.appendChild(offscreen);
 
-                    // Clone tanggal
-                    const dateEl = captureArea.querySelector('#reportLimbahDateStr');
-                    if (dateEl) {
-                        const dateClone = document.createElement('div');
-                        dateClone.style.cssText = 'background:#000; padding:10px 20px; display:inline-block; margin-bottom:20px; text-align:center;';
-                        dateClone.innerHTML = `<h2 style="color:#f0c000; font-family:'Orbitron',sans-serif; margin:0; font-size:1.5rem; letter-spacing:2px;">${dateEl.textContent}</h2>`;
-                        if (mode !== 'ALL_NO_TOTAL') {
-                             dateClone.innerHTML += `<div style="color:#fff; font-size:1.2rem; margin-top:5px; font-weight:bold;">SHIFT ${mode}</div>`;
-                        }
-                        offscreen.appendChild(dateClone);
+                // Clone tanggal
+                const dateEl = captureArea.querySelector('#reportLimbahDateStr');
+                if (dateEl) {
+                    const dateClone = document.createElement('div');
+                    dateClone.style.cssText = 'background:#000; padding:10px 20px; margin-bottom:20px; text-align:center; width:100%; box-sizing:border-box;';
+                    dateClone.innerHTML = `<h2 style="color:#f0c000; font-family:'Orbitron',sans-serif; margin:0; font-size:1.5rem; letter-spacing:2px; display:inline-block;">${dateEl.textContent}</h2>`;
+                    if (mode !== 'ALL' && mode !== 'ALL_NO_TOTAL') {
+                         dateClone.innerHTML += `<div style="color:#fff; font-size:1.2rem; margin-top:5px; font-weight:bold;">SHIFT ${mode}</div>`;
                     }
+                    offscreen.appendChild(dateClone);
+                }
 
-                    const tables = captureArea.querySelectorAll('.report-table-wa');
-                    tables.forEach(table => {
-                        const clone = document.createElement('table');
-                        clone.style.cssText = 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif; color:#000; background:#fff; margin-bottom:20px; table-layout:fixed;';
+                const tables = captureArea.querySelectorAll('.report-table-wa');
+                tables.forEach(table => {
+                    const clone = document.createElement('table');
+                    clone.style.cssText = 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif; color:#000; background:#fff; margin-bottom:20px; table-layout:fixed;';
 
-                        const rows = table.querySelectorAll('tr');
-                        if (rows.length < 4) return;
+                    const rows = table.querySelectorAll('tr');
+                    if (rows.length < 4) return;
 
-                        const isFC = rows[1].classList.contains('bg-fc');
-                        const headerBg = isFC ? '#aad050ff' : '#5c44c4ff';
-                        const headerColor = isFC ? '#000' : '#fff';
-                        
-                        let colCount = mode === 'ALL_NO_TOTAL' ? 6 : 2;
+                    const isFC = rows[1].classList.contains('bg-fc');
+                    const headerBg = isFC ? '#aad050ff' : '#5c44c4ff';
+                    const headerColor = isFC ? '#000' : '#fff';
+                    
+                    let colCount = mode === 'ALL' ? 8 : (mode === 'ALL_NO_TOTAL' ? 6 : 2);
 
-                        // Title Row
-                        const titleRow = document.createElement('tr');
-                        const titleTd = document.createElement('th');
-                        titleTd.colSpan = colCount;
-                        titleTd.textContent = rows[0].querySelector('.report-head-title').textContent;
-                        titleTd.style.cssText = `background:#000; color:#fff; padding:10px; font-size:18px; text-align:center; border:1px solid #000; font-weight:bold;`;
-                        titleRow.appendChild(titleTd);
-                        clone.appendChild(titleRow);
+                    // Title Row
+                    const titleRow = document.createElement('tr');
+                    const titleTd = document.createElement('th');
+                    titleTd.colSpan = colCount;
+                    titleTd.textContent = rows[0].querySelector('.report-head-title').textContent;
+                    titleTd.style.cssText = `background:#000; color:#fff; padding:10px; font-size:18px; text-align:center; border:1px solid #000; font-weight:bold;`;
+                    titleRow.appendChild(titleTd);
+                    clone.appendChild(titleRow);
 
-                        // Shift Headers Row
-                        const shiftRow = document.createElement('tr');
-                        shiftRow.style.cssText = `background:${headerBg}; color:${headerColor};`;
-                        if (mode === 'ALL_NO_TOTAL') {
-                            ['SHIFT 1', 'SHIFT 2', 'SHIFT 3'].forEach(label => {
-                                const th = document.createElement('th');
-                                th.colSpan = 2;
-                                th.textContent = label;
-                                th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:33.33%;`;
-                                shiftRow.appendChild(th);
-                            });
-                        } else {
+                    // Shift Headers Row
+                    const shiftRow = document.createElement('tr');
+                    shiftRow.style.cssText = `background:${headerBg}; color:${headerColor};`;
+                    if (mode === 'ALL' || mode === 'ALL_NO_TOTAL') {
+                        ['SHIFT 1', 'SHIFT 2', 'SHIFT 3'].forEach(label => {
                             const th = document.createElement('th');
                             th.colSpan = 2;
-                            th.textContent = 'SHIFT ' + mode;
-                            th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:100%;`;
+                            th.textContent = label;
+                            th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:${mode === 'ALL' ? '25%' : '33.33%'};`;
+                            shiftRow.appendChild(th);
+                        });
+                        if (mode === 'ALL') {
+                            const th = document.createElement('th');
+                            th.colSpan = 2;
+                            th.textContent = 'TOTAL';
+                            th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:25%;`;
                             shiftRow.appendChild(th);
                         }
-                        clone.appendChild(shiftRow);
+                    } else {
+                        const th = document.createElement('th');
+                        th.colSpan = 2;
+                        th.textContent = 'SHIFT ' + mode;
+                        th.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:100%;`;
+                        shiftRow.appendChild(th);
+                    }
+                    clone.appendChild(shiftRow);
 
-                        // Sub headers Row (RIT / KG)
-                        const subRow = document.createElement('tr');
-                        subRow.style.cssText = `background:${headerBg}; color:${headerColor}; opacity:0.9;`;
-                        let iters = mode === 'ALL_NO_TOTAL' ? 3 : 1;
-                        let wth = mode === 'ALL_NO_TOTAL' ? '16.66%' : '50%';
-                        for (let i = 0; i < iters; i++) {
-                            ['RIT', 'KG'].forEach(label => {
-                                const th = document.createElement('th');
-                                th.textContent = label;
-                                th.style.cssText = `border:1px solid #000; text-align:center; padding:6px 4px; font-size:14px; font-weight:bold; width:${wth};`;
-                                subRow.appendChild(th);
-                            });
-                        }
-                        clone.appendChild(subRow);
+                    // Sub headers Row (RIT / KG)
+                    const subRow = document.createElement('tr');
+                    subRow.style.cssText = `background:${headerBg}; color:${headerColor}; opacity:0.9;`;
+                    let iters = mode === 'ALL' ? 4 : (mode === 'ALL_NO_TOTAL' ? 3 : 1);
+                    let wth = mode === 'ALL' ? '12.5%' : (mode === 'ALL_NO_TOTAL' ? '16.66%' : '50%');
+                    for (let i = 0; i < iters; i++) {
+                        ['RIT', 'KG'].forEach(label => {
+                            const th = document.createElement('th');
+                            th.textContent = label;
+                            th.style.cssText = `border:1px solid #000; text-align:center; padding:6px 4px; font-size:14px; font-weight:bold; width:${wth};`;
+                            subRow.appendChild(th);
+                        });
+                    }
+                    clone.appendChild(subRow);
 
-                        // Data Row
-                        const dataRow = document.createElement('tr');
-                        const origTds = rows[3].querySelectorAll('td');
-                        
-                        let idxStart = 0;
-                        let numCells = 6;
-                        if (mode === '1') { idxStart = 0; numCells = 2; }
-                        else if (mode === '2') { idxStart = 2; numCells = 2; }
-                        else if (mode === '3') { idxStart = 4; numCells = 2; }
-
-                        for (let i = idxStart; i < idxStart + numCells && i < origTds.length; i++) {
-                            const td = document.createElement('td');
-                            td.textContent = origTds[i].textContent;
-                            td.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:${wth};`;
-                            dataRow.appendChild(td);
-                        }
-                        clone.appendChild(dataRow);
-                        offscreen.appendChild(clone);
-                    });
+                    // Data Row
+                    const dataRow = document.createElement('tr');
+                    const origTds = rows[3].querySelectorAll('td');
                     
-                    targetElement = offscreen;
-                }
+                    let idxStart = 0;
+                    let numCells = mode === 'ALL' ? 8 : (mode === 'ALL_NO_TOTAL' ? 6 : 2);
+                    if (mode === '1') { idxStart = 0; }
+                    else if (mode === '2') { idxStart = 2; }
+                    else if (mode === '3') { idxStart = 4; }
+
+                    for (let i = idxStart; i < idxStart + numCells && i < origTds.length; i++) {
+                        const td = document.createElement('td');
+                        td.textContent = origTds[i].textContent;
+                        td.style.cssText = `border:1px solid #000; text-align:center; padding:8px 4px; font-size:14px; font-weight:bold; width:${wth};`;
+                        dataRow.appendChild(td);
+                    }
+                    clone.appendChild(dataRow);
+                    offscreen.appendChild(clone);
+                });
+                
+                targetElement = offscreen;
 
                 // Capture gambar
                 const canvas = await html2canvas(targetElement, { backgroundColor: '#0d1117' });

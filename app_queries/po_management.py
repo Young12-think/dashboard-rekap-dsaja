@@ -23,6 +23,7 @@ def ensure_po_stock_table():
         for col_sql in [
             "ALTER TABLE po_stock ADD COLUMN is_active TINYINT(1) DEFAULT 1",
             "ALTER TABLE po_stock ADD COLUMN keterangan VARCHAR(255) DEFAULT ''",
+            "ALTER TABLE po_stock ADD COLUMN is_monitored TINYINT(1) DEFAULT 1",
         ]:
             try:
                 cur.execute(col_sql)
@@ -30,6 +31,13 @@ def ensure_po_stock_table():
             except:
                 pass
         cur.close()
+        # Backfill: row lama yang is_monitored-nya NULL dianggap monitored
+        try:
+            cur2 = conn.cursor()
+            cur2.execute("UPDATE po_stock SET is_monitored = 1 WHERE is_monitored IS NULL")
+            conn.commit(); cur2.close()
+        except:
+            pass
         return True
     except Exception as e:
         print(f"[DB ERROR] ensure_po_stock_table: {e}")
@@ -105,18 +113,64 @@ def get_distinct_po_numbers(item_filters):
     result = [r['nomor_po'] for r in trans_pos if r['nomor_po'] not in closed_pos]
     return sorted(result)
 
+def set_po_monitored(nomor_po, is_monitored):
+    ensure_po_stock_table()
+    conn = get_db()
+    if not conn: return False
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE po_stock SET is_monitored = %s, updated_at = CURRENT_TIMESTAMP WHERE nomor_po = %s",
+            (1 if is_monitored else 0, nomor_po)
+        )
+        conn.commit(); cur.close()
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] set_po_monitored: {e}"); return False
+    finally:
+        conn.close()
+
+def get_unmonitored_pos():
+    ensure_po_stock_table()
+    # Return ALL POs from data_timbang with their po_stock monitor status + item_name
+    sql = """
+        SELECT
+            dt.nomor_po,
+            dt.item_name,
+            dt.qty_sj,
+            ps.is_active,
+            ps.is_monitored
+        FROM (
+            SELECT
+                REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') AS nomor_po,
+                MAX(ItemName)  AS item_name,
+                MAX(Qty_SJ)    AS qty_sj,
+                MAX(Tanggal_Keluar_Clean) AS last_date
+            FROM data_timbang
+            WHERE Nomor_PO IS NOT NULL AND TRIM(Nomor_PO) != ''
+            GROUP BY REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.')
+        ) dt
+        LEFT JOIN po_stock ps ON ps.nomor_po = dt.nomor_po
+        ORDER BY dt.last_date DESC
+    """
+    data = dec(query(sql))
+    return data or []
+
 def get_po_monitor_data():
     ensure_po_stock_table()
     sql = """
         SELECT p.nomor_po,
-               (SELECT ItemName FROM data_timbang 
-                WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po 
+               (SELECT ItemName FROM data_timbang
+                WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
                 LIMIT 1) as item_name,
-               p.qty_po as target_po,
+               COALESCE((SELECT Qty_SJ FROM data_timbang
+                WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
+                LIMIT 1), p.qty_po) as target_po,
                p.keterangan,
-               (SELECT SUM(COALESCE(Qty_Netto, 0)) FROM data_timbang 
+               p.is_monitored,
+               (SELECT SUM(COALESCE(Qty_Netto, 0)) FROM data_timbang
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po) as total_terkirim
-        FROM po_stock p WHERE p.qty_po > 0 AND p.is_active = 1 ORDER BY p.nomor_po ASC
+        FROM po_stock p WHERE p.is_active = 1 ORDER BY p.nomor_po ASC
     """
     data = dec(query(sql))
     return data or []

@@ -51,6 +51,11 @@ async function loadAll(showLoader = false) {
     _loadAllRunning = true;
 
     try {
+        // Pastikan role user sudah ter-load sebelum render tabel yang bergantung role
+        if (!document.body.classList.contains('role-loaded') && typeof loadUserInfo === 'function') {
+            await loadUserInfo();
+        }
+
         if (showLoader) {
             const sc = document.getElementById('summaryCards');
             if (sc) sc.innerHTML = '<div style="padding:40px; text-align:center; width:100%; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; font-family:var(--nb-mono);">Memuat data...</p></div>';
