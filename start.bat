@@ -25,6 +25,19 @@ if !errorlevel! neq 0 (
 )
 echo [OK] Python ditemukan.
 
+:: ── STEP 1.5: Cek File .env ─────────────────────────
+if not exist ".env" (
+    if exist ".env.example" (
+        echo [WARNING] File .env tidak ditemukan! Salin dari .env.example...
+        copy ".env.example" ".env" >nul
+        echo [OK] File .env berhasil dibuat dari .env.example.
+    ) else (
+        echo [WARNING] File .env tidak ditemukan! Silakan buat file .env.
+    )
+) else (
+    echo [OK] File .env terdeteksi.
+)
+
 :: ── STEP 2: Validasi .venv ─────────────────────────
 if exist ".venv\Scripts\python.exe" (
     .venv\Scripts\python.exe --version >nul 2>&1
@@ -92,12 +105,28 @@ timeout /t 1 /nobreak >nul
 :: 3. Jalankan Server Python (SSH Tunnel MySQL sudah di-handle di dalam server.py)
 echo [INFO] Menjalankan server...
 echo.
-.venv\Scripts\python.exe server.py
+.venv\Scripts\python.exe server.py <nul
+set EXIT_CODE=%errorlevel%
 echo.
+
+if !EXIT_CODE! equ 0 (
+    echo ===================================================
+    echo [INFO] Server dihentikan secara normal.
+    echo ===================================================
+    exit /b 0
+)
 
 color 0c
 echo ===================================================
-echo [ERROR] Server berhenti! Lihat pesan error di atas.
+echo [ERROR] Server berhenti dengan error! (Code: !EXIT_CODE!)
 echo ===================================================
 goto :FAIL
+
+:FAIL
+echo.
+echo ===================================================
+echo [ERROR] Terjadi kesalahan pada persiapan/server.
+echo ===================================================
+pause
+exit /b 1
 
