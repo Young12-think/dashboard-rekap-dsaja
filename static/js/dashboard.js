@@ -1197,9 +1197,9 @@ async function loadPOMonitor() {
     const colCount = isAdmin ? 8 : 7;
     if (!d || d.status !== 'success') { tbody.innerHTML = errRow(colCount, 'Gagal memuat Monitor PO.'); return; }
 
-    // User biasa hanya lihat PO yang di-monitor; admin lihat semua PO aktif.
+    // Semua user (termasuk admin) HANYA melihat PO yang dimonitor (is_monitored != 0)
     // Toleran terhadap NULL (row lama sebelum kolom is_monitored ada): NULL dianggap monitored.
-    const rows = isAdmin ? (d.data || []) : (d.data || []).filter(r => r.is_monitored != 0);
+    const rows = (d.data || []).filter(r => r.is_monitored != 0);
 
     if (rows.length === 0) { tbody.innerHTML = emptyRow(colCount, 'Tidak ada PO Stock yang sedang aktif.'); return; }
 

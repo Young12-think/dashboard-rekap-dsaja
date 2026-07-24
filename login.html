@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,40 +9,48 @@
     <title>REKAP DSAJA — Login</title>
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Lexend:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Lexend:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         :root {
-            --bg-base:    #0d1117;
-            --bg-card:    rgba(22, 27, 34, 0.92);
-            --border:     rgba(48, 54, 61, 0.8);
-            --accent:     #bc8cff;
-            --accent2:    #39d2c0;
-            --accent-glow:rgba(188, 140, 255, 0.35);
-            --text:       #e6edf3;
+            --bg-base: #0d1117;
+            --bg-card: rgba(22, 27, 34, 0.92);
+            --border: rgba(48, 54, 61, 0.8);
+            --accent: #bc8cff;
+            --accent2: #39d2c0;
+            --accent-glow: rgba(188, 140, 255, 0.35);
+            --text: #e6edf3;
             --text-muted: #8b949e;
-            --danger:     #f85149;
-            --success:    #3fb950;
-            --font-body:  'Inter', sans-serif;
-            --font-head:  'Orbitron', sans-serif;
+            --danger: #f85149;
+            --success: #3fb950;
+            --font-body: 'Inter', sans-serif;
+            --font-head: 'Orbitron', sans-serif;
 
-            --card-border:  1px solid var(--border);
-            --card-radius:  20px;
-            --card-shadow:  0 0 0 1px rgba(188,140,255,0.08), 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+            --card-border: 1px solid var(--border);
+            --card-radius: 20px;
+            --card-shadow: 0 0 0 1px rgba(188, 140, 255, 0.08), 0 24px 64px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-            --input-bg:           rgba(13,17,23,0.7);
-            --input-border:       1px solid var(--border);
-            --input-radius:       10px;
+            --input-bg: rgba(13, 17, 23, 0.7);
+            --input-border: 1px solid var(--border);
+            --input-radius: 10px;
             --input-focus-border: var(--accent);
-            --input-focus-shadow: 0 0 0 3px rgba(188,140,255,0.12);
+            --input-focus-shadow: 0 0 0 3px rgba(188, 140, 255, 0.12);
 
-            --btn-bg:      linear-gradient(135deg, #7c5cbf, #bc8cff 50%, #39d2c0);
-            --btn-color:   #ffffff;
-            --btn-border:  none;
-            --btn-radius:  10px;
-            --btn-shadow:  0 8px 24px rgba(188,140,255,0.35);
+            --btn-bg: linear-gradient(135deg, #7c5cbf, #bc8cff 50%, #39d2c0);
+            --btn-color: #ffffff;
+            --btn-border: none;
+            --btn-radius: 10px;
+            --btn-shadow: 0 8px 24px rgba(188, 140, 255, 0.35);
             --btn-active-transform: translateY(0);
 
             --deco-display: block;
@@ -50,31 +59,31 @@
         /* ── NEO BRUTALISM OVERRIDE ──
            Aktif dengan: body.neo-mode (sama seperti dashboard utama) */
         body.neo-mode {
-            --bg-base:    #FFE600;
-            --bg-card:    #FFFFFF;
-            --border:     #000000;
-            --accent:     #FF007A;
-            --accent2:    #00F0FF;
-            --text:       #000000;
+            --bg-base: #FFE600;
+            --bg-card: #FFFFFF;
+            --border: #000000;
+            --accent: #FF007A;
+            --accent2: #00F0FF;
+            --text: #000000;
             --text-muted: #333333;
-            --font-body:  'Lexend', sans-serif;
-            --font-head:  'Lexend', sans-serif;
+            --font-body: 'Lexend', sans-serif;
+            --font-head: 'Lexend', sans-serif;
 
             --card-border: 4px solid #000000;
             --card-radius: 0px;
             --card-shadow: 8px 8px 0px #000000;
 
-            --input-bg:           #FFFFFF;
-            --input-border:       3px solid #000000;
-            --input-radius:       0px;
+            --input-bg: #FFFFFF;
+            --input-border: 3px solid #000000;
+            --input-radius: 0px;
             --input-focus-border: #000000;
             --input-focus-shadow: 4px 4px 0px #000000;
 
-            --btn-bg:      #FF007A;
-            --btn-color:   #ffffff;
-            --btn-border:  3px solid #000000;
-            --btn-radius:  0px;
-            --btn-shadow:  6px 6px 0px #000000;
+            --btn-bg: #FF007A;
+            --btn-color: #ffffff;
+            --btn-border: 3px solid #000000;
+            --btn-radius: 0px;
+            --btn-shadow: 6px 6px 0px #000000;
             --btn-active-transform: translate(3px, 3px);
 
             --deco-display: none;
@@ -101,15 +110,21 @@
             position: fixed;
             inset: 0;
             background-image:
-                linear-gradient(rgba(188,140,255,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(188,140,255,0.04) 1px, transparent 1px);
+                linear-gradient(rgba(188, 140, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(188, 140, 255, 0.04) 1px, transparent 1px);
             background-size: 48px 48px;
             animation: gridMove 20s linear infinite;
             pointer-events: none;
         }
+
         @keyframes gridMove {
-            0%   { transform: translateY(0); }
-            100% { transform: translateY(48px); }
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(48px);
+            }
         }
 
         /* Floating orbs / glow spots */
@@ -121,43 +136,66 @@
             pointer-events: none;
             animation: orbFloat 8s ease-in-out infinite alternate;
         }
+
         .orb-1 {
-            width: 400px; height: 400px;
-            background: rgba(188,140,255,0.12);
-            top: -100px; left: -100px;
+            width: 400px;
+            height: 400px;
+            background: rgba(188, 140, 255, 0.12);
+            top: -100px;
+            left: -100px;
             animation-delay: 0s;
         }
+
         .orb-2 {
-            width: 350px; height: 350px;
-            background: rgba(57,210,192,0.10);
-            bottom: -80px; right: -80px;
+            width: 350px;
+            height: 350px;
+            background: rgba(57, 210, 192, 0.10);
+            bottom: -80px;
+            right: -80px;
             animation-delay: -4s;
         }
+
         .orb-3 {
-            width: 200px; height: 200px;
-            background: rgba(88,166,255,0.08);
-            top: 50%; right: 20%;
+            width: 200px;
+            height: 200px;
+            background: rgba(88, 166, 255, 0.08);
+            top: 50%;
+            right: 20%;
             animation-delay: -2s;
         }
+
         @keyframes orbFloat {
-            from { transform: translate(0, 0) scale(1); }
-            to   { transform: translate(20px, 30px) scale(1.05); }
+            from {
+                transform: translate(0, 0) scale(1);
+            }
+
+            to {
+                transform: translate(20px, 30px) scale(1.05);
+            }
         }
 
         /* Scan line effect */
         .scanline {
             display: var(--deco-display);
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 2px;
             background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
             animation: scanDown 6s linear infinite;
             opacity: 0.15;
             pointer-events: none;
         }
+
         @keyframes scanDown {
-            0%   { top: -2px; }
-            100% { top: 100vh; }
+            0% {
+                top: -2px;
+            }
+
+            100% {
+                top: 100vh;
+            }
         }
 
         /* ─────────────────────────────────────────
@@ -183,47 +221,99 @@
             overflow: hidden;
             transition: background 0.25s ease, border 0.25s ease, border-radius 0.25s ease, box-shadow 0.25s ease;
         }
-        body.neo-mode .login-card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+        body.neo-mode .login-card {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
 
         /* Top glow line on card (classic only) */
         .login-card::before {
             content: '';
             display: var(--deco-display);
             position: absolute;
-            top: 0; left: 10%; right: 10%;
+            top: 0;
+            left: 10%;
+            right: 10%;
             height: 1px;
             background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
             opacity: 0.6;
         }
 
         /* Corner decorations (classic only) */
-        .corner { display: var(--deco-display); position: absolute; width: 20px; height: 20px; }
-        .corner-tl { top: 12px; left: 12px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); border-radius: 4px 0 0 0; }
-        .corner-tr { top: 12px; right: 12px; border-top: 2px solid var(--accent2); border-right: 2px solid var(--accent2); border-radius: 0 4px 0 0; }
-        .corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); border-radius: 0 0 0 4px; }
-        .corner-br { bottom: 12px; right: 12px; border-bottom: 2px solid var(--accent2); border-right: 2px solid var(--accent2); border-radius: 0 0 4px 0; }
+        .corner {
+            display: var(--deco-display);
+            position: absolute;
+            width: 20px;
+            height: 20px;
+        }
+
+        .corner-tl {
+            top: 12px;
+            left: 12px;
+            border-top: 2px solid var(--accent);
+            border-left: 2px solid var(--accent);
+            border-radius: 4px 0 0 0;
+        }
+
+        .corner-tr {
+            top: 12px;
+            right: 12px;
+            border-top: 2px solid var(--accent2);
+            border-right: 2px solid var(--accent2);
+            border-radius: 0 4px 0 0;
+        }
+
+        .corner-bl {
+            bottom: 12px;
+            left: 12px;
+            border-bottom: 2px solid var(--accent);
+            border-left: 2px solid var(--accent);
+            border-radius: 0 0 0 4px;
+        }
+
+        .corner-br {
+            bottom: 12px;
+            right: 12px;
+            border-bottom: 2px solid var(--accent2);
+            border-right: 2px solid var(--accent2);
+            border-radius: 0 0 4px 0;
+        }
 
         /* ─── HEADER ─── */
         .login-header {
             text-align: center;
             margin-bottom: 36px;
         }
+
         .logo-icon {
-            width: 64px; height: 64px;
+            width: 64px;
+            height: 64px;
             border-radius: 16px;
-            background: linear-gradient(135deg, rgba(188,140,255,0.2), rgba(57,210,192,0.15));
-            border: 1px solid rgba(188,140,255,0.3);
-            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, rgba(188, 140, 255, 0.2), rgba(57, 210, 192, 0.15));
+            border: 1px solid rgba(188, 140, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin: 0 auto 16px;
             font-size: 28px;
             color: var(--accent);
-            box-shadow: 0 0 20px rgba(188,140,255,0.2);
+            box-shadow: 0 0 20px rgba(188, 140, 255, 0.2);
             animation: iconPulse 3s ease-in-out infinite;
         }
+
         @keyframes iconPulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(188,140,255,0.2); }
-            50%       { box-shadow: 0 0 35px rgba(188,140,255,0.45); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(188, 140, 255, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 35px rgba(188, 140, 255, 0.45);
+            }
         }
+
         body.neo-mode .logo-icon {
             border-radius: 0;
             background: var(--btn-bg);
@@ -232,6 +322,7 @@
             box-shadow: 4px 4px 0px #000000;
             animation: none;
         }
+
         .app-name {
             font-family: var(--font-head);
             font-size: 22px;
@@ -242,12 +333,14 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+
         body.neo-mode .app-name {
             -webkit-text-fill-color: initial;
             background: none;
             color: var(--text);
             font-weight: 900;
         }
+
         .app-sub {
             font-size: 11px;
             color: var(--text-muted);
@@ -261,6 +354,7 @@
             margin-bottom: 18px;
             position: relative;
         }
+
         .form-label {
             display: block;
             font-size: 11px;
@@ -270,18 +364,22 @@
             color: var(--text-muted);
             margin-bottom: 8px;
         }
+
         .input-wrap {
             position: relative;
         }
+
         .input-icon {
             position: absolute;
-            left: 14px; top: 50%;
+            left: 14px;
+            top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
             font-size: 14px;
             transition: color 0.2s;
             pointer-events: none;
         }
+
         .form-input {
             width: 100%;
             background: var(--input-bg);
@@ -294,29 +392,47 @@
             outline: none;
             transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
         }
-        .form-input::placeholder { color: rgba(139,148,158,0.5); }
-        body.neo-mode .form-input::placeholder { color: rgba(0,0,0,0.35); }
+
+        .form-input::placeholder {
+            color: rgba(139, 148, 158, 0.5);
+        }
+
+        body.neo-mode .form-input::placeholder {
+            color: rgba(0, 0, 0, 0.35);
+        }
+
         .form-input:focus {
             border-color: var(--input-focus-border);
             box-shadow: var(--input-focus-shadow);
         }
-        body.neo-mode .form-input:focus { transform: translate(-2px, -2px); }
-        .form-input:focus + .input-icon,
-        .input-wrap:focus-within .input-icon { color: var(--accent); }
+
+        body.neo-mode .form-input:focus {
+            transform: translate(-2px, -2px);
+        }
+
+        .form-input:focus+.input-icon,
+        .input-wrap:focus-within .input-icon {
+            color: var(--accent);
+        }
 
         /* Password toggle */
         .toggle-pass {
             position: absolute;
-            right: 12px; top: 50%;
+            right: 12px;
+            top: 50%;
             transform: translateY(-50%);
-            background: none; border: none;
+            background: none;
+            border: none;
             color: var(--text-muted);
             cursor: pointer;
             font-size: 14px;
             padding: 4px;
             transition: color 0.2s;
         }
-        .toggle-pass:hover { color: var(--text); }
+
+        .toggle-pass:hover {
+            color: var(--text);
+        }
 
         /* ─── ALERT ─── */
         .alert {
@@ -329,27 +445,45 @@
             gap: 10px;
             animation: alertIn 0.3s ease;
         }
+
         @keyframes alertIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .alert.error {
             display: flex;
-            background: rgba(248,81,73,0.1);
-            border: 1px solid rgba(248,81,73,0.3);
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
             color: var(--danger);
         }
+
         .alert.success {
             display: flex;
-            background: rgba(63,185,80,0.1);
-            border: 1px solid rgba(63,185,80,0.3);
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
             color: var(--success);
         }
+
         body.neo-mode .alert.error {
-            background: #FF6B6B; border: 3px solid #000000; color: #000000; font-weight: 700;
+            background: #FF6B6B;
+            border: 3px solid #000000;
+            color: #000000;
+            font-weight: 700;
         }
+
         body.neo-mode .alert.success {
-            background: #88D66C; border: 3px solid #000000; color: #000000; font-weight: 700;
+            background: #88D66C;
+            border: 3px solid #000000;
+            color: #000000;
+            font-weight: 700;
         }
 
         /* ─── BUTTON ─── */
@@ -372,30 +506,55 @@
             animation: gradShift 4s ease infinite;
             margin-top: 8px;
         }
-        body.neo-mode .btn-login { animation: none; }
-        @keyframes gradShift {
-            0%   { background-position: 0% 50%; }
-            50%  { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+
+        body.neo-mode .btn-login {
+            animation: none;
         }
+
+        @keyframes gradShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
         .btn-login:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: var(--btn-shadow);
         }
-        body.neo-mode .btn-login:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px #000000; }
-        .btn-login:active:not(:disabled) { transform: var(--btn-active-transform); }
-        body.neo-mode .btn-login:active:not(:disabled) { box-shadow: none; }
+
+        body.neo-mode .btn-login:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0px #000000;
+        }
+
+        .btn-login:active:not(:disabled) {
+            transform: var(--btn-active-transform);
+        }
+
+        body.neo-mode .btn-login:active:not(:disabled) {
+            box-shadow: none;
+        }
+
         .btn-login:disabled {
             opacity: 0.7;
             cursor: not-allowed;
         }
+
         /* Ripple (classic only) */
         .btn-login::after {
             content: '';
             display: var(--deco-display);
             position: absolute;
             inset: 0;
-            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+            background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
         }
 
         /* ─── FOOTER ─── */
@@ -406,6 +565,7 @@
             color: var(--text-muted);
             letter-spacing: 0.5px;
         }
+
         .login-footer span {
             color: var(--accent);
             font-weight: 600;
@@ -414,7 +574,8 @@
         /* ─── THEME SWITCHER ─── */
         .theme-switcher {
             position: fixed;
-            top: 20px; right: 20px;
+            top: 20px;
+            right: 20px;
             z-index: 100;
             background: var(--bg-card);
             border: var(--card-border);
@@ -432,8 +593,15 @@
             color: var(--text);
             transition: all 0.2s;
         }
-        .theme-switcher:hover { transform: scale(1.04); }
-        body.neo-mode .theme-switcher:active { transform: translate(2px, 2px); box-shadow: none; }
+
+        .theme-switcher:hover {
+            transform: scale(1.04);
+        }
+
+        body.neo-mode .theme-switcher:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
 
         /* Status dots */
         .status-row {
@@ -443,38 +611,62 @@
             gap: 6px;
             margin-top: 12px;
         }
+
         .status-dot {
-            width: 6px; height: 6px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--success);
             box-shadow: 0 0 6px var(--success);
             animation: dotBlink 2s ease-in-out infinite;
         }
+
         @keyframes dotBlink {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.3; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
         }
-        .status-text { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+
+        .status-text {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
 
         /* Loading spinner on button */
         .spinner {
             display: inline-block;
-            width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-top-color: #fff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             vertical-align: middle;
             margin-right: 6px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* Responsive */
         @media (max-width: 480px) {
-            .login-card { padding: 36px 24px 32px; }
+            .login-card {
+                padding: 36px 24px 32px;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="bg-grid"></div>
@@ -499,10 +691,10 @@
             <!-- Header -->
             <div class="login-header">
                 <div class="logo-icon">
-                    <i class="fa-solid fa-industry"></i>
+                    <img src="img/favicon.ico" alt="Logo" style="width:32px;height:32px;object-fit:contain;">
                 </div>
                 <div class="app-name">REKAP DSAJA</div>
-                <div class="app-sub">BETA TEST </div>
+                <div class="app-sub">TRY TOLOL EVENT</div>
             </div>
 
             <!-- Alert -->
@@ -518,16 +710,8 @@
                         <i class="fa-solid fa-user" style="margin-right:6px; opacity:0.6;"></i>Username
                     </label>
                     <div class="input-wrap">
-                        <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            class="form-input"
-                            placeholder="Masukkan username..."
-                            maxlength="64"
-                            autocomplete="username"
-                            required
-                        >
+                        <input type="text" id="username" name="username" class="form-input"
+                            placeholder="Masukkan username..." maxlength="64" autocomplete="username" required>
                     </div>
                 </div>
 
@@ -536,17 +720,10 @@
                         <i class="fa-solid fa-lock" style="margin-right:6px; opacity:0.6;"></i>Password
                     </label>
                     <div class="input-wrap">
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            class="form-input"
-                            placeholder="Masukkan password..."
-                            maxlength="128"
-                            autocomplete="current-password"
-                            required
-                        >
-                        <button type="button" class="toggle-pass" id="togglePass" title="Tampilkan/Sembunyikan password">
+                        <input type="password" id="password" name="password" class="form-input"
+                            placeholder="Masukkan password..." maxlength="128" autocomplete="current-password" required>
+                        <button type="button" class="toggle-pass" id="togglePass"
+                            title="Tampilkan/Sembunyikan password">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
                         </button>
                     </div>
@@ -564,152 +741,153 @@
                     <span class="status-text" id="serverStatusText">CONNECTING...</span>
                 </div>
                 <div style="margin-top:10px;">
-                    v2.5 &nbsp;·&nbsp; <span>REKAP DSAJA</span> &nbsp;·&nbsp; © 2026
+                    v2.6 &nbsp;·&nbsp; <span>REFUSE TO BE STUPID</span> &nbsp;·&nbsp; © 2026
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-    // ─── Theme Switcher (Classic / Neo Brutalism) ───
-    // Pakai key localStorage yang sama dengan dashboard (rekap_neo) supaya preferensi konsisten.
-    (function initThemeSwitcher() {
-        const btn = document.getElementById('themeSwitcher');
-        const label = document.getElementById('themeSwitcherLabel');
+        // ─── Theme Switcher (Classic / Neo Brutalism) ───
+        // Pakai key localStorage yang sama dengan dashboard (rekap_neo) supaya preferensi konsisten.
+        (function initThemeSwitcher() {
+            const btn = document.getElementById('themeSwitcher');
+            const label = document.getElementById('themeSwitcherLabel');
 
-        function apply(isNeo) {
-            document.body.classList.toggle('neo-mode', isNeo);
-            label.textContent = isNeo ? 'TEMA: NEO BRUTALISM' : 'TEMA: CLASSIC';
-        }
-
-        // Default: neo mode ON, kecuali user pernah matikan
-        const isNeo = localStorage.getItem('rekap_neo') !== '0';
-        apply(isNeo);
-
-        btn.addEventListener('click', () => {
-            const next = !document.body.classList.contains('neo-mode');
-            apply(next);
-            localStorage.setItem('rekap_neo', next ? '1' : '0');
-        });
-    })();
-
-    // ─── DOM refs ───────────────────────────────────
-    const form       = document.getElementById('loginForm');
-    const userInput  = document.getElementById('username');
-    const passInput  = document.getElementById('password');
-    const btnLogin   = document.getElementById('btnLogin');
-    const alert      = document.getElementById('loginAlert');
-    const alertMsg   = document.getElementById('alertMsg');
-    const eyeIcon    = document.getElementById('eyeIcon');
-    const togglePass = document.getElementById('togglePass');
-    const serverDot  = document.getElementById('serverStatusDot');
-    const serverTxt  = document.getElementById('serverStatusText');
-
-    // ─── Toggle password visibility ────────────────
-    togglePass.addEventListener('click', () => {
-        const isPass = passInput.type === 'password';
-        passInput.type = isPass ? 'text' : 'password';
-        eyeIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-    });
-
-    // ─── Server health check ────────────────────────
-    async function checkServer() {
-        try {
-            const r = await fetch('/api/health', { signal: AbortSignal.timeout(4000) });
-            const d = await r.json();
-            if (d.database === 'connected') {
-                serverDot.style.background = '#3fb950';
-                serverDot.style.boxShadow  = '0 0 6px #3fb950';
-                serverTxt.textContent = 'SERVER ONLINE';
-            } else {
-                serverDot.style.background = '#f0c000';
-                serverDot.style.boxShadow  = '0 0 6px #f0c000';
-                serverTxt.textContent = 'DB DISCONNECTED';
+            function apply(isNeo) {
+                document.body.classList.toggle('neo-mode', isNeo);
+                label.textContent = isNeo ? 'TEMA: NEO BRUTALISM' : 'TEMA: CLASSIC';
             }
-        } catch {
-            serverDot.style.background = '#f85149';
-            serverDot.style.boxShadow  = '0 0 6px #f85149';
-            serverTxt.textContent = 'SERVER OFFLINE';
-        }
-    }
-    checkServer();
 
-    // ─── Show / hide alert ─────────────────────────
-    function showAlert(msg, type = 'error') {
-        alert.className = `alert ${type}`;
-        alertMsg.textContent = msg;
-        // Auto hide after 5s
-        clearTimeout(showAlert._t);
-        showAlert._t = setTimeout(() => { alert.className = 'alert'; }, 5000);
-    }
+            // Default: neo mode ON, kecuali user pernah matikan
+            const isNeo = localStorage.getItem('rekap_neo') !== '0';
+            apply(isNeo);
 
-    // ─── Sanitize input (strip control chars) ───────
-    // NOTE: SQL injection prevention is fully handled SERVER-SIDE
-    // via parameterized queries. This is only a basic client-side guard.
-    function sanitize(str) {
-        return str.replace(/[\x00-\x1F\x7F]/g, '').trim();
-    }
-
-    // ─── Form submit ────────────────────────────────
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const username = sanitize(userInput.value);
-        const password = sanitize(passInput.value);
-
-        if (!username || !password) {
-            showAlert('Username dan password wajib diisi.');
-            return;
-        }
-
-        // Show loading state
-        btnLogin.disabled = true;
-        btnLogin.innerHTML = '<span class="spinner"></span> MEMVERIFIKASI...';
-        alert.className = 'alert';
-
-        try {
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                // Body dikirim sebagai JSON — server handle SQL injection via parameterized query
-                body: JSON.stringify({ username, password })
+            btn.addEventListener('click', () => {
+                const next = !document.body.classList.contains('neo-mode');
+                apply(next);
+                localStorage.setItem('rekap_neo', next ? '1' : '0');
             });
+        })();
 
-            const data = await res.json();
+        // ─── DOM refs ───────────────────────────────────
+        const form = document.getElementById('loginForm');
+        const userInput = document.getElementById('username');
+        const passInput = document.getElementById('password');
+        const btnLogin = document.getElementById('btnLogin');
+        const alert = document.getElementById('loginAlert');
+        const alertMsg = document.getElementById('alertMsg');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const togglePass = document.getElementById('togglePass');
+        const serverDot = document.getElementById('serverStatusDot');
+        const serverTxt = document.getElementById('serverStatusText');
 
-            if (res.ok && data.status === 'success') {
-                // Simpan token session di sessionStorage
-                sessionStorage.setItem('rekap_token', data.token || '');
-                sessionStorage.setItem('rekap_user', data.username || username);
+        // ─── Toggle password visibility ────────────────
+        togglePass.addEventListener('click', () => {
+            const isPass = passInput.type === 'password';
+            passInput.type = isPass ? 'text' : 'password';
+            eyeIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        });
 
-                showAlert('Login berhasil! Mengalihkan...', 'success');
-                btnLogin.innerHTML = '<i class="fa-solid fa-check"></i> BERHASIL';
+        // ─── Server health check ────────────────────────
+        async function checkServer() {
+            try {
+                const r = await fetch('/api/health', { signal: AbortSignal.timeout(4000) });
+                const d = await r.json();
+                if (d.database === 'connected') {
+                    serverDot.style.background = '#3fb950';
+                    serverDot.style.boxShadow = '0 0 6px #3fb950';
+                    serverTxt.textContent = 'SERVER ONLINE';
+                } else {
+                    serverDot.style.background = '#f0c000';
+                    serverDot.style.boxShadow = '0 0 6px #f0c000';
+                    serverTxt.textContent = 'DB DISCONNECTED';
+                }
+            } catch {
+                serverDot.style.background = '#f85149';
+                serverDot.style.boxShadow = '0 0 6px #f85149';
+                serverTxt.textContent = 'SERVER OFFLINE';
+            }
+        }
+        checkServer();
 
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 800);
-            } else {
-                showAlert(data.message || 'Username atau password salah.');
+        // ─── Show / hide alert ─────────────────────────
+        function showAlert(msg, type = 'error') {
+            alert.className = `alert ${type}`;
+            alertMsg.textContent = msg;
+            // Auto hide after 5s
+            clearTimeout(showAlert._t);
+            showAlert._t = setTimeout(() => { alert.className = 'alert'; }, 5000);
+        }
+
+        // ─── Sanitize input (strip control chars) ───────
+        // NOTE: SQL injection prevention is fully handled SERVER-SIDE
+        // via parameterized queries. This is only a basic client-side guard.
+        function sanitize(str) {
+            return str.replace(/[\x00-\x1F\x7F]/g, '').trim();
+        }
+
+        // ─── Form submit ────────────────────────────────
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = sanitize(userInput.value);
+            const password = sanitize(passInput.value);
+
+            if (!username || !password) {
+                showAlert('Username dan password wajib diisi.');
+                return;
+            }
+
+            // Show loading state
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<span class="spinner"></span> MEMVERIFIKASI...';
+            alert.className = 'alert';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Body dikirim sebagai JSON — server handle SQL injection via parameterized query
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.status === 'success') {
+                    // Simpan token session di sessionStorage
+                    sessionStorage.setItem('rekap_token', data.token || '');
+                    sessionStorage.setItem('rekap_user', data.username || username);
+
+                    showAlert('Login berhasil! Mengalihkan...', 'success');
+                    btnLogin.innerHTML = '<i class="fa-solid fa-check"></i> BERHASIL';
+
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 800);
+                } else {
+                    showAlert(data.message || 'Username atau password salah anjir..');
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = 'MASUK SISTEM';
+                    // Shake effect
+                    passInput.value = '';
+                    passInput.focus();
+                }
+            } catch (err) {
+                showAlert('Gagal terhubung ke server. Coba lagi.');
                 btnLogin.disabled = false;
                 btnLogin.innerHTML = 'MASUK SISTEM';
-                // Shake effect
-                passInput.value = '';
-                passInput.focus();
             }
-        } catch (err) {
-            showAlert('Gagal terhubung ke server. Coba lagi.');
-            btnLogin.disabled = false;
-            btnLogin.innerHTML = 'MASUK SISTEM';
-        }
-    });
+        });
 
-    // ─── Enter key support ──────────────────────────
-    userInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') passInput.focus();
-    });
+        // ─── Enter key support ──────────────────────────
+        userInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') passInput.focus();
+        });
 
-    // ─── Auto-focus username ────────────────────────
-    userInput.focus();
+        // ─── Auto-focus username ────────────────────────
+        userInput.focus();
     </script>
 </body>
+
 </html>
