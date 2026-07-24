@@ -18,7 +18,7 @@ echo.
 
 :: ── STEP 1: Cek Python / .venv ─────────────────────
 if exist "%~dp0.venv\Scripts\python.exe" (
-    echo [OK] Python Virtual Environment terdeteksi (.venv).
+    echo [OK] Python Virtual Environment terdeteksi di .venv
 ) else (
     python --version >nul 2>&1
     if !errorlevel! neq 0 (
