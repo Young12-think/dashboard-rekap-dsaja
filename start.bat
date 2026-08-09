@@ -1,5 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
+
+:: NSSM must call this batch through cmd.exe with the --service argument.
+:: This path deliberately skips interactive/setup-only commands and lets NSSM
+:: own the restart lifecycle.
+if /i "%~1"=="--service" goto :SERVICE
+
 title Rekap DSaja - Portable Launcher
 color 0b
 
@@ -188,6 +194,20 @@ echo ===================================================
 echo [ERROR] Server berhenti dengan error! (Code: !EXIT_CODE!)
 echo ===================================================
 goto :FAIL
+
+:SERVICE
+cd /d "%~dp0"
+set "VENV_PYTHON=%~dp0.venv\Scripts\python.exe"
+
+if not exist "%VENV_PYTHON%" (
+    echo [ERROR] Virtual environment tidak ditemukan: "%VENV_PYTHON%"
+    echo [ERROR] Jalankan start.bat sekali secara manual untuk menyiapkan aplikasi.
+    exit /b 1
+)
+
+echo [INFO] Menjalankan server dalam mode NSSM...
+"%VENV_PYTHON%" "%~dp0server.py"
+exit /b %errorlevel%
 
 :FAIL
 echo.
