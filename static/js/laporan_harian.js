@@ -10,6 +10,57 @@ function formatMolasses(num) {
     return Number(num).toLocaleString('id-ID', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
 }
 
+function renderGulaDailyFlow(flow) {
+    const body = document.getElementById('lh-mc-gula-flow-body');
+    if (!body) return;
+
+    const value = (v) => v === null || v === undefined ? '&mdash;' : formatNumber(v);
+    const num = (v) => Number(v || 0);
+    const rows = [];
+    const addGroup = (label, item, color, classes = '') => {
+        const group = item || {};
+        rows.push(`<tr class="lh-flow-main ${classes}"><td class="label" style="color:${color};">${label}</td><td style="text-align: right; color:${color}; font-weight: 600;">${value(group.total)}</td></tr>`);
+        rows.push(`<tr class="lh-flow-child"><td>&#8627; GKM</td><td style="text-align: right; font-size: 11px; color: var(--text-muted);">${value(group.gkm)}</td></tr>`);
+        rows.push(`<tr class="lh-flow-child"><td>&#8627; GKB</td><td style="text-align: right; font-size: 11px; color: var(--text-muted);">${value(group.gkb)}</td></tr>`);
+    };
+    const addChild = (label, v, color = 'var(--text-muted)', note = '') => {
+        rows.push(`<tr class="lh-flow-child"><td>&#8627; ${label}${note ? `<span class="lh-flow-note">${note}</span>` : ''}</td><td style="text-align: right; font-size: 11px; color:${color};">${value(v)}</td></tr>`);
+    };
+
+    addGroup('Begin Inv (Good Stock Awal)', flow.opening, 'var(--text-primary)');
+    addGroup('+ Good Stock In (Produksi GKM/GKB)', flow.production, 'var(--accent-blue)');
+    addChild('Reject Received (tidak mengurangi good stock)', flow.receivedReject, 'var(--text-muted)', 'informasi; tidak mengurangi good stock');
+    addGroup('&minus; Move Out (Delivery Aktual)', flow.delivery, 'var(--accent-orange)');
+    addChild('Plan Delivery', flow.deliveryPlan?.total, '#a371f7');
+    addChild('Selisih Actual vs Plan', flow.deliveryDiff?.total, num(flow.deliveryDiff?.total) >= 0 ? 'var(--accent-green)' : '#f85149');
+    addGroup('&minus; Reject Deduction (Susut/Downgrade)', flow.repack, '#f85149');
+    addGroup('+ Upgrade Reject &rarr; Product', flow.upgrade, 'var(--accent-green)');
+    addGroup('= Calculated Good Stock', flow.calculated, 'var(--accent-blue)', 'lh-flow-total');
+    addGroup('Actual Good Stock (Stok Akhir)', flow.actual, 'var(--accent-green)', 'lh-flow-total');
+    addChild('Difference', flow.difference?.total, flow.difference?.total === 0 ? 'var(--accent-green)' : '#f85149');
+
+    const reject = flow.reject || {};
+    rows.push('<tr class="lh-flow-main lh-flow-total"><td class="label" style="color:var(--accent-red);">Reject Stock (Stok Akhir)</td><td style="text-align: right; color:var(--accent-red); font-size: 16px;">' + value(reject.actual) + '</td></tr>');
+    addChild('Opening Reject', reject.opening);
+    addChild('Reject Received (tidak mengurangi good stock)', reject.received);
+    addChild('Delivery Reject', reject.delivery);
+    addChild('Upgrade Out', reject.upgrade);
+    addChild('Remelt Out', reject.remelt);
+    addChild('Calculated Reject', reject.calculated, 'var(--accent-blue)');
+    addChild('Difference Reject', reject.difference, reject.difference === 0 ? 'var(--accent-green)' : '#f85149');
+
+    const status = String(flow.status || 'missing_input').toLowerCase();
+    const statusText = { balanced: 'BALANCED', mismatch: 'MISMATCH', missing_input: 'MISSING INPUT' }[status] || status.toUpperCase();
+    rows.push(`<tr class="lh-flow-status"><td class="label">Status</td><td style="text-align: right;"><span class="badge ${status}">${statusText}</span></td></tr>`);
+    body.innerHTML = rows.join('');
+
+    const note = document.getElementById('lh-mc-gula-flow-note');
+    if (note) {
+        note.textContent = status === 'balanced'
+            ? 'Calculated Good Stock sama dengan Actual Good Stock. Reject received hanya menambah reject stock; delivery reject mengurangi good stock; upgrade mengembalikan reject menjadi produk.'
+            : 'Periksa detail movement di atas. Formula: opening + produksi - delivery - reject deduction + upgrade = calculated good stock.';
+    }
+}
 function updateLhDateDisplay() {
     const opts = { day: '2-digit', month: 'long', year: 'numeric' };
     const dateEl = document.getElementById('lh-display-date');
@@ -79,6 +130,16 @@ async function fetchLaporanHarian() {
         if (result.status === 'success') {
             const d = result.data;
 
+            const selectedDateEl = document.getElementById('lh-mc-selected-date');
+            if (selectedDateEl) {
+                const selectedDate = d.tanggal || dateStr;
+                const parsedDate = new Date(String(selectedDate).slice(0, 10) + 'T00:00:00');
+                const dateLabel = isNaN(parsedDate.getTime())
+                    ? selectedDate
+                    : parsedDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+                selectedDateEl.innerText = 'Tanggal laporan: ' + dateLabel;
+            }
+
             const statusBadge = document.getElementById('lh-giling-status');
             if (statusBadge) {
                 if (d.cane.millingStartDate) {
@@ -99,14 +160,48 @@ async function fetchLaporanHarian() {
             document.getElementById('lh-val-gula-del').innerText = formatNumber(d.gula.delivery.actual);
             document.getElementById('lh-val-gula-end').innerText = formatNumber(d.gula.endBalance);
 
-            const rejectTon = Number(d.gula.reject || 0) / 1000;
+            const rejectTon = Number(d.gula.reject || 0);
             const totalStockReject = Number(d.gula.stokGkb || 0) + Number(d.gula.stokGkm || 0) + rejectTon;
 
             document.getElementById('lh-val-gkb-stok').innerText = formatNumber(d.gula.stokGkb);
             document.getElementById('lh-val-gkm-stok').innerText = formatNumber(d.gula.stokGkm);
             document.getElementById('lh-val-gula-reject').innerText = formatNumber(rejectTon);
+            renderGulaDailyFlow(d.gula.gulaFlow || {});
 
             
+            // PANEL VALIDASI BALANCE
+            const validationGrid = document.getElementById('lh-validation-grid');
+            if (validationGrid) {
+                const checks = Array.isArray(d.validation) ? d.validation : [];
+                const statusConfig = {
+                    balanced: { icon: 'fa-check', text: 'Balanced' },
+                    mismatch: { icon: 'fa-triangle-exclamation', text: 'Mismatch' },
+                    missing_input: { icon: 'fa-circle-exclamation', text: 'Missing Input' },
+                    stale: { icon: 'fa-clock', text: 'Stale' },
+                    not_available: { icon: 'fa-minus', text: 'N/A' },
+                    warning: { icon: 'fa-triangle-exclamation', text: 'Warning' }
+                };
+                const validationValue = value => value === null || value === undefined
+                    ? '—'
+                    : formatNumber(value);
+
+                validationGrid.innerHTML = checks.length === 0
+                    ? '<div class="validation-panel">Tidak ada data validasi</div>'
+                    : checks.map(c => {
+                        const status = String(c.status || 'missing_input').toLowerCase();
+                        const config = statusConfig[status] || statusConfig.warning;
+                        const details = Array.isArray(c.details) ? c.details : [];
+                        return `<div class="validation-panel">
+        <h4>${c.label}</h4>
+        ${details.map(item => `<div class="v-row validation-detail"><span>${item.label}</span><span>${validationValue(item.value)}</span></div>`).join('')}
+        <div class="v-row"><span>${c.leftLabel}</span><span>${validationValue(c.left)}</span></div>
+        <div class="v-row"><span>${c.rightLabel}</span><span>${validationValue(c.right)}</span></div>
+        <div class="v-row diff"><span>Difference</span><span>${validationValue(c.diff)}</span></div>
+        ${c.message ? `<div class="validation-message">${c.message}</div>` : ''}
+        <span class="badge ${status}"><i class="fa-solid ${config.icon}"></i> ${config.text}</span>
+      </div>`;
+                    }).join('');
+            }
             // UPDATE DETAIL REJECT
             const rejectBody = document.getElementById('lh-detail-reject-body');
             if (rejectBody && d.gula.detailReject) {
@@ -116,7 +211,7 @@ async function fetchLaporanHarian() {
                     let rHtml = '';
                     let tReject = 0;
                     d.gula.detailReject.forEach(r => {
-                        rHtml += `<tr><td class="label">${r.jenis}</td><td>${formatNumber(r.qty)}</td></tr>`;
+                        rHtml += `<tr><td class="label">${r.jenis}${r.kategori_transaksi ? ` · ${r.kategori_transaksi}` : ''}</td><td>${formatNumber(r.qty)}</td></tr>`;
                         tReject += r.qty;
                     });
                     rHtml += `<tr class="total"><td class="label">Total Reject Today</td><td>${formatNumber(tReject)}</td></tr>`;
@@ -252,6 +347,8 @@ async function fetchLaporanHarian() {
             const elMolIn = document.getElementById('lh-mc-mol-in');
             if (elMolIn) elMolIn.innerText = formatNumber(mol.produksi?.total || 0);
 
+            const elMolCaneIn = document.getElementById('lh-mc-mol-canein');
+            if (elMolCaneIn) elMolCaneIn.innerText = formatNumber(mol.caneIn || 0);
             const elMolRawSugar = document.getElementById('lh-mc-mol-rawsugar');
             if (elMolRawSugar) elMolRawSugar.innerText = formatNumber(mol.rawSugarIn || 0);
             const elMolYield = document.getElementById('lh-mc-mol-yield');
@@ -298,7 +395,34 @@ async function fetchLaporanHarian() {
             }
 
             const elMolEnd = document.getElementById('lh-mc-mol-end');
-            if (elMolEnd) elMolEnd.innerText = formatNumber(mol.endBalance);
+            const molActual = Number(mol.endBalance || 0);
+            if (elMolEnd) elMolEnd.innerText = formatNumber(molActual);
+
+            // Molasses balance validation: opening + production - actual delivery = ending inventory.
+            // Keep missing source fields visible instead of silently treating them as zero.
+            const molHasBalanceInputs = mol.openBalance != null
+                && mol.endBalance != null
+                && mol.produksi && mol.produksi.total != null
+                && mol.delivery && mol.delivery.actual != null;
+            const molOpening = Number(mol.openBalance || 0);
+            const molIn = Number(mol.produksi?.total || 0);
+            const molOut = Number(mol.delivery?.actual || 0);
+            const molCalculated = molOpening + molIn - molOut;
+            const molBalanceDiff = molCalculated - molActual;
+            const elMolCalculated = document.getElementById('lh-mc-mol-calculated');
+            if (elMolCalculated) elMolCalculated.innerText = formatNumber(molCalculated);
+            const elMolBalanceDiff = document.getElementById('lh-mc-mol-balance-diff');
+            if (elMolBalanceDiff) {
+                elMolBalanceDiff.innerText = (molBalanceDiff > 0 ? '+' : '') + formatNumber(molBalanceDiff);
+                elMolBalanceDiff.style.color = !molHasBalanceInputs || Math.abs(molBalanceDiff) > 0.01 ? '#f85149' : 'var(--accent-green)';
+            }
+            const elMolBalanceStatus = document.getElementById('lh-mc-mol-balance-status');
+            if (elMolBalanceStatus) {
+                const molStatus = !molHasBalanceInputs ? 'missing_input' : (Math.abs(molBalanceDiff) <= 0.01 ? 'balanced' : 'mismatch');
+                const molStatusText = { balanced: 'BALANCED', mismatch: 'MISMATCH', missing_input: 'MISSING INPUT' }[molStatus];
+                elMolBalanceStatus.className = 'badge ' + molStatus;
+                elMolBalanceStatus.innerText = molStatusText;
+            }
 
             // Tank A & B (capacity section)
             const elTankA = document.getElementById('lh-mc-tank-a');
@@ -338,7 +462,7 @@ async function fetchLaporanHarian() {
                 rejectShiftTbody.innerHTML = [1, 2, 3].map((shift) => `
                     <tr>
                         <td class="label" style="text-align: left;">Shift ${['I', 'II', 'III'][shift - 1]}</td>
-                        <td style="text-align: right;">${formatNumber(Number(d.gula.produksiDetail?.[shift]?.reject || 0) / 1000)}</td>
+                        <td style="text-align: right;">${formatNumber(Number(d.gula.produksiDetail?.[shift]?.reject || 0))}</td>
                     </tr>
                 `).join('') + `
                     <tr class="total">
@@ -347,25 +471,104 @@ async function fetchLaporanHarian() {
                     [1, 2, 3].reduce(
                         (total, shift) => total + Number(d.gula.produksiDetail?.[shift]?.reject || 0),
                         0
-                    ) / 1000
+                    )
                 )}</td>
                     </tr>
                 `;
             }
 
-            const locationTbody = document.getElementById('lh-stock-location');
-            if (locationTbody) {
-                const locations = d.gula.stockPosition?.locations || [];
-                locationTbody.innerHTML = locations.length
-                    ? locations.map((location) => `
-                        <tr>
-                            <td class="label">${location.name}</td>
-                            <td>${formatNumber(location.stock)}</td>
-                        </tr>
-                    `).join('')
-                    : '<tr><td colspan="2">Tidak ada data lokasi</td></tr>';
-            }
+            // Stock Position - official inventory remains the source of truth;
+            // location rows explain how much has been mapped operationally.
+            const spCard = document.getElementById('card-stock-position');
+            if (spCard) {
+                const sp = d.gula.stockPosition || {};
+                const allLocations = Array.isArray(sp.locations) ? sp.locations : [];
+                const locations = allLocations.filter(loc => loc.hasSnapshot !== false && Number(loc.stock || 0) > 0);
+                const insiteLocs = locations.filter(loc => loc.siteType === 'in_site');
+                const outsiteLocs = locations.filter(loc => loc.siteType === 'out_site');
+                const fallbackInventory = Number(d.gula.stokGkb || 0) + Number(d.gula.stokGkm || 0) + Number(d.gula.reject || 0);
+                const hasInventoryField = Object.prototype.hasOwnProperty.call(sp, 'inventoryTotal');
+                const inventoryTotal = hasInventoryField
+                    ? (sp.inventoryTotal === null ? null : Number(sp.inventoryTotal))
+                    : fallbackInventory;
+                const mappedTotal = Number(sp.mappedTotal ?? ((sp.insite || 0) + (sp.outsite || 0)));
+                const difference = sp.difference === null || sp.difference === undefined
+                    ? (inventoryTotal === null ? null : inventoryTotal - mappedTotal)
+                    : Number(sp.difference);
+                const unallocated = difference === null ? null : Math.max(difference, 0);
+                const overallocated = difference === null ? null : Math.max(-difference, 0);
+                const positionValue = value => value === null || value === undefined ? '—' : formatNumber(value);
+                const allocationLabels = {
+                    balanced: 'Fully Mapped',
+                    mismatch: 'Needs Reconciliation',
+                    missing_input: 'Missing Input',
+                    stale: 'Stale'
+                };
+                const allocationStatus = String(sp.status || 'missing_input').toLowerCase();
 
+                let spHtml = `
+                    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div class="audit-title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;"><span class="audit-letter">E</span> Posisi Stock</div>
+                        <span class="badge ${allocationStatus}" style="margin-top:0;">${allocationLabels[allocationStatus] || 'Check Data'}</span>
+                    </div>`;
+
+                const renderLocation = (loc, id, color, icon) => {
+                    const pct = loc.capacity > 0 ? Math.min((loc.stock / loc.capacity * 100), 100) : 0;
+                    const capLabel = loc.capacity > 0 ? `cap. ${formatNumber(loc.capacity)} t` : '';
+                    const snapshotLabel = loc.snapshotDate
+                        ? `Snapshot ${loc.snapshotDate}${loc.isStale ? ' · STALE' : ''}`
+                        : 'Snapshot tidak tersedia';
+                    const snapshotColor = loc.isStale ? 'var(--accent-yellow)' : 'var(--text-muted)';
+                    return `
+                        <div class="sp-location-row" onclick="toggleStockDetail('${id}', this)">
+                            <span class="sp-loc-name"><i class="fa-solid fa-chevron-right"></i> ${loc.name}</span>
+                            <span class="sp-loc-val">${formatNumber(loc.stock)}</span>
+                        </div>
+                        <div class="sp-detail-panel" id="${id}">
+                            <div class="sp-group-label"><i class="fa-solid ${icon}" style="margin-right: 4px;"></i> ${loc.siteType === 'in_site' ? 'STOCK INSITE' : 'STOCK OUTSITE'}</div>
+                            <div class="sp-cap-card">
+                                <div class="sp-cap-header">
+                                    <span class="sp-cap-name">${loc.name}</span>
+                                    ${capLabel ? `<span class="sp-cap-badge" style="background: ${color}20; color: ${color};">${capLabel}</span>` : ''}
+                                </div>
+                                <div style="font-size:0.68rem; color:${snapshotColor}; margin:4px 0 8px;">${snapshotLabel}</div>
+                                <div class="sp-cap-meta"><span>${formatNumber(loc.stock)} Ton</span>${loc.capacity > 0 ? `<span>${pct.toFixed(1)}%</span>` : ''}</div>
+                                ${loc.capacity > 0 ? `<div class="sp-cap-bar"><div class="sp-cap-bar-fill" style="width: ${pct}%; background: ${color};"></div></div>` : ''}
+                            </div>
+                        </div>`;
+                };
+
+                if (insiteLocs.length) {
+                    spHtml += `<div style="padding: 8px 16px 4px; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-blue);"><i class="fa-solid fa-building" style="font-size: 0.6rem; margin-right:6px;"></i>INSITE</div>`;
+                    insiteLocs.forEach((loc, index) => {
+                        spHtml += renderLocation(loc, `sp-in-${index}`, '#58a6ff', 'fa-building');
+                    });
+                }
+
+                if (outsiteLocs.length) {
+                    spHtml += `<div style="padding: 8px 16px 4px; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #f0c000; border-top: 1px solid var(--border-color);"><i class="fa-solid fa-warehouse" style="font-size: 0.6rem; margin-right:6px;"></i>OUTSITE</div>`;
+                    outsiteLocs.forEach((loc, index) => {
+                        spHtml += renderLocation(loc, `sp-out-${index}`, '#f0c000', 'fa-warehouse');
+                    });
+                }
+
+                if (!locations.length) {
+                    spHtml += `<div style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Tidak ada snapshot posisi stock untuk tanggal ini.</div>`;
+                }
+
+                spHtml += `
+                    <div class="overview-stock-location-list" style="border-top:1px solid var(--border-color); padding:10px 16px;">
+                        <div class="overview-stock-row"><span class="overview-stock-label">Mapped Position</span><span class="overview-stock-value">${formatNumber(mappedTotal)}</span></div>
+                        ${unallocated !== null && unallocated > 0.01 ? `<div class="overview-stock-row"><span class="overview-stock-label" style="color:var(--accent-yellow);">Belum Terpetakan</span><span class="overview-stock-value" style="color:var(--accent-yellow);">${formatNumber(unallocated)}</span></div>` : ''}
+                        ${overallocated !== null && overallocated > 0.01 ? `<div class="overview-stock-row"><span class="overview-stock-label" style="color:var(--accent-red);">Kelebihan Alokasi</span><span class="overview-stock-value" style="color:var(--accent-red);">${formatNumber(overallocated)}</span></div>` : ''}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--accent-blue-dim); border-top: 1px solid var(--border-color);">
+                        <span style="font-weight: 700; color: var(--accent-blue); font-family: 'Sora', sans-serif; font-size: 0.85rem;">Official Total Stock</span>
+                        <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-blue); font-size: 0.95rem;" id="sp-detail-total">${positionValue(inventoryTotal)}</span>
+                    </div>`;
+
+                spCard.innerHTML = spHtml;
+            }
             // Gula Prod Table
             const prodGulaTbody = document.getElementById('lh-table-prod-gula').querySelector('tbody');
             prodGulaTbody.innerHTML = `
@@ -378,19 +581,27 @@ async function fetchLaporanHarian() {
             // Gula Del Table
             const delGulaTbody = document.getElementById('lh-table-del-gula').querySelector('tbody');
 
-            // We use plan besok directly from data
+            // Plan besok dipakai hanya untuk informasi jadwal hari berikutnya.
             const plan_gkb = d.gula.deliveryPlanBesok.gkb;
             const plan_gkm = d.gula.deliveryPlanBesok.gkm;
-            const plan_total = d.gula.deliveryPlanBesok.total;
-
-            // Actual is from delivery plan of today vs actual of today
-            // The table has plan, actual, diff. Wait, the table shows GKB and GKM
-            // In backend we don't strictly separate plan today by GKB/GKM, only total plan. Let's just use what's available
+            const diffSummaryGkb = d.gula.delivery.actGkb - d.gula.delivery.planGkb;
+            const diffSummaryGkm = d.gula.delivery.actGkm - d.gula.delivery.planGkm;
+            const diffSummaryTotal = d.gula.delivery.actual - d.gula.delivery.plan;
             delGulaTbody.innerHTML = `
                 <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-blue); margin-right: 6px;">●</span> GKB</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.actual)}</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td></tr>
                 <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-red); margin-right: 6px;">●</span> GKM</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.plan)}</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.diff)}</td></tr>
                 <tr style="background: var(--accent-blue-dim);"><td style="text-align: left; padding: 12px 8px; font-weight: 700; color: var(--accent-blue); border: none;">Total</td><td class="num" style="text-align: right; font-weight: 700; color: var(--accent-blue); border: none;">${formatNumber(d.gula.delivery.plan)}</td><td class="num" style="text-align: right; font-weight: 700; color: var(--accent-blue); border: none;">${formatNumber(d.gula.delivery.actual)}</td><td class="num" style="text-align: right; font-weight: 700; color: var(--accent-blue); border: none;">-</td></tr>
             `;
+            // Isi setiap kolom Summary dengan rincian plan/actual yang benar.
+            [
+                [d.gula.delivery.planGkb, d.gula.delivery.actGkb, diffSummaryGkb],
+                [d.gula.delivery.planGkm, d.gula.delivery.actGkm, diffSummaryGkm],
+                [d.gula.delivery.plan, d.gula.delivery.actual, diffSummaryTotal]
+            ].forEach((values, rowIndex) => values.forEach((value, columnIndex) => {
+                const cell = delGulaTbody.rows[rowIndex]?.cells[columnIndex + 1];
+                if (cell) cell.textContent = formatNumber(value);
+            }));
+
 
             // Plan Besok
             document.getElementById('lh-plan-besok-gkb').innerText = formatNumber(plan_gkb);

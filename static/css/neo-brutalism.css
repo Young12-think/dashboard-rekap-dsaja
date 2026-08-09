@@ -928,7 +928,7 @@ body.neo-mode .analytics-panel,
 body.neo-mode .analytics-toolbar,
 body.neo-mode .analytics-kpi,
 body.neo-mode .history-kpi,
-body.neo-mode .mol-tank-card,
+body.neo-mode .mol-tank-row,
 body.neo-mode .rmi-modal-content,
 body.neo-mode .rmi-chart-full,
 body.neo-mode .rmi-chart-box,
@@ -1040,8 +1040,9 @@ body.neo-mode .history-table th { background: var(--nb-yellow) !important; color
 body.neo-mode .history-table td { border-bottom: 1px solid #999 !important; color: var(--nb-black); }
 
 /* Molasses tanks */
-body.neo-mode .mol-tank-vessel { border: 4px solid var(--nb-black); border-radius: 12px; box-shadow: var(--nb-shadow); }
-body.neo-mode .mol-tank-stand { background: var(--nb-black); box-shadow: none; }
+body.neo-mode .mol-tank-vessel,
+body.neo-mode .mol-tank-dome,
+body.neo-mode .mol-tank-bottom { border: 4px solid var(--nb-black); box-shadow: none; }
 body.neo-mode .mol-tank-stat { border-bottom: 1px solid #ccc; }
 body.neo-mode .mol-tank-stat strong { color: var(--nb-black); }
 
@@ -1082,6 +1083,10 @@ body.neo-mode .badge { border: 2px solid var(--nb-black) !important; border-radi
 body.neo-mode .badge.balanced,
 body.neo-mode .badge-green { background: var(--nb-green) !important; color: var(--nb-black) !important; }
 body.neo-mode .badge.mismatch { background: var(--nb-red) !important; color: var(--nb-black) !important; }
+body.neo-mode .badge.missing_input,
+body.neo-mode .badge.stale,
+body.neo-mode .badge.warning { background: var(--nb-yellow) !important; color: var(--nb-black) !important; }
+body.neo-mode .badge.not_available { background: #b8b8b8 !important; color: var(--nb-black) !important; }
 body.neo-mode .mockup-flag { background: var(--nb-yellow) !important; border: var(--nb-border) !important; border-radius: var(--nb-radius) !important; color: var(--nb-black) !important; }
 body.neo-mode .status-badge.active { background: var(--nb-green) !important; color: var(--nb-black) !important; border: 2px solid var(--nb-black) !important; border-radius: var(--nb-radius) !important; }
 body.neo-mode .btn-primary {

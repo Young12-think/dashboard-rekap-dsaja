@@ -19,27 +19,27 @@ def export_laporan_harian_to_excel(date_str, template_path):
     
     # 3. SUGAR - Production Gula & Shift
     prod_det = gula.get('produksiDetail', {})
-    sheet['G9'] = prod_det.get(1, {}).get('gkb', 0)
-    sheet['H9'] = prod_det.get(1, {}).get('gkm', 0)
-    sheet['I9'] = prod_det.get(1, {}).get('reject', 0)
+    sheet['G9'] = prod_det.get('1', {}).get('gkb', 0)
+    sheet['H9'] = prod_det.get('1', {}).get('gkm', 0)
+    sheet['I9'] = prod_det.get('1', {}).get('reject', 0)
     
-    sheet['G10'] = prod_det.get(2, {}).get('gkb', 0)
-    sheet['H10'] = prod_det.get(2, {}).get('gkm', 0)
-    sheet['I10'] = prod_det.get(2, {}).get('reject', 0)
+    sheet['G10'] = prod_det.get('2', {}).get('gkb', 0)
+    sheet['H10'] = prod_det.get('2', {}).get('gkm', 0)
+    sheet['I10'] = prod_det.get('2', {}).get('reject', 0)
     
-    sheet['G11'] = prod_det.get(3, {}).get('gkb', 0)
-    sheet['H11'] = prod_det.get(3, {}).get('gkm', 0)
-    sheet['I11'] = prod_det.get(3, {}).get('reject', 0)
+    sheet['G11'] = prod_det.get('3', {}).get('gkb', 0)
+    sheet['H11'] = prod_det.get('3', {}).get('gkm', 0)
+    sheet['I11'] = prod_det.get('3', {}).get('reject', 0)
     
     # 4. SUGAR - Delivery Gula
     del_gula = gula.get('delivery', {})
     sheet['G16'] = del_gula.get('planGkb', 0)
     sheet['H16'] = del_gula.get('actGkb', 0)
-    sheet['I16'] = del_gula.get('planGkb', 0) - del_gula.get('actGkb', 0)
+    sheet['I16'] = del_gula.get('actGkb', 0) - del_gula.get('planGkb', 0)
     
     sheet['G17'] = del_gula.get('planGkm', 0)
     sheet['H17'] = del_gula.get('actGkm', 0)
-    sheet['I17'] = del_gula.get('planGkm', 0) - del_gula.get('actGkm', 0)
+    sheet['I17'] = del_gula.get('actGkm', 0) - del_gula.get('planGkm', 0)
     
     sheet['C26'] = gula.get('deliveryPlanBesok', {}).get('gkb', 0)
     sheet['C27'] = gula.get('deliveryPlanBesok', {}).get('gkm', 0)

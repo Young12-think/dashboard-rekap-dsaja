@@ -505,28 +505,31 @@ def api_rmi_balance_overview_v2():
 @app.route('/api/rmi-balance/stok-harian')
 def api_rmi_balance_stok_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    date_str = request.args.get('date')
-    days = request.args.get('days', 90, type=int)
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_stok_harian(date_str, days)})
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_stok_harian(start_date, end_date)})
 
 @app.route('/api/rmi-balance/delivery-harian')
 def api_rmi_balance_delivery_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    date_str = request.args.get('date')
-    days = request.args.get('days', 90, type=int)
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_delivery_harian(date_str, days)})
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_delivery_harian(start_date, end_date)})
 
 @app.route('/api/rmi-balance/molasses-harian')
 def api_rmi_balance_molasses_harian():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
     date_str = request.args.get('date')
     days = request.args.get('days', 90, type=int)
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_molasses_harian(date_str, days)})
+    start_date = request.args.get('start_date')
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_molasses_harian(date_str, days, start_date)})
 
 @app.route('/api/rmi-balance/lokasi')
 def api_rmi_balance_lokasi():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_lokasi_stok()})
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    return jsonify({"status": "success", "data": queries.rmi_balance.get_lokasi_stok(start_date, end_date)})
 
 @app.route('/api/rmi-balance/settings', methods=['GET', 'POST'])
 def api_rmi_balance_settings():
@@ -582,12 +585,39 @@ def api_rmi_balance_grafik():
     date_to = request.args.get('date_to', datetime.now().strftime('%Y-%m-%d'))
     return jsonify({"status": "success", "data": queries.rmi_balance.get_grafik_laporan(date_from, date_to)})
 
+@app.route('/api/rmi-balance/audit')
+def api_rmi_balance_audit():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_from = request.args.get('date_from') or request.args.get('date')
+    date_to = request.args.get('date_to') or date_from
+    if not queries.rmi_balance._valid_date_str(date_from) or not queries.rmi_balance._valid_date_str(date_to):
+        return jsonify({"status": "error", "message": "Tanggal wajib berformat YYYY-MM-DD"}), 400
+    molasses = queries.rmi_balance.get_rmi_audit_reconciliation(date_from, date_to)
+    sugar = queries.rmi_balance.get_rmi_audit_sugar(date_from, date_to)
+    # Movement dibatasi satu tanggal: data_timbang bisa >500 transaksi per hari.
+    movement_date = request.args.get('movement_date')
+    if not queries.rmi_balance._valid_date_str(movement_date):
+        movement_date = queries.rmi_balance.first_audit_problem_date(molasses, sugar) or date_to
+    return jsonify({"status": "success", "data": {
+        "molasses": molasses,
+        "sugar": sugar,
+        "yield": queries.rmi_balance.get_rmi_audit_yield(date_from, date_to, request.args.get('target')),
+        "movement_date": movement_date,
+        "movements": queries.rmi_balance.get_rmi_audit_movements(movement_date, movement_date, request.args.get('product_code'))
+    }})
+
 @app.route('/api/rmi-balance/grafik-analitik')
 def api_rmi_balance_grafik_analitik():
+
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
-    days = int(request.args.get('days', 7))
-    return jsonify({"status": "success", "data": queries.rmi_balance.get_grafik_analitik(date_str, days)})
+    date_to = request.args.get('date_to') or request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
+    date_from = request.args.get('date_from')
+    try:
+        days = max(1, int(request.args.get('days', 7)))
+    except (TypeError, ValueError):
+        days = 7
+    data = queries.rmi_balance.get_grafik_analitik(date_to, days, date_from)
+    return jsonify({"status": "success", "data": data})
 
 @app.route('/api/me')
 def api_me():

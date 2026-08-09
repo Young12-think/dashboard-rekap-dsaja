@@ -13,6 +13,9 @@ echo.
 
 :: Set Playwright browser path ke folder project
 set PLAYWRIGHT_BROWSERS_PATH=%~dp0playwright_browsers
+set "VENV_PYTHON=.venv\Scripts\python.exe"
+set "REQUIREMENTS_STAMP=.venv\.requirements.sha256"
+set "PLAYWRIGHT_STAMP=.venv\.playwright-ready"
 echo [INFO] Browser Path: %PLAYWRIGHT_BROWSERS_PATH%
 echo.
 
@@ -69,25 +72,82 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 :: ── STEP 4: Install library ────────────────────────
-echo [INFO] Menginstal dependensi library...
-.venv\Scripts\python.exe -m pip install --upgrade pip -q
-.venv\Scripts\pip.exe install -r requirements.txt -q
+:: Verifikasi/install library hanya bila diperlukan.
+echo [INFO] Memeriksa dependensi library...
+"%VENV_PYTHON%" -m pip --version >nul 2>&1
 if !errorlevel! neq 0 (
+    echo [INFO] pip tidak tersedia, mencoba memulihkan...
+    "%VENV_PYTHON%" -m ensurepip --upgrade
+    if !errorlevel! neq 0 (
+        color 0c
+        echo [ERROR] Gagal memulihkan pip di virtual environment!
+        goto :FAIL
+    )
+)
+
+if not exist "requirements.txt" (
     color 0c
-    echo [ERROR] Gagal menginstal library dari requirements.txt!
+    echo [ERROR] File requirements.txt tidak ditemukan!
     goto :FAIL
 )
-echo [OK] Semua library terinstal.
+
+set "REQUIREMENTS_HASH="
+for /f "usebackq delims=" %%H in (`powershell -NoProfile -Command "(Get-FileHash -Algorithm SHA256 'requirements.txt').Hash"`) do set "REQUIREMENTS_HASH=%%H"
+if not defined REQUIREMENTS_HASH (
+    color 0c
+    echo [ERROR] Gagal menghitung hash requirements.txt!
+    goto :FAIL
+)
+
+set "INSTALLED_HASH="
+if exist "%REQUIREMENTS_STAMP%" set /p INSTALLED_HASH=<"%REQUIREMENTS_STAMP%"
+set "NEED_DEPENDENCY_INSTALL=0"
+if /i not "!INSTALLED_HASH!"=="!REQUIREMENTS_HASH!" set "NEED_DEPENDENCY_INSTALL=1"
+
+:: Smoke test mendeteksi package terhapus/rusak walaupun hash tidak berubah.
+"%VENV_PYTHON%" -c "import flask, flask_cors, mysql.connector, waitress, sshtunnel, playwright, bs4, lxml, dotenv" >nul 2>&1
+if !errorlevel! neq 0 set "NEED_DEPENDENCY_INSTALL=1"
+
+if "!NEED_DEPENDENCY_INSTALL!"=="1" (
+    echo [INFO] Requirement baru/berubah. Menginstal library...
+    "%VENV_PYTHON%" -m pip install -r requirements.txt
+    if !errorlevel! neq 0 (
+        color 0c
+        echo [ERROR] Gagal menginstal library dari requirements.txt!
+        goto :FAIL
+    )
+    >"%REQUIREMENTS_STAMP%" echo !REQUIREMENTS_HASH!
+    rem Package Playwright berubah bersama requirements; validasi browser lagi.
+    if exist "%PLAYWRIGHT_STAMP%" del /q "%PLAYWRIGHT_STAMP%" >nul 2>&1
+    echo [OK] Semua library berhasil disiapkan.
+) else (
+    echo [OK] Dependensi sudah siap; instalasi dilewati.
+)
 
 :: ── STEP 5: Install Playwright browser ─────────────
 echo [INFO] Memeriksa browser Playwright...
-.venv\Scripts\playwright.exe install chromium
-if !errorlevel! neq 0 (
-    color 0c
-    echo [ERROR] Gagal menginstal browser Playwright Chromium!
-    goto :FAIL
+set "NEED_PLAYWRIGHT_INSTALL=0"
+if not exist "%PLAYWRIGHT_BROWSERS_PATH%\chromium-*" set "NEED_PLAYWRIGHT_INSTALL=1"
+if not exist "%PLAYWRIGHT_STAMP%" set "NEED_PLAYWRIGHT_INSTALL=1"
+
+if "!NEED_PLAYWRIGHT_INSTALL!"=="1" (
+    echo [INFO] Menyiapkan Playwright Chromium...
+    "%VENV_PYTHON%" -m playwright install chromium
+    if !errorlevel! neq 0 (
+        color 0c
+        echo [ERROR] Gagal menginstal browser Playwright Chromium!
+        goto :FAIL
+    )
+    >"%PLAYWRIGHT_STAMP%" echo ready
+    echo [OK] Browser Playwright berhasil disiapkan.
+) else (
+    echo [OK] Browser Playwright sudah tersedia; instalasi dilewati.
 )
-echo [OK] Browser Playwright siap.
+
+if /i "%~1"=="--setup-only" (
+    echo [OK] Validasi setup selesai. Server tidak dijalankan.
+    exit /b 0
+)
 
 :: ── STEP 6: Jalankan Server (SSH Tunnel dikelola oleh Python) ─────
 echo.

@@ -78,6 +78,137 @@
       font-weight: 500;
     }
 
+    /* Daily Gula flow tree — match Balance Molasses layout */
+    .lh-gula-flow-table tbody tr.lh-flow-child td {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-child td:first-child {
+      padding-left: 24px;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-main td:first-child {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-total td {
+      border-top: 2px solid var(--border-color);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-status td {
+      padding-top: 14px;
+      padding-bottom: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .lh-gula-flow-value {
+      text-align: right;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .lh-flow-note {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    .lh-gula-flow-title {
+      align-items: flex-start;
+      line-height: 1.25;
+    }
+
+    .lh-gula-flow-title > span:last-child {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .lh-gula-flow-title small {
+      font-size: 0.8em;
+      font-weight: 700;
+    }
+
+    .lh-flow-title-note {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .lh-gula-flow-table {
+      font-family: var(--font-inter, 'Inter', sans-serif);
+    }
+
+    .lh-gula-flow-table td:first-child,
+    .lh-gula-flow-table th:first-child {
+      font-family: var(--font-inter, 'Inter', sans-serif);
+      text-align: left;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-main td:first-child {
+      font-size: 0.83rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-child td:first-child {
+      position: relative;
+      padding-left: 34px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-child td:first-child::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 0;
+      bottom: 0;
+      border-left: 1px solid var(--border-subtle);
+      opacity: 0.85;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-child td:first-child::after {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 50%;
+      width: 10px;
+      border-top: 1px solid var(--border-subtle);
+      opacity: 0.85;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-child td:last-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem !important;
+      font-weight: 600;
+    }
+
+    .lh-gula-flow-table .lh-flow-note {
+      display: inline-block;
+      font-size: 0.64rem;
+      font-weight: 500;
+      margin-left: 5px;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-total td:first-child {
+      font-size: 0.86rem;
+      font-weight: 900;
+    }
+
+    .lh-gula-flow-table tbody tr.lh-flow-status td:first-child {
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
     /* Stock Position */
     .sp-location-row {
       display: flex;
@@ -224,9 +355,9 @@
   </style>
   <div class="lh-tabs">
     <div class="lh-tab active" onclick="showTabLH('summary', this)">Summary</div>
-    <div class="lh-tab" onclick="showTabLH('stock-gula', this)">Detail Stock Gula</div>
+    <div class="lh-tab" onclick="showTabLH('stock-gula', this)">Alur Stok Gula</div>
     <div class="lh-tab" onclick="showTabLH('delivery', this)">Detail Delivery</div>
-    <div class="lh-tab" onclick="showTabLH('molasses-cane', this)">Molasses & Cane</div>
+    <div class="lh-tab" onclick="showTabLH('molasses-cane', this)">Alur Harian Gula, Molasses &amp; Cane</div>
     <div class="lh-tab" onclick="showTabLH('grafik', this)">Grafik</div>
   </div>
   <div id="lh-tab-summary" class="lh-tab-content">
@@ -955,59 +1086,8 @@
     <div class="validation-title"><i class="fa-solid fa-scale-balanced"></i> Panel Validasi Balance</div>
     <div class="validation-sub">Pengecekan silang antar sumber data — sama seperti kolom cek manual di Excel.
     </div>
-    <div class="validation-grid">
-
-      <div class="validation-panel">
-        <h4>Stock Checking</h4>
-        <div class="v-row">
-          <span>Inventory Stock</span>
-          <span>14.735,70</span>
-        </div>
-        <div class="v-row">
-          <span>WFG</span>
-          <span>14.734,20</span>
-        </div>
-        <div class="v-row diff">
-          <span>Diffs</span>
-          <span>1,50</span>
-        </div>
-        <span class="badge mismatch"><i class="fa-solid fa-triangle-exclamation"></i> Mismatch</span>
-      </div>
-
-      <div class="validation-panel">
-        <h4>Reject Checking</h4>
-        <div class="v-row">
-          <span>Reject Polos</span>
-          <span>46,85</span>
-        </div>
-        <div class="v-row">
-          <span>Reject</span>
-          <span>46,85</span>
-        </div>
-        <div class="v-row diff">
-          <span>Diffs</span>
-          <span>0,00</span>
-        </div>
-        <span class="badge balanced"><i class="fa-solid fa-check"></i> Balanced</span>
-      </div>
-
-      <div class="validation-panel">
-        <h4>Remelt Check</h4>
-        <div class="v-row">
-          <span>Remelt Sent to Process</span>
-          <span>40,60</span>
-        </div>
-        <div class="v-row">
-          <span>Remelt</span>
-          <span>40,60</span>
-        </div>
-        <div class="v-row diff">
-          <span>Diffs</span>
-          <span>0,00</span>
-        </div>
-        <span class="badge balanced"><i class="fa-solid fa-check"></i> Balanced</span>
-      </div>
-
+    <div class="validation-grid" id="lh-validation-grid">
+      <div class="validation-panel">Memuat validasi...</div>
     </div>
   </div>
 </div>
@@ -1134,11 +1214,11 @@
 
   
 <div id="lh-tab-molasses-cane" class="lh-tab-content" style="display: none;">
-  <div class="mockup-flag"><i class="fa-solid fa-flask"></i> MOLASSES & CANE BALANCE</div>
+  <div class="mockup-flag"><i class="fa-solid fa-flask"></i> ALUR HARIAN GULA, MOLASSES &amp; CANE <span id="lh-mc-selected-date" class="lh-flow-title-note" style="display:inline; margin-left:8px;">Tanggal laporan: -</span></div>
 
   <!-- A. CANE IN (TEBU MASUK) - Brown/Gold Theme -->
   <div class="audit-card" style="border-top: 3px solid #d4a373;">
-    <div class="audit-title" style="color: #bc6c25;"><span class="audit-letter" style="background: #fefae0; color: #bc6c25; border-color: #bc6c25;">A</span> Cane In (Tebu & Raw Sugar)</div>
+    <div class="audit-title" style="color: #bc6c25;"><span class="audit-letter" style="background: #fefae0; color: #bc6c25; border-color: #bc6c25;">A</span> Cane In </div>
     
     <div class="lh-cane-summary">
       <div>
@@ -1168,11 +1248,32 @@
     </table>
   </div>
 
-  <!-- B. BALANCE MOLASSES - Green Theme -->
+  <!-- B. BALANCE GULA - Blue Theme -->
+  <div class="audit-card" style="border-top: 3px solid var(--accent-blue); margin-top: 24px;">
+    <div class="audit-title lh-gula-flow-title" style="color: var(--accent-blue);"><span class="audit-letter" style="background: var(--accent-blue-dim); color: var(--accent-blue); border-color: var(--accent-blue);">B</span><span>Alur Stok Gula Harian <small>(GKP)</small><span class="lh-flow-title-note">Opening + produksi - delivery - reject deduction + upgrade = calculated good stock</span></span></div>
+
+    <table class="audit-table lh-gula-flow-table" id="lh-mc-gula-flow">
+      <thead>
+        <tr>
+          <th>Keterangan</th>
+          <th style="text-align: right;">Qty (Ton)</th>
+        </tr>
+      </thead>
+      <tbody id="lh-mc-gula-flow-body">
+        <tr><td colspan="2" style="text-align:center; color: var(--text-muted);">Memuat data...</td></tr>
+      </tbody>
+    </table>
+
+    <div id="lh-mc-gula-flow-note" style="padding: 10px 16px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 11px;">
+      Reject dari penerimaan ditampilkan sebagai informasi dan tidak mengurangi good stock. Reject delivery/repack mengurangi good stock; upgrade menambah good stock.
+    </div>
+  </div>
+
+  <!-- C. BALANCE MOLASSES - Green Theme -->
   <div class="audit-card" style="border-top: 3px solid var(--accent-green); margin-top: 24px;">
-    <div class="audit-title" style="color: var(--accent-green);"><span class="audit-letter" style="background: rgba(63, 185, 80, 0.1); color: var(--accent-green); border-color: var(--accent-green);">B</span> Balance Molasses Harian</div>
-    
-    <table class="audit-table">
+    <div class="audit-title lh-gula-flow-title" style="color: var(--accent-green);"><span class="audit-letter" style="background: rgba(63, 185, 80, 0.1); color: var(--accent-green); border-color: var(--accent-green);">C</span><span>Balance Molasses Harian <small>(Ton)</small><span class="lh-flow-title-note">Opening + molasses in - delivery aktual = calculated ending inventory</span></span></div>
+
+    <table class="audit-table lh-gula-flow-table lh-mol-flow-table" id="lh-mc-mol-flow">
       <thead>
         <tr>
           <th>Keterangan</th>
@@ -1180,61 +1281,76 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td class="label" style="color: var(--text-secondary);">Begin Inv (Stok Awal)</td>
-          <td style="text-align: right;" id="lh-mc-mol-begin">0.00</td>
+        <tr class="lh-flow-main">
+          <td class="label" style="color: var(--text-primary);">Begin Inv (Stok Awal)</td>
+          <td class="lh-gula-flow-value" style="color: var(--text-primary);" id="lh-mc-mol-begin">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank A</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-begin-a">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Tank A</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-begin-a">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank B</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-begin-b">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Tank B</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-begin-b">0.00</td>
         </tr>
-        <tr>
-          <td class="label" style="color: var(--accent-blue);"><i class="fa-solid fa-plus" style="font-size: 10px;"></i> Molass In (Produksi)</td>
-          <td style="text-align: right; color: var(--accent-blue); font-weight: 600;" id="lh-mc-mol-in">0.00</td>
+        <tr class="lh-flow-main">
+          <td class="label" style="color: var(--accent-blue);">+ Molasses In (Produksi)</td>
+          <td class="lh-gula-flow-value" style="color: var(--accent-blue);" id="lh-mc-mol-in">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Raw Sugar In</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-rawsugar">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Cane In</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-canein">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Yield (Molasses ÷ Cane)</td>
-          <td style="text-align: right; font-size: 11px; color: var(--accent-green); font-weight: 600;" id="lh-mc-mol-yield">—</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Raw Sugar In</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-rawsugar">0.00</td>
         </tr>
-        <tr>
-          <td class="label" style="color: var(--accent-orange);"><i class="fa-solid fa-minus" style="font-size: 10px;"></i> Move Out (Total Actual)</td>
-          <td style="text-align: right; color: var(--accent-orange); font-weight: 600;" id="lh-mc-mol-out">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Yield (Molasses &divide; Cane)</td>
+          <td class="lh-gula-flow-value" style="color: var(--accent-green);" id="lh-mc-mol-yield">&mdash;</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank A</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-out-a">0.00</td>
+        <tr class="lh-flow-main">
+          <td class="label" style="color: var(--accent-orange);">&minus; Move Out (Delivery Aktual)</td>
+          <td class="lh-gula-flow-value" style="color: var(--accent-orange);" id="lh-mc-mol-out">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-muted);">↳ Tank B</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-muted);" id="lh-mc-mol-out-b">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Tank A</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-out-a">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: #a371f7;">↳ Plan Delivery</td>
-          <td style="text-align: right; font-size: 11px; color: #a371f7;" id="lh-mc-mol-plan">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Tank B</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-out-b">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: var(--text-secondary);">↳ Selisih (Diff)</td>
-          <td style="text-align: right; font-size: 11px; color: var(--text-secondary);" id="lh-mc-mol-diff">0.00</td>
+        <tr class="lh-flow-child">
+          <td style="color: #a371f7;">&#8627; Plan Delivery</td>
+          <td class="lh-gula-flow-value" style="color: #a371f7;" id="lh-mc-mol-plan">0.00</td>
         </tr>
-        <tr>
-          <td style="padding-left: 24px; font-size: 11px; color: #a371f7;">↳ Plan Besok (H+1)</td>
-          <td style="text-align: right; font-size: 11px; color: #a371f7;" id="lh-mc-mol-next-schedule">0.00</td>
+        <tr class="lh-flow-child">
+          <td>&#8627; Selisih Actual vs Plan</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-diff">0.00</td>
         </tr>
-        <tr class="total">
-          <td class="label" style="color: var(--accent-green);">Ending Inv (Total Stok Akhir)</td>
-          <td style="text-align: right; color: var(--accent-green); font-size: 16px;" id="lh-mc-mol-end">0.00</td>
+        <tr class="lh-flow-child">
+          <td style="color: #a371f7;">&#8627; Plan Besok (H+1)</td>
+          <td class="lh-gula-flow-value" style="color: #a371f7;" id="lh-mc-mol-next-schedule">0.00</td>
+        </tr>
+        <tr class="lh-flow-main lh-flow-total">
+          <td class="label" style="color: var(--accent-blue);">= Calculated Ending Inv</td>
+          <td class="lh-gula-flow-value" style="color: var(--accent-blue);" id="lh-mc-mol-calculated">0.00</td>
+        </tr>
+        <tr class="lh-flow-main lh-flow-total">
+          <td class="label" style="color: var(--accent-green);">Actual Ending Inv (Stok Akhir)</td>
+          <td class="lh-gula-flow-value" style="color: var(--accent-green);" id="lh-mc-mol-end">0.00</td>
+        </tr>
+        <tr class="lh-flow-child">
+          <td>&#8627; Difference</td>
+          <td class="lh-gula-flow-value" id="lh-mc-mol-balance-diff">0.00</td>
+        </tr>
+        <tr class="lh-flow-status">
+          <td class="label">Status Balance</td>
+          <td style="text-align: right;"><span class="badge missing_input" id="lh-mc-mol-balance-status">MISSING INPUT</span></td>
         </tr>
       </tbody>
     </table>
-
     <!-- Cumulative Delivery Diff -->
     <div style="padding: 12px 16px; background: rgba(0,0,0,0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div style="font-size: 12px; color: var(--text-secondary);">

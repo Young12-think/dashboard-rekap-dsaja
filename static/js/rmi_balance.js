@@ -34,6 +34,7 @@ const RMI_OVERVIEW_MOCK_DATA = {
             delivery_gkm: 1000.00,
             delivery_gkb: 500.00,
             reject_deduction: 20.00,
+            upgrade: 0.00,
             remelt: 10.00,
             calculated_good_stock: 32480.00,
             actual_good_stock: 32480.00,
@@ -126,6 +127,9 @@ document.querySelectorAll('#rmiNav li[data-tab]').forEach(li => {
 
         if (tabId === 'stok') fetchStockHistory();
         if (tabId === 'delivery') fetchDeliveryHistory();
+        if (tabId === 'lokasi') fetchWarehouseStock();
+        if (tabId === 'audit') fetchRmiAudit();
+
     });
 });
 
@@ -136,14 +140,12 @@ async function fetchRmiData() {
     const results = await Promise.allSettled([
         fetch('/api/rmi-balance/stok-harian').then(r => r.json()),
         fetch('/api/rmi-balance/delivery-harian').then(r => r.json()),
-        fetch('/api/rmi-balance/molasses-harian').then(r => r.json()),
-        fetch('/api/rmi-balance/lokasi').then(r => r.json())
+        fetch('/api/rmi-balance/molasses-harian').then(r => r.json())
     ]);
-    const [stokResult, deliveryResult, molassesResult, lokasiResult] = results;
+    const [stokResult, deliveryResult, molassesResult] = results;
     const stok = stokResult.status === 'fulfilled' ? stokResult.value : null;
     const delivery = deliveryResult.status === 'fulfilled' ? deliveryResult.value : null;
     const molasses = molassesResult.status === 'fulfilled' ? molassesResult.value : null;
-    const lokasi = lokasiResult.status === 'fulfilled' ? lokasiResult.value : null;
 
     if (stok && stok.status === 'success') {
         renderChartStok(stok.data, 'chartFullStok');
@@ -158,9 +160,6 @@ async function fetchRmiData() {
     }
     if (molasses && molasses.status === 'success') {
         renderChartMolasses(molasses.data, 'chartFullMolasses');
-    }
-    if (lokasi && lokasi.status === 'success') {
-        renderChartLokasi(lokasi.data, 'chartFullLokasi');
     }
 }
 window.fetchRmiData = fetchRmiData;
@@ -332,7 +331,7 @@ function formatTon(value) {
 // Molasses: DB kg / 1000 → butuh >2 desimal agar tidak ada pembulatan
 function formatTonPrecise(value) {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
-    return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 5 }) + ' ton';
+    return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) + ' ton';
 }
 
 function formatPercent(value) {
@@ -419,10 +418,17 @@ function renderOverview(data) {
         const report = data.report || {};
 
         setOverviewText('overview-date', formatDateIndo(data.date));
-        setOverviewText('overview-last-update', formatDateTimeIndo(report.last_update));
+        const lastUpdate = formatDateTimeIndo(report.data_updated_at || report.last_update);
+        setOverviewText('overview-last-update', lastUpdate);
+        setOverviewText('header-last-update', lastUpdate);
         setOverviewText('overview-source', report.source || 'Input DB');
         applyOverviewStatus('overview-report-status', report.status);
         applyOverviewStatus('overview-balance-status', report.balance_status);
+        applyOverviewStatus('overview-operational-status', report.operational_status || 'balanced');
+        const balanceBadge = document.getElementById('overview-balance-status');
+        if (balanceBadge) balanceBadge.textContent = 'Balance: ' + overviewStatusLabel(String(report.balance_status || 'draft').toLowerCase());
+        const operationalBadge = document.getElementById('overview-operational-status');
+        if (operationalBadge) operationalBadge.textContent = 'Operasional: ' + overviewStatusLabel(String(report.operational_status || 'balanced').toLowerCase());
 
         const datePicker = document.getElementById('laporanDate');
         // ponytail: jangan timpa pilihan user; hanya isi saat kosong (load awal)
@@ -437,7 +443,7 @@ function renderOverview(data) {
         renderOverviewStockPositionCard(data.sugar.stock_position || {});
         renderOverviewValidationCard(data.sugar.validation || []);
         renderOverviewCharts(data.sugar.trend || {});
-        renderOverviewOtherSummary(data.molasses || {}, data.cane || {});
+        renderOverviewOtherSummary(data.molasses || {}, data.cane || {}, data.sugar.reject_balance || {});
     } catch (err) {
         console.warn('[RMI] renderOverview failed:', err);
         const errorEl = document.getElementById('overview-error');
@@ -484,9 +490,13 @@ function renderOverviewBalanceCard(balance) {
         ['Opening Good Stock', formatTon(balance.opening_good_stock)],
         ['+ Penerimaan GKM', formatTon(balance.in_gkm)],
         ['+ Penerimaan GKB', formatTon(balance.in_gkb)],
+        ['Reject Received <small>(informasi)</small>', formatTon(balance.received_reject)],
         ['- Delivery GKM', formatTon(balance.delivery_gkm)],
         ['- Delivery GKB', formatTon(balance.delivery_gkb)],
-        ['- Reject Deduction', formatTon(balance.reject_deduction)],
+        ['- Reject Deduction (Delivery)', formatTon(balance.delivery_reject ?? balance.reject_deduction)],
+        ['+ Upgrade Reject Total', formatTon(balance.upgrade)],
+        ['&rarr; Upgrade GKM', formatTon(balance.upgrade_gkm)],
+        ['&rarr; Upgrade GKB', formatTon(balance.upgrade_gkb)],
         ['- Remelt', formatTon(balance.remelt)],
         ['= Calculated Good Stock', formatTon(balance.calculated_good_stock), 'total'],
         ['Actual Good Stock', formatTon(balance.actual_good_stock)],
@@ -699,7 +709,7 @@ function shortDateLabel(dateString) {
     return `${date.getDate()}/${date.getMonth() + 1}`;
 }
 
-function renderOverviewOtherSummary(molasses, cane) {
+function renderOverviewOtherSummary(molasses, cane, reject) {
     setOverviewHtml('overview-other-summary', `
         <section class="overview-card">
             <div class="overview-card-header">
@@ -714,7 +724,9 @@ function renderOverviewOtherSummary(molasses, cane) {
                 <div class="overview-summary-row"><span class="overview-summary-label">Tank B</span><span class="overview-summary-value">${formatTonPrecise(molasses.tank_b)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Total Molasses</span><span class="overview-summary-value">${formatTonPrecise(molasses.total_stock)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Utilization</span><span class="overview-summary-value">${formatPercent(molasses.utilization_percent)}</span></div>
-                <div class="overview-summary-row"><span class="overview-summary-label">Delivery Gap</span><span class="overview-summary-value">${formatTon(molasses.delivery_gap)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Delivery Plan / Actual</span><span class="overview-summary-value">${formatTonPrecise(molasses.delivery_plan)} / ${formatTonPrecise(molasses.delivery_actual)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Delivery Gap</span><span class="overview-summary-value">${formatTonPrecise(molasses.delivery_gap)}</span></div>
+                <div class="overview-card-subtitle">Sumber Excel/DB kg; ditampilkan dalam ton tanpa pembulatan nilai sumber.</div>
             </div>
         </section>
         <section class="overview-card">
@@ -730,6 +742,23 @@ function renderOverviewOtherSummary(molasses, cane) {
                 <div class="overview-summary-row"><span class="overview-summary-label">Ritase in Day</span><span class="overview-summary-value">${fmt(cane.cane_ritase)} truck</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Cane Netto to Date</span><span class="overview-summary-value">${formatTonPrecise(cane.cane_netto_to_date)}</span></div>
                 <div class="overview-summary-row"><span class="overview-summary-label">Ritase to Date</span><span class="overview-summary-value">${fmt(cane.cane_ritase_to_date)} truck</span></div>
+            </div>
+        </section>
+        <section class="overview-card">
+            <div class="overview-card-header">
+                <div>
+                    <h3 class="overview-card-title">Reject Balance</h3>
+                    <div class="overview-card-subtitle">Reject received tidak mengurangi good stock</div>
+                </div>
+                ${getOverviewStatusBadge(reject.status || 'warning')}
+            </div>
+            <div class="overview-card-body overview-summary-list">
+                <div class="overview-summary-row"><span class="overview-summary-label">Opening Reject</span><span class="overview-summary-value">${formatTon(reject.opening)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Received</span><span class="overview-summary-value">${formatTon(reject.received)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Delivery Reject</span><span class="overview-summary-value">${formatTon(reject.delivery)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Upgrade / Remelt</span><span class="overview-summary-value">${formatTon(reject.upgrade)} / ${formatTon(reject.remelt)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Calculated / Actual</span><span class="overview-summary-value">${formatTon(reject.calculated)} / ${formatTon(reject.actual)}</span></div>
+                <div class="overview-summary-row"><span class="overview-summary-label">Difference</span><span class="overview-summary-value">${formatTon(reject.difference)}</span></div>
             </div>
         </section>
     `);
@@ -913,12 +942,14 @@ function renderChartDelivery(data, canvasId) {
     });
 }
 
-// === Stok & Delivery History (tab Stok GKP Harian / Delivery Plan) ===
+// === Stok & Delivery History (tab Stock Perday / Delivery Plan) ===
 async function fetchStockHistory() {
-    const days = document.getElementById('stockHistoryDays')?.value || 90;
+    const startDate = document.getElementById('stockHistoryStart')?.value || '';
+    const endDate = document.getElementById('stockHistoryEnd')?.value || '';
     const body = document.getElementById('stockHistoryBody');
     try {
-        const res = await fetch(`/api/rmi-balance/stok-harian?days=${days}`);
+        const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+        const res = await fetch(`/api/rmi-balance/stok-harian?${params}`);
         const payload = await res.json();
         if (payload.status !== 'success') throw new Error(payload.message || 'API error');
         const data = Array.isArray(payload.data) ? payload.data : [];
@@ -933,10 +964,14 @@ async function fetchStockHistory() {
 window.fetchStockHistory = fetchStockHistory;
 
 async function fetchDeliveryHistory() {
-    const days = document.getElementById('deliveryHistoryDays')?.value || 90;
+    const startDate = document.getElementById('deliveryHistoryStart')?.value || '';
+    const endInput = document.getElementById('deliveryHistoryEnd');
+    const endDate = endInput?.value || document.getElementById('laporanDate')?.value || '';
+    if (endInput && !endInput.value) endInput.value = endDate;
     const body = document.getElementById('deliveryHistoryBody');
     try {
-        const res = await fetch(`/api/rmi-balance/delivery-harian?days=${days}`);
+        const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+        const res = await fetch(`/api/rmi-balance/delivery-harian?${params}`);
         const payload = await res.json();
         if (payload.status !== 'success') throw new Error(payload.message || 'API error');
         const data = Array.isArray(payload.data) ? payload.data : [];
@@ -1047,29 +1082,52 @@ function renderChartDeliveryMolasses(data, canvasId) {
     });
 }
 
-// Chart 3: Lokasi Gudang Luar (Horizontal Bar)
+async function fetchWarehouseStockData() {
+    const startDate = document.getElementById('warehouseStockStart')?.value || '';
+    const endDate = document.getElementById('warehouseStockEnd')?.value || '';
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    const res = await fetch(`/api/rmi-balance/lokasi?${params}`);
+    const payload = await res.json();
+    const data = payload.status === 'success' && Array.isArray(payload.data) ? payload.data : [];
+    renderChartLokasi(data, 'chartFullLokasi');
+    const latestDate = data.length ? data[data.length - 1].tanggal : null;
+    const latest = data.filter(row => row.tanggal === latestDate);
+    const total = latest.reduce((sum, row) => sum + (parseFloat(row.stok_akhir) || 0), 0);
+    const top = latest.reduce((best, row) => (parseFloat(row.stok_akhir) || 0) > (parseFloat(best?.stok_akhir) || 0) ? row : best, null);
+    const kpi = document.getElementById('warehouseStockKpis');
+    if (kpi) kpi.innerHTML = `<div class="history-kpi"><span>Total Stock</span><strong>${fmt(total)} ton</strong></div><div class="history-kpi"><span>Gudang Terbesar</span><strong>${top?.nama_gudang || '-'}</strong></div><div class="history-kpi"><span>Tanggal Terakhir</span><strong>${latestDate || '-'}</strong></div>`;
+}
+window.fetchWarehouseStock = fetchWarehouseStockData;
+
+// Chart 3: Stock Gudang (Line Chart)
 function renderChartLokasi(data, canvasId) {
     clearChart(canvasId);
     const ctx = getCtxSafe(canvasId);
     if (!ctx) return;
-    const labels = data.map(d => d.nama_gudang);
-    const values = data.map(d => parseFloat(d.stok_akhir));
-
+    const dates = [...new Set(data.map(d => d.tanggal))];
+    const warehouses = [...new Set(data.map(d => d.nama_gudang))];
+    const colors = ['#58a6ff', '#bc8cff', '#3fb950', '#d29922', '#f85149', '#79c0ff', '#d2a8ff', '#56d364', '#ffa657', '#ff7b72', '#a5d6ff'];
+    const datasets = warehouses.map((name, index) => ({
+        label: name,
+        data: dates.map(date => {
+            const row = data.find(d => d.tanggal === date && d.nama_gudang === name);
+            return row ? parseFloat(row.stok_akhir) || 0 : null;
+        }),
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length],
+        tension: 0.25,
+        spanGaps: true,
+        pointRadius: 2
+    }));
     chartInstances[canvasId] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Stok Akhir (MT)',
-                data: values,
-                backgroundColor: '#bc8cff',
-            }]
-        },
+        type: 'line',
+        data: { labels: dates, datasets },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Ton' } } }
         }
     });
 }
@@ -1189,10 +1247,15 @@ function initDates() {
     const laporanDate = document.getElementById('laporanDate');
     const grafikDateFrom = document.getElementById('grafikDateFrom');
     const grafikDateTo = document.getElementById('grafikDateTo');
+    const auditDateFrom = document.getElementById('auditDateFrom');
+    const auditDateTo = document.getElementById('auditDateTo');
 
     if (laporanDate && !laporanDate.value) laporanDate.value = today;
-    if (grafikDateFrom) grafikDateFrom.value = firstDayStr;
-    if (grafikDateTo) grafikDateTo.value = today;
+    if (auditDateFrom && !auditDateFrom.value) auditDateFrom.value = firstDayStr;
+    if (auditDateTo && !auditDateTo.value) auditDateTo.value = today;
+
+    if (grafikDateFrom && !grafikDateFrom.value) grafikDateFrom.value = firstDayStr;
+    if (grafikDateTo && !grafikDateTo.value) grafikDateTo.value = today;
 
     // Sync awal dari #laporanDate ke currentLhDate (dipakai tab Laporan Harian)
     if (laporanDate?.value && typeof currentLhDate !== 'undefined') {
@@ -1237,17 +1300,8 @@ function initOverviewControls() {
 }
 
 let analyticsData = null;
-let analyticsDays = 7;
 let analyticsMetric = 'production';
 let analyticsShiftMetric = 'gula';
-
-function setAnalyticsDays(days) {
-    analyticsDays = days;
-    document.querySelectorAll('#analyticsPeriods button').forEach(b => {
-        b.classList.toggle('active', b.dataset.days === String(days));
-    });
-    fetchGrafikAnalitik();
-}
 
 function setAnalyticsMetric(metric) {
     analyticsMetric = metric;
@@ -1267,16 +1321,32 @@ function setAnalyticsShiftMetric(metric) {
 
 async function fetchGrafikAnalitik() {
     const kpiGrid = document.getElementById('analyticsKpiGrid');
+    const dateFromInput = document.getElementById('grafikDateFrom');
+    const dateToInput = document.getElementById('grafikDateTo');
+    const dateFrom = dateFromInput?.value;
+    const dateTo = dateToInput?.value;
+
+    dateFromInput?.setCustomValidity('');
+    dateToInput?.setCustomValidity('');
+    if (!dateFrom || !dateTo) {
+        const missingInput = !dateFrom ? dateFromInput : dateToInput;
+        missingInput?.setCustomValidity('Tanggal wajib diisi.');
+        missingInput?.reportValidity();
+        return;
+    }
+    if (dateFrom > dateTo) {
+        dateFromInput?.setCustomValidity('Tanggal awal tidak boleh melewati tanggal akhir.');
+        dateFromInput?.reportValidity();
+        return;
+    }
+
     if (kpiGrid) kpiGrid.innerHTML = '<div class="analytics-empty" style="grid-column:1/-1;">Memuat ringkasan analitik...</div>';
-    const dateInput = document.getElementById('grafikDateTo');
-    const dateTo = dateInput?.value || document.getElementById('laporanDate')?.value || new Date().toISOString().split('T')[0];
-    // ponytail: 'month' = dari tgl 1 bulan terpilih s/d tanggal terpilih; upgrade: kirim mode ke API bila perlu
-    const daysParam = analyticsDays === 'month'
-        ? new Date(`${dateTo}T00:00:00`).getDate()
-        : analyticsDays;
+    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
 
     try {
-        const res = await fetch(`/api/rmi-balance/grafik-analitik?date=${encodeURIComponent(dateTo)}&days=${daysParam}`).then(r => r.json());
+        const response = await fetch(`/api/rmi-balance/grafik-analitik?${params.toString()}`);
+        const res = await response.json();
+        if (!response.ok) throw new Error(res.message || 'Permintaan analitik gagal');
         if (res.status !== 'success') throw new Error(res.message || 'Respons API tidak valid');
         analyticsData = res.data;
         renderGrafikAnalitik(analyticsData);
@@ -1419,18 +1489,31 @@ function renderAnalyticsInsights(insights) {
 
 async function fetchMolassesTanks(existingData = null) {
     try {
-        const selectedDate = document.getElementById('laporanDate')?.value || '';
+        const molStartInput = document.getElementById('molassesStartDate');
+        const molDateInput = document.getElementById('molassesDate');
+        const startDate = molStartInput?.value || '';
+        const selectedDate = molDateInput?.value || '';
+        if (startDate && selectedDate && startDate > selectedDate) {
+            molStartInput.setCustomValidity('Dari Tanggal tidak boleh melewati S.d. Tanggal.');
+            molStartInput.reportValidity();
+            return;
+        }
+        molStartInput?.setCustomValidity('');
+        const rangeParams = new URLSearchParams();
+        if (startDate) rangeParams.set('start_date', startDate);
+        if (selectedDate) rangeParams.set('date', selectedDate);
         const [stockRes, settingsRes] = await Promise.all([
-            existingData ? Promise.resolve({ status: 'success', data: existingData }) : fetch(`/api/rmi-balance/molasses-harian?days=${document.getElementById('molassesTrendDays')?.value || 30}&date=${encodeURIComponent(selectedDate)}`).then(r => r.json()),
+            existingData ? Promise.resolve({ status: 'success', data: existingData }) : fetch(`/api/rmi-balance/molasses-harian?${rangeParams.toString()}`).then(r => r.json()),
             fetch('/api/rmi-balance/settings').then(r => r.json())
         ]);
         if (stockRes.status !== 'success' || settingsRes.status !== 'success') throw new Error('Data tangki tidak tersedia');
         const rows = stockRes.data || [];
-        const eligible = selectedDate
+        const eligible = (startDate || selectedDate)
             ? rows.filter(row => {
                 const d = new Date(row.tanggal);
                 if(isNaN(d)) return true;
-                return d.toISOString().split('T')[0] <= selectedDate;
+                const rowDate = d.toISOString().split('T')[0];
+                return (!startDate || rowDate >= startDate) && (!selectedDate || rowDate <= selectedDate);
             })
             : rows;
         const settings = Array.isArray(settingsRes.data) ? settingsRes.data[0] : settingsRes.data;
@@ -1455,21 +1538,32 @@ function renderMolassesTanks(row, settings) {
     }
 
     const tanks = [
-        ['A', Number(row?.tank_a || 0), Number(settings?.molasses_tank_a_capacity || 0)],
-        ['B', Number(row?.tank_b || 0), Number(settings?.molasses_tank_b_capacity || 0)]
+        ['A', Number(row?.tank_a || 0), Number(settings?.molasses_tank_a_capacity || 0), Number(row?.suhu_tanka || 0)],
+        ['B', Number(row?.tank_b || 0), Number(settings?.molasses_tank_b_capacity || 0), Number(row?.suhu_tankb || 0)]
     ];
 
-    tanks.forEach(([id, stock, capacity]) => {
+    tanks.forEach(([id, stock, capacity, suhu]) => {
         const percentRaw = capacity > 0 ? (stock / capacity) * 100 : 0;
         const percent = Math.min(Math.max(percentRaw, 0), 100);
         
         const liqEl = document.getElementById(`molTankLiquid${id}`);
         const pctEl = document.getElementById(`molTankPercent${id}`);
         const statEl = document.getElementById(`molTankStats${id}`);
+        const suhuVessel = document.getElementById(`molTankSuhu${id}`);
+        const suhuBadge = document.getElementById(`molSuhuBadge${id}`);
         
         if (liqEl) liqEl.style.height = `${percent}%`;
-        if (pctEl) pctEl.textContent = `${percentRaw.toFixed(1)}%`;
-        if (statEl) statEl.innerHTML = `<strong>${stock.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 5 })} MT</strong><br><small>Kapasitas: ${capacity.toLocaleString('id-ID')} MT</small>`;
+        if (pctEl) {
+            const pctValEl = pctEl.querySelector('.pct-val');
+            if (pctValEl) pctValEl.textContent = `${percentRaw.toFixed(1)}%`;
+        }
+        const suhuStr = suhu > 0 ? `${suhu.toFixed(1)} °C` : '-- °C';
+        if (suhuVessel) suhuVessel.textContent = suhuStr;
+        if (suhuBadge) suhuBadge.textContent = suhuStr;
+        if (statEl) statEl.innerHTML = `
+            <div class="mol-tank-stat"><span>Stok Akhir</span><strong>${stock.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 5 })} MT</strong></div>
+            <div class="mol-tank-stat"><span>Kapasitas</span><strong>${capacity.toLocaleString('id-ID')} MT</strong></div>
+            <div class="mol-tank-stat"><span>Terisi</span><strong>${percentRaw.toFixed(1)}%</strong></div>`;
     });
 }
 
@@ -1499,9 +1593,120 @@ function renderMolassesTrend(data) {
             }
         }
     });
+
+    renderSuhuChart('chartSuhuA', data, 'suhu_tanka', 'Suhu Tangki A', '#ffb84d');
+    renderSuhuChart('chartSuhuB', data, 'suhu_tankb', 'Suhu Tangki B', '#ff7f50');
+}
+
+function renderSuhuChart(canvasId, data, field, label, color) {
+    clearChart(canvasId);
+    const ctx = getCtxSafe(canvasId);
+    if (!ctx) return;
+    const values = data.map(row => {
+        const v = Number(row[field]);
+        return (isNaN(v) || v === 0) ? null : v;
+    });
+    const hasData = values.some(v => v !== null);
+    if (!hasData) {
+        const wrap = document.getElementById(canvasId)?.parentElement;
+        if (wrap) {
+            const empty = wrap.querySelector('.mol-tank-chart-empty');
+            if (!empty) {
+                wrap.insertAdjacentHTML('beforeend', '<div class="mol-tank-chart-empty">Belum ada data suhu</div>');
+            }
+        }
+        return;
+    }
+    const emptyEl = document.getElementById(canvasId)?.parentElement?.querySelector('.mol-tank-chart-empty');
+    if (emptyEl) emptyEl.remove();
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(row => analyticsDateLabel(String(row.tanggal).slice(0, 10))),
+            datasets: [{
+                label,
+                data: values,
+                borderColor: color,
+                backgroundColor: color + '1f',
+                tension: .35,
+                pointRadius: 3,
+                spanGaps: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { bottom: 8 } },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ctx.parsed.y !== null ? `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} °C` : null } }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7, padding: 6, font: { size: 10 } } },
+                y: { ticks: { callback: v => v + ' °C', font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+async function fetchRmiAudit(useMovementDate = false) {
+    const dateFrom = document.getElementById('auditDateFrom')?.value;
+    const dateTo = document.getElementById('auditDateTo')?.value;
+    const product = document.getElementById('auditProduct')?.value;
+    const movementDate = document.getElementById('auditMovementDate')?.value;
+    if (!dateFrom || !dateTo) return;
+    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    if (product) params.set('product_code', product);
+    if (useMovementDate && movementDate) params.set('movement_date', movementDate);
+    try {
+        const response = await fetch(`/api/rmi-balance/audit?${params}`);
+        const payload = await response.json();
+        if (!response.ok || payload.status !== 'success') throw new Error(payload.message || 'Audit gagal dimuat');
+        renderRmiAudit(payload.data);
+    } catch (error) {
+        const kpis = document.getElementById('auditKpis');
+        if (kpis) kpis.innerHTML = `<div class="analytics-empty">${error.message}</div>`;
+    }
+}
+
+function renderRmiAudit(data) {
+    const ton = value => value == null ? '—' : `${analyticsNumber(value, 2)} MT`;
+    const pct = value => value == null ? '—' : `${analyticsNumber(value, 2)}%`;
+    const badge = status => `<span class="overview-status-badge ${status}">${status}</span>`;
+    const reconciliations = data.molasses || [];
+    const sugar = data.sugar || [];
+    const sugarChecks = sugar.flatMap(row => ['gkp', 'gkm', 'gkb'].map(product => row[product])).filter(Boolean);
+    const yieldData = data.yield || {};
+    const yieldDaily = yieldData.daily || [];
+    const yieldShift = yieldData.shift || [];
+    const mismatch = reconciliations.filter(row => row.status === 'mismatch').length
+        + sugarChecks.filter(row => row.status === 'mismatch').length;
+    const missing = reconciliations.filter(row => row.status === 'missing_input').length
+        + sugarChecks.filter(row => row.status === 'missing_input').length;
+    const todate = yieldData.todate || {};
+    document.getElementById('auditKpis').innerHTML = [
+        ['Movement', (data.movements || []).length], ['Mismatch', mismatch], ['Missing Input', missing],
+        ['Yield Molasses', pct(yieldData.cumulative?.yield_percent)], ['Yield GKP', pct(yieldData.cumulative?.yield_gkp_percent)],
+        ['Yield Molasses Todate', pct(todate.yield_percent)], ['Yield GKP Todate', pct(todate.yield_gkp_percent)]
+    ].map(([label, value]) => `<div class="analytics-kpi"><span class="analytics-kpi-label">${label}</span><strong class="analytics-kpi-value">${value}</strong></div>`).join('');
+    const todateLabel = document.getElementById('auditYieldTodateLabel');
+    if (todateLabel) todateLabel.textContent = todate.from ? `Todate sejak awal giling ${todate.from} s.d. ${todate.to}: Molasses ${pct(todate.yield_percent)}, GKP ${pct(todate.yield_gkp_percent)}.` : 'Tanggal awal giling belum diatur di Setting.';
+    document.getElementById('auditMolassesBody').innerHTML = reconciliations.map(row => `<tr><td>${row.tanggal}</td><td>${ton(row.opening)}</td><td>${ton(row.inbound)}</td><td>${ton(row.outbound)}</td><td>${ton(row.calculated_closing)}</td><td>${ton(row.actual_closing)}</td><td>${badge(row.status)}</td></tr>`).join('') || '<tr><td colspan="7">Tidak ada data</td></tr>';
+    document.getElementById('auditYieldDailyBody').innerHTML = yieldDaily.map(row => `<tr><td>${String(row.tanggal).slice(0, 10)}</td><td>${ton(row.cane_in)}</td><td>${ton(row.molasses_in)}</td><td>${pct(row.yield_percent)}</td><td>${ton(row.gkp_in)}</td><td>${pct(row.yield_gkp_percent)}</td><td>${badge(row.status)}</td></tr>`).join('') || '<tr><td colspan="7">Tidak ada data</td></tr>';
+    document.getElementById('auditYieldShiftBody').innerHTML = yieldShift.map(row => `<tr><td>${String(row.tanggal).slice(0, 10)}</td><td>${row.shift}</td><td>${ton(row.cane_in)}</td><td>${ton(row.molasses_in)}</td><td>${pct(row.yield_percent)}</td><td>${badge(row.status)}</td></tr>`).join('') || '<tr><td colspan="6">Tidak ada data</td></tr>';
+
+    document.getElementById('auditGkpBody').innerHTML = sugar.map(row => { const item = row.gkp; return `<tr><td>${String(row.tanggal).slice(0, 10)}</td><td>${ton(item.opening)}</td><td>${ton(item.production)}</td><td>${ton(item.delivery)}</td><td>${ton(item.repack)}</td><td>${ton(item.upgrade)}</td><td>${ton(item.calculated_closing)}</td><td>${ton(item.actual_closing)}</td><td>${ton(item.difference)}</td><td>${badge(item.status)}</td></tr>`; }).join('') || '<tr><td colspan="10">Tidak ada data</td></tr>';
+    document.getElementById('auditSugarBody').innerHTML = sugar.flatMap(row => ['gkm', 'gkb'].map(product => { const item = row[product]; return `<tr><td>${String(row.tanggal).slice(0, 10)}</td><td>${product.toUpperCase()}</td><td>${ton(item.opening)}</td><td>${ton(item.production)}</td><td>${ton(item.delivery)}</td><td>${ton(item.repack)}</td><td>${ton(item.upgrade)}</td><td>${ton(item.calculated_closing)}</td><td>${ton(item.actual_closing)}</td><td>${ton(item.difference)}</td><td>${badge(item.status)}</td></tr>`; })).join('') || '<tr><td colspan="11">Tidak ada data</td></tr>';
+    document.getElementById('auditMovementBody').innerHTML = (data.movements || []).map(row => `<tr><td>${String(row.tanggal).slice(0, 10)}</td><td>${row.shift ?? '—'}</td><td>${row.product_code}</td><td>${row.movement_type}</td><td>${ton(row.quantity)}</td><td>${row.source_table}</td><td>${row.source_reference ?? '—'}</td></tr>`).join('') || '<tr><td colspan="7">Tidak ada data</td></tr>';
+    const movementDateInput = document.getElementById('auditMovementDate');
+    if (movementDateInput && data.movement_date) movementDateInput.value = data.movement_date;
+    const movementLabel = document.getElementById('auditMovementDateLabel');
+    if (movementLabel) movementLabel.textContent = data.movement_date ? `Menampilkan ${data.movement_date}.` : '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
     initDates();
     initOverviewControls();
     fetchRmiData();
@@ -1542,21 +1747,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchGrafikAnalitik();
             }
             if (tabId === 'molasses') {
-                fetchMolassesTanks();
+                setTimeout(() => fetchMolassesTanks(), 50);
             }
         });
     });
 
-    const grafikDate = document.getElementById('grafikDateTo');
-    if (grafikDate) {
-        if (!grafikDate.value) grafikDate.value = document.getElementById('laporanDate')?.value || new Date().toISOString().split('T')[0];
-        grafikDate.addEventListener('change', fetchGrafikAnalitik);
+    const grafikDateFrom = document.getElementById('grafikDateFrom');
+    const grafikDateTo = document.getElementById('grafikDateTo');
+    const syncGrafikRange = () => {
+        if (grafikDateFrom && grafikDateTo) {
+            grafikDateFrom.max = grafikDateTo.value || '';
+            grafikDateTo.min = grafikDateFrom.value || '';
+        }
+        fetchGrafikAnalitik();
+    };
+    grafikDateFrom?.addEventListener('change', syncGrafikRange);
+    grafikDateTo?.addEventListener('change', syncGrafikRange);
+    if (grafikDateFrom && grafikDateTo) {
+        grafikDateFrom.max = grafikDateTo.value || '';
+        grafikDateTo.min = grafikDateFrom.value || '';
     }
-    
-    // Also trigger fetch on Analytics Days changes
-    document.querySelectorAll('#analyticsPeriods button').forEach(b => {
-        b.addEventListener('click', () => setAnalyticsDays(b.dataset.days));
-    });
 
     document.querySelectorAll('#analyticsMetrics button').forEach(b => {
         b.addEventListener('click', () => setAnalyticsMetric(b.dataset.metric));
@@ -1568,6 +1778,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('deliveryHistoryDays')?.addEventListener('change', fetchDeliveryHistory);
     document.getElementById('stockHistoryDays')?.addEventListener('change', fetchStockHistory);
+    const molStartEl = document.getElementById('molassesStartDate');
+    const molDateEl = document.getElementById('molassesDate');
+    if (molDateEl && !molDateEl.value) {
+        molDateEl.value = document.getElementById('laporanDate')?.value || new Date().toISOString().split('T')[0];
+    }
+    if (molStartEl && !molStartEl.value) molStartEl.value = '2026-01-01';
+
+    const syncMolassesRange = () => {
+        if (molStartEl && molDateEl) {
+            molStartEl.max = molDateEl.value || '';
+            molDateEl.min = molStartEl.value || '';
+        }
+        fetchMolassesTanks();
+    };
+    molStartEl?.addEventListener('change', syncMolassesRange);
+    molDateEl?.addEventListener('change', syncMolassesRange);
+    if (molStartEl && molDateEl) {
+        molStartEl.max = molDateEl.value || '';
+        molDateEl.min = molStartEl.value || '';
+    }
 });
 
 // Update the fetchRmiData to also fetch molasses tanks if possible
@@ -1576,12 +1806,5 @@ if (typeof fetchRmiData === 'function') {
     fetchRmiData = async function() {
         await originalFetchRmiData();
         fetchMolassesTanks();
-        
-        // Also update grafikDateTo if laporanDate changes
-        const grafikDate = document.getElementById('grafikDateTo');
-        const selectedDate = document.getElementById('laporanDate')?.value;
-        if (grafikDate && selectedDate) {
-            grafikDate.value = selectedDate;
-        }
     };
 }
