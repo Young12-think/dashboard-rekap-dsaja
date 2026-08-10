@@ -437,7 +437,7 @@ function renderOverview(data) {
         const errorEl = document.getElementById('overview-error');
         if (errorEl) errorEl.style.display = 'none';
 
-        renderOverviewKpiCards(data.sugar.kpi || {});
+        renderOverviewKpiCards(data.sugar.kpi || {}, data.date);
         renderOverviewBalanceCard(data.sugar.balance || {});
         renderOverviewCompositionCard(data.sugar.composition || [], data.sugar.kpi?.total_stock || 0);
         renderOverviewStockPositionCard(data.sugar.stock_position || {});
@@ -454,11 +454,14 @@ function renderOverview(data) {
     }
 }
 
-function renderOverviewKpiCards(kpi) {
+function renderOverviewKpiCards(kpi, reportDate) {
     const gap = Number(kpi.delivery_gap || 0);
     const util = Number(kpi.utilization_percent || 0);
+    const stockDateLabel = reportDate
+        ? `Stok akhir per ${formatDateIndo(reportDate)}`
+        : 'Stok akhir tanggal laporan';
     const cards = [
-        { label: 'Total Stock Gula', value: formatTon(kpi.total_stock), sub: 'GKM + GKB + Reject', cls: 'hero' },
+        { label: 'Total Stock Gula', value: formatTon(kpi.total_stock), sub: `${stockDateLabel} · GKM + GKB + Reject`, cls: 'hero' },
         { label: 'GKM', value: formatTon(kpi.gkm), sub: 'Gula merah', cls: 'flat' },
         { label: 'GKB', value: formatTon(kpi.gkb), sub: 'Gula biru', cls: 'flat' },
         { label: 'Reject', value: formatTon(kpi.reject), sub: 'Reject stock', cls: 'flat' },

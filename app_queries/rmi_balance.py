@@ -880,9 +880,12 @@ def get_overview_v2(date_str=None):
         reject_calculated - reject_actual
         if reject_calculated is not None and reject_actual is not None else None
     )
-    if reject_calculated is None:
+    if reject_calculated is None or reject_actual is None:
         reject_status = 'missing_input'
-        reject_message = 'Opening reject atau sumber reject/remelt belum tersedia.'
+        if reject_calculated is None:
+            reject_message = 'Opening reject atau sumber reject/remelt belum tersedia.'
+        else:
+            reject_message = 'Saldo reject closing pada gula_stok belum tersedia untuk tanggal laporan.'
     elif abs(reject_difference) <= tolerance:
         reject_status = 'ok'
         reject_message = (
