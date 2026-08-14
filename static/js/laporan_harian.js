@@ -23,14 +23,17 @@ function renderGulaDailyFlow(flow) {
         rows.push(`<tr class="lh-flow-child"><td>&#8627; GKM</td><td style="text-align: right; font-size: 11px; color: var(--text-muted);">${value(group.gkm)}</td></tr>`);
         rows.push(`<tr class="lh-flow-child"><td>&#8627; GKB</td><td style="text-align: right; font-size: 11px; color: var(--text-muted);">${value(group.gkb)}</td></tr>`);
     };
-    const addChild = (label, v, color = 'var(--text-muted)', note = '') => {
-        rows.push(`<tr class="lh-flow-child"><td>&#8627; ${label}${note ? `<span class="lh-flow-note">${note}</span>` : ''}</td><td style="text-align: right; font-size: 11px; color:${color};">${value(v)}</td></tr>`);
+    const addChild = (label, v, color = 'var(--text-muted)', note = '', formatter = value) => {
+        rows.push(`<tr class="lh-flow-child"><td>&#8627; ${label}${note ? `<span class="lh-flow-note">${note}</span>` : ''}</td><td style="text-align: right; font-size: 11px; color:${color};">${formatter(v)}</td></tr>`);
     };
 
     addGroup('Begin Inv (Good Stock Awal)', flow.opening, 'var(--text-primary)');
     addGroup('+ Good Stock In (Produksi GKM/GKB)', flow.production, 'var(--accent-blue)');
     addChild('Reject Received (tidak mengurangi good stock)', flow.receivedReject, 'var(--text-muted)', 'informasi; tidak mengurangi good stock');
     addGroup('&minus; Move Out (Delivery Aktual)', flow.delivery, 'var(--accent-orange)');
+    addChild('Tonase Container GKB', flow.deliveryMeta?.tonaseGkb, '#a371f7');
+    addChild('Tonase Container GKM', flow.deliveryMeta?.tonaseGkm, '#a371f7');
+    addChild('Jumlah Truck', flow.deliveryMeta?.jmlTruck, 'var(--text-secondary)', 'total semua produk', (v) => v === null || v === undefined ? '&mdash;' : Number(v || 0).toLocaleString('id-ID'));
     addChild('Plan Delivery', flow.deliveryPlan?.total, '#a371f7');
     addChild('Selisih Actual vs Plan', flow.deliveryDiff?.total, num(flow.deliveryDiff?.total) >= 0 ? 'var(--accent-green)' : '#f85149');
     addGroup('&minus; Reject Deduction (Susut/Downgrade)', flow.repack, '#f85149');
@@ -269,6 +272,10 @@ async function fetchLaporanHarian() {
                 document.getElementById('lh-del-gkb-diff').innerText = formatNumber(diffGkb);
                 document.getElementById('lh-del-gkm-diff').innerText = formatNumber(diffGkm);
                 document.getElementById('lh-del-gula-diff-tot').innerText = formatNumber(diffGula);
+                document.getElementById('lh-del-gkb-container').innerText = formatNumber(gDel.tonaseGkb);
+                document.getElementById('lh-del-gkm-container').innerText = formatNumber(gDel.tonaseGkm);
+                document.getElementById('lh-del-gula-container-tot').innerText = formatNumber(Number(gDel.tonaseGkb || 0) + Number(gDel.tonaseGkm || 0));
+                document.getElementById('lh-del-gula-truck').innerText = Number(gDel.jmlTruck || 0).toLocaleString('id-ID');
                 
                 let pctGkb = gDel.planGkb > 0 ? ((gDel.actGkb - gDel.planGkb) / gDel.planGkb * 100) : 0;
                 let pctGkm = gDel.planGkm > 0 ? ((gDel.actGkm - gDel.planGkm) / gDel.planGkm * 100) : 0;
@@ -283,6 +290,7 @@ async function fetchLaporanHarian() {
                 document.getElementById('lh-del-mol-act').innerText = formatNumber(mDel.actual);
                 let diffMol = mDel.actual - mDel.schedule;
                 document.getElementById('lh-del-mol-diff').innerText = formatNumber(diffMol);
+                document.getElementById('lh-del-mol-truck').innerText = Number(mDel.jmlTruck || 0).toLocaleString('id-ID');
                 let pctMol = mDel.schedule > 0 ? ((mDel.actual - mDel.schedule) / mDel.schedule * 100) : 0;
                 document.getElementById('lh-del-mol-pct').innerText = (pctMol > 0 ? '+' : '') + formatNumber(pctMol) + '%';
                 
@@ -371,6 +379,9 @@ async function fetchLaporanHarian() {
             if (elMolOutA) elMolOutA.innerText = formatNumber(mol.delivery?.actTankA || 0);
             const elMolOutB = document.getElementById('lh-mc-mol-out-b');
             if (elMolOutB) elMolOutB.innerText = formatNumber(mol.delivery?.actTankB || 0);
+            const molTruck = Number(mol.delivery?.jmlTruck || 0);
+            const elMolTruck = document.getElementById('lh-mc-mol-truck');
+            if (elMolTruck) elMolTruck.innerText = molTruck.toLocaleString('id-ID');
 
             const elMolPlan = document.getElementById('lh-mc-mol-plan');
             if (elMolPlan) elMolPlan.innerText = formatNumber(mol.delivery?.schedule || 0);
@@ -598,6 +609,9 @@ async function fetchLaporanHarian() {
             const diffSummaryGkb = d.gula.delivery.actGkb - d.gula.delivery.planGkb;
             const diffSummaryGkm = d.gula.delivery.actGkm - d.gula.delivery.planGkm;
             const diffSummaryTotal = d.gula.delivery.actual - d.gula.delivery.plan;
+            const tonaseContainerGkb = Number(d.gula.delivery.tonaseGkb || 0);
+            const tonaseContainerGkm = Number(d.gula.delivery.tonaseGkm || 0);
+            const jmlTruck = Number(d.gula.delivery.jmlTruck || 0);
             delGulaTbody.innerHTML = `
                 <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-blue); margin-right: 6px;">●</span> GKB</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.actual)}</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td></tr>
                 <tr><td style="text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-subtle); font-weight: 600;"><span style="color: var(--accent-red); margin-right: 6px;">●</span> GKM</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.plan)}</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">-</td><td class="num" style="text-align: right; border-bottom: 1px solid var(--border-subtle);">${formatNumber(d.gula.delivery.diff)}</td></tr>
@@ -612,6 +626,17 @@ async function fetchLaporanHarian() {
                 const cell = delGulaTbody.rows[rowIndex]?.cells[columnIndex + 1];
                 if (cell) cell.textContent = formatNumber(value);
             }));
+            [tonaseContainerGkb, tonaseContainerGkm, tonaseContainerGkb + tonaseContainerGkm]
+                .forEach((value, rowIndex) => {
+                    const row = delGulaTbody.rows[rowIndex];
+                    if (!row) return;
+                    const cell = row.insertCell(-1);
+                    cell.className = 'num';
+                    cell.style.cssText = `text-align:right; color:#a371f7; font-weight:${rowIndex === 2 ? '700' : '600'}; border:${rowIndex === 2 ? 'none' : '0'};`;
+                    cell.textContent = formatNumber(value);
+                });
+            const truckBadge = document.getElementById('lh-del-gula-truck-badge');
+            if (truckBadge) truckBadge.innerHTML = `<i class="fa-solid fa-truck" aria-hidden="true"></i> ${jmlTruck.toLocaleString('id-ID')} Truck`;
 
 
             // Plan Besok
@@ -640,6 +665,8 @@ async function fetchLaporanHarian() {
             document.getElementById('lh-mol-plan').innerText = `${formatMolasses(d.molasses.delivery.schedule)} Ton`;
             document.getElementById('lh-mol-actual').innerText = `${formatMolasses(d.molasses.delivery.actual)} Ton`;
             document.getElementById('lh-mol-diff').innerText = `${formatMolasses(d.molasses.delivery.diff)} Ton`;
+            const molTruckBadge = document.getElementById('lh-mol-truck-badge');
+            if (molTruckBadge) molTruckBadge.innerHTML = `<i class="fa-solid fa-truck" aria-hidden="true"></i> ${Number(d.molasses.delivery.jmlTruck || 0).toLocaleString('id-ID')} Truck`;
 
             // Cane received info (Cumulative & Today, Convert Kg to Ton)
             document.getElementById('lh-cane-prev').innerText = formatNumber(d.cane.kumulatif);

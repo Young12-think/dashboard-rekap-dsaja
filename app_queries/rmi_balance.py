@@ -1242,7 +1242,8 @@ def get_laporan_harian(date_str):
     """, (date_str,))) or []
     # Gula Delivery
     gula_del = query("""
-        SELECT plan_delivery, actual_delivery, plan_delivery_gkm, plan_delivery_gkb, delivery_gkm, delivery_gkb
+        SELECT plan_delivery, actual_delivery, plan_delivery_gkm, plan_delivery_gkb,
+               delivery_gkm, delivery_gkb, tonase_gkm, tonase_gkb, jml_truck
         FROM gula_delivery WHERE tanggal = %s LIMIT 1
     """, (date_str,))
     g_del = dec(gula_del[0]) if gula_del else {}
@@ -1519,6 +1520,13 @@ def get_laporan_harian(date_str):
             'gkb': gkb_audit.get('delivery'),
             'total': gkp_audit.get('delivery')
         },
+        # Metadata operasional delivery. Data1 AM/AN adalah tonase container
+        # GKB/GKM, sedangkan AO adalah total truck harian semua produk.
+        'deliveryMeta': {
+            'tonaseGkm': float(g_del.get('tonase_gkm', 0) or 0),
+            'tonaseGkb': float(g_del.get('tonase_gkb', 0) or 0),
+            'jmlTruck': int(g_del.get('jml_truck', 0) or 0),
+        },
         'deliveryPlan': {
             'gkm': float(g_del.get('plan_delivery_gkm', 0) or 0),
             'gkb': float(g_del.get('plan_delivery_gkb', 0) or 0),
@@ -1583,7 +1591,10 @@ def get_laporan_harian(date_str):
                 "planGkm": float(g_del.get('plan_delivery_gkm', 0) or 0),
                 "planGkb": float(g_del.get('plan_delivery_gkb', 0) or 0),
                 "actGkm": float(g_del.get('delivery_gkm', 0) or 0),
-                "actGkb": float(g_del.get('delivery_gkb', 0) or 0)
+                "actGkb": float(g_del.get('delivery_gkb', 0) or 0),
+                "tonaseGkm": float(g_del.get('tonase_gkm', 0) or 0),
+                "tonaseGkb": float(g_del.get('tonase_gkb', 0) or 0),
+                "jmlTruck": int(g_del.get('jml_truck', 0) or 0),
             },
             "endBalance": float(g_stok.get('stok_akhir_gkm',0) or 0) + float(g_stok.get('stok_akhir_gkb',0) or 0),
             "stokGkb": float(g_stok.get('stok_akhir_gkb',0) or 0),
