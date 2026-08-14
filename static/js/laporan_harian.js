@@ -95,17 +95,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        const exportDate = () => [
+            currentLhDate.getFullYear(),
+            String(currentLhDate.getMonth() + 1).padStart(2, '0'),
+            String(currentLhDate.getDate()).padStart(2, '0')
+        ].join('-');
+        const triggerExport = (button, endpoint) => {
+            if (!button || button.disabled) return;
+            button.disabled = true;
+            button.classList.add('is-loading');
+            const icon = button.querySelector('i');
+            if (icon) icon.className = 'fa-solid fa-spinner';
+            window.location.href = `${endpoint}?date=${encodeURIComponent(exportDate())}`;
+            window.setTimeout(() => {
+                button.disabled = false;
+                button.classList.remove('is-loading');
+                if (icon) icon.className = endpoint.includes('pdf') ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-excel';
+            }, 1800);
+        };
         const exportBtn = document.getElementById('lh-btn-export');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
-                const dateStr = [
-                    currentLhDate.getFullYear(),
-                    String(currentLhDate.getMonth() + 1).padStart(2, '0'),
-                    String(currentLhDate.getDate()).padStart(2, '0')
-                ].join('-');
-                window.location.href = `/api/rmi-balance/export-excel?date=${dateStr}`;
-            });
-        }
+        if (exportBtn) exportBtn.addEventListener('click', () => triggerExport(exportBtn, '/api/rmi-balance/export-excel'));
+        const exportPdfBtn = document.getElementById('lh-btn-export-pdf');
+        if (exportPdfBtn) exportPdfBtn.addEventListener('click', () => triggerExport(exportPdfBtn, '/api/rmi-balance/export-pdf'));
 
         // Period buttons listener
         const periodBtns = document.querySelectorAll('.lh-grafik-btn-period');

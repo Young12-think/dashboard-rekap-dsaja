@@ -14,18 +14,37 @@
           style="background: var(--bg-primary); border: 1px solid var(--border-subtle); color: var(--text-primary); border-radius: 4px; padding: 4px 8px; font-size: 13px;">
       </div>
 
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="lh-header-actions">
         <span class="status-badge active" id="lh-giling-status"
           style="background: var(--accent-green-dim); color: var(--accent-green); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">●
           Giling aktif</span>
-        <button class="btn-primary" id="lh-btn-export" style="display: flex; align-items: center; gap: 6px;"><i
-            class="fa-solid fa-file-excel"></i> Export Excel</button>
+        <div class="lh-export-actions" role="group" aria-label="Export laporan harian">
+          <button class="lh-export-btn lh-export-excel" id="lh-btn-export" type="button" title="Unduh laporan dalam format Excel">
+            <i class="fa-solid fa-file-excel" aria-hidden="true"></i><span>Excel</span>
+          </button>
+          <button class="lh-export-btn lh-export-pdf" id="lh-btn-export-pdf" type="button" title="Unduh laporan dalam format PDF">
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>PDF</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Laporan Harian TABS -->
   <style>
+    .lh-header-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .lh-export-actions { display:flex; align-items:center; gap:6px; }
+    .lh-export-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-width:92px; height:36px; padding:0 13px; border:1px solid var(--border-color); border-radius:8px; font:600 12px/1 inherit; cursor:pointer; transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; }
+    .lh-export-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(15,23,42,.12); }
+    .lh-export-btn:active { transform:translateY(0); box-shadow:none; }
+    .lh-export-btn:disabled { opacity:.65; cursor:wait; transform:none; box-shadow:none; }
+    .lh-export-excel { background:#ecfdf3; color:#137333; border-color:#a7e3bd; }
+    .lh-export-excel:hover { background:#d9f8e5; border-color:#70cf95; }
+    .lh-export-pdf { background:#fff1f2; color:#b42318; border-color:#fecdd3; }
+    .lh-export-pdf:hover { background:#ffe4e6; border-color:#fda4af; }
+    .lh-export-btn.is-loading i { animation:lh-export-spin .8s linear infinite; }
+    @keyframes lh-export-spin { to { transform:rotate(360deg); } }
+
     .lh-tabs {
       display: flex;
       gap: 8px;

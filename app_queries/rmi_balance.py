@@ -1203,11 +1203,13 @@ def get_laporan_harian(date_str):
             gula_detail[s]['gkm'] = float(p.get('gkm',0) or 0)
             gula_detail[s]['gkb'] = float(p.get('gkb',0) or 0)
 
-    # Reject log
+    # Reject received from production. Delivery reject (susut loading / downgrade)
+    # is a good-stock deduction, so it must not be shown as production reject.
     g_reject = dec(query("""
         SELECT shift, SUM(COALESCE(jumlah_ton, 0)) AS total_reject
         FROM gula_reject_log
         WHERE tanggal = %s
+          AND UPPER(TRIM(kategori_transaksi)) = 'RECEIVED'
         GROUP BY shift
     """, (date_str,))) or []
     for r in g_reject:
@@ -1341,6 +1343,31 @@ def get_laporan_harian(date_str):
         ORDER BY qty DESC
     ''', (date_str, date_str))
     detail_reject_res = dec(detail_reject_query) or []
+
+    # The workbook has dedicated fields for delivery reject. Keep it separated
+    # by source good-stock product so exports never mix it into production reject.
+    delivery_reject_rows = dec(query('''
+        SELECT UPPER(TRIM(jenis_reject)) AS jenis_reject,
+               UPPER(TRIM(jenis_gula)) AS jenis_gula,
+               SUM(COALESCE(jumlah_ton, 0)) AS qty
+        FROM gula_reject_log
+        WHERE tanggal = %s
+          AND UPPER(TRIM(kategori_transaksi)) = 'DELIVERY'
+        GROUP BY UPPER(TRIM(jenis_reject)), UPPER(TRIM(jenis_gula))
+    ''', (date_str,))) or []
+    delivery_reject = {
+        'susutGkb': 0.0, 'susutGkm': 0.0,
+        'downgradeGkb': 0.0, 'downgradeGkm': 0.0,
+    }
+    for row in delivery_reject_rows:
+        reject_type = str(row.get('jenis_reject') or '').strip().upper()
+        product = str(row.get('jenis_gula') or '').strip().upper()
+        if product not in ('GKB', 'GKM'):
+            continue
+        if reject_type == 'SUSUT LOADING':
+            delivery_reject[f"susut{product.title()}"] += float(row.get('qty') or 0)
+        elif reject_type == 'DOWNGRADE TO REJECT':
+            delivery_reject[f"downgrade{product.title()}"] += float(row.get('qty') or 0)
 
     detail_remelt_query = query('''
         SELECT jenis_reject as jenis, SUM(COALESCE(jumlah_ton,0)) as qty
@@ -1563,6 +1590,7 @@ def get_laporan_harian(date_str):
             "stokGkm": float(g_stok.get('stok_akhir_gkm',0) or 0),
             "reject": float(g_stok.get('stok_akhir_reject',0) or 0),
             "detailReject": detail_reject_res,
+            "deliveryReject": delivery_reject,
             "detailRemelt": detail_remelt_res,
             "stockPosition": stock_position,
             "deliveryPlanBesok": {

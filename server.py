@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_from_directory, session, redirect, url_for, render_template, send_file
 from flask_cors import CORS
 from datetime import datetime
+from pathlib import Path
 import secrets
 import hashlib
 import logging
@@ -569,13 +570,29 @@ def api_rmi_balance_export_excel():
     if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
     date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     import app_queries.excel_export
-    out = app_queries.excel_export.export_laporan_harian_to_excel(date_str, 'templates/excel/draft.xlsx')
+    template_path = Path(app.root_path) / 'templates' / 'excel' / 'draft.xlsx'
+    out = app_queries.excel_export.export_laporan_harian_to_excel(date_str, template_path)
     
     return send_file(
         out, 
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True, 
         download_name=f'Daily_Report_RMI_{date_str}.xlsx'
+    )
+
+@app.route('/api/rmi-balance/export-pdf')
+def api_rmi_balance_export_pdf():
+    if not is_logged_in(): return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    import app_queries.excel_export
+    template_path = Path(app.root_path) / 'templates' / 'excel' / 'draft.xlsx'
+    out = app_queries.excel_export.export_laporan_harian_to_pdf(date_str, template_path)
+
+    return send_file(
+        out,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'Daily_Report_RMI_{date_str}.pdf'
     )
 
 @app.route('/api/rmi-balance/grafik')
@@ -1123,5 +1140,3 @@ if __name__ == '__main__':
         # ── 4. Shutdown semua tunnel ──
         shutdown_all_tunnels()
         print("==> [INFO] Shutdown selesai. Bye!")
-
-
