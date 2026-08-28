@@ -263,6 +263,7 @@ def api_transactions():
     limit = int(request.args.get('limit', 100))
     page = int(request.args.get('page', 1))
     offset = (page - 1) * limit
+    export_all = request.args.get('export_all', '').lower() in ('1', 'true', 'yes')
 
     # Parameter khusus support (dikirim terpisah agar tidak kena split koma)
     support_item = request.args.get('support_item', '').strip() or None
@@ -277,7 +278,8 @@ def api_transactions():
         limit, offset, tx_key,
         support_item=support_item,
         support_vendor=support_vendor,
-        others_item=others_item
+        others_item=others_item,
+        export_all=export_all
     )
     if result is None:
         return jsonify({"status": "error", "message": "Database error"}), 500

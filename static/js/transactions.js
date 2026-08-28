@@ -189,18 +189,11 @@ async function loadTransactionData(typeKey) {
         }
     }
 
-    // 👇 4. BANGUN URL API
-    // Support: kirim filter item via param `support_item` (bukan via `type`) agar tidak kena split koma
-    let url = `/api/transactions?tx_key=${typeKey}&type=${encodeURIComponent(filters.join(','))}&date_from=${txDateFrom}&date_to=${txDateTo}`;
-    if (typeKey === 'limbah' && currentPOFilter) url += `&po=${encodeURIComponent(currentPOFilter)}`;
-    if (typeKey === 'support' && currentLimbahFilter) url += `&support_item=${encodeURIComponent(currentLimbahFilter)}`;
-    if (typeKey === 'support' && currentSupportVendor) url += `&support_vendor=${encodeURIComponent(currentSupportVendor)}`;
-    if (typeKey === 'others' && currentLimbahFilter) url += `&others_item=${encodeURIComponent(currentLimbahFilter)}`;
-    
-    const keyword = document.getElementById('txSearchKeyword')?.value || '';
-    if (keyword) url += `&search=${encodeURIComponent(keyword)}`;
-    
-    url += `&page=${txCurrentPage + 1}&limit=100`; // 100 Baris per halaman
+    // 👇 4. BANGUN URL API dengan seluruh filter aktif
+    const url = buildTransactionDataUrl(typeKey, {
+        page: txCurrentPage + 1,
+        limit: 100
+    });
 
     const d = await api(url);
 
@@ -217,12 +210,50 @@ async function loadTransactionData(typeKey) {
         return;
     }
 
-    // Simpan data ke variabel global agar Export Excel bisa mengaksesnya
+    // Simpan data halaman aktif untuk kebutuhan rendering/pagination tabel
     txAllData = d.data;
 
     // Tampilkan data matang dari Server
     renderTransactionSummary(typeKey, d.summary);
     renderTransactionPage(typeKey, d.data, d.total_rows);
+}
+
+/**
+ * Susun URL transaksi yang sama untuk tabel dan export.
+ * Pagination hanya dipakai untuk tampilan tabel; export meminta semua baris.
+ */
+function buildTransactionDataUrl(typeKey, options = {}) {
+    const config = TRANSACTION_TYPES[typeKey];
+    const page = options.page || 1;
+    const limit = options.limit || 100;
+    const params = new URLSearchParams();
+
+    let filters = config.filters;
+    if (typeKey === 'limbah' && currentLimbahFilter) {
+        filters = currentLimbahFilter.split(',');
+    }
+
+    // Gunakan range yang sudah diterapkan oleh tombol "Tampilkan", agar
+    // pagination dan export selalu merepresentasikan data yang sedang aktif.
+    const dateFrom = txDateFrom;
+    const dateTo = txDateTo;
+    params.set('tx_key', typeKey);
+    params.set('type', filters.join(','));
+    params.set('date_from', dateFrom);
+    params.set('date_to', dateTo);
+    params.set('page', page);
+    params.set('limit', limit);
+
+    if (typeKey === 'limbah' && currentPOFilter) params.set('po', currentPOFilter);
+    if (typeKey === 'support' && currentLimbahFilter) params.set('support_item', currentLimbahFilter);
+    if (typeKey === 'support' && currentSupportVendor) params.set('support_vendor', currentSupportVendor);
+    if (typeKey === 'others' && currentLimbahFilter) params.set('others_item', currentLimbahFilter);
+
+    const keyword = document.getElementById('txSearchKeyword')?.value || '';
+    if (keyword) params.set('search', keyword);
+    if (options.exportAll) params.set('export_all', '1');
+
+    return `/api/transactions?${params.toString()}`;
 }
 
 
@@ -860,29 +891,56 @@ async function savePOStockFromModal() {
 // =============================================
 // EXPORT TO EXCEL
 // =============================================
-function exportToExcel(typeKey) {
+async function exportToExcel(typeKey) {
     const config = TRANSACTION_TYPES[typeKey];
-    if (!txAllData || txAllData.length === 0) {
-        alert('Tidak ada data untuk di-export!');
-        return;
+    const exportButton = document.getElementById('btnExportExcel');
+    const defaultButtonHtml = exportButton?.innerHTML;
+
+    if (exportButton) {
+        exportButton.disabled = true;
+        exportButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan Excel...';
     }
 
-    // Build worksheet data
-    const headers = ['No', ...config.columns.map(c => c.label)];
-    const rows = txAllData.map((row, idx) => {
-        const rowData = [idx + 1];
-        config.columns.forEach(col => {
-            let val = row[col.key];
-            if (val === null || val === undefined) val = '';
-            rowData.push(val);
+    try {
+        // Jangan export cache halaman aktif. Ambil ulang seluruh hasil filter aktif.
+        const response = await api(buildTransactionDataUrl(typeKey, {
+            page: 1,
+            limit: 100,
+            exportAll: true
+        }));
+
+        if (!response || response.status !== 'success' || !response.data || response.data.length === 0) {
+            alert('Tidak ada data untuk di-export!');
+            return;
+        }
+
+        const exportData = response.data;
+
+        // Build worksheet data
+        const headers = ['No', ...config.columns.map(c => c.label)];
+        const rows = exportData.map((row, idx) => {
+            const rowData = [idx + 1];
+            config.columns.forEach(col => {
+                let val = row[col.key];
+                if (val === null || val === undefined) val = '';
+                rowData.push(val);
+            });
+            return rowData;
         });
-        return rowData;
-    });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, config.label);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, config.label);
 
-    const fileName = `Transaksi_${config.label}_${txDateFrom}_${txDateTo}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+        const fileName = `Transaksi_${config.label}_${txDateFrom}_${txDateTo}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    } catch (error) {
+        console.error('[EXPORT] Gagal menyiapkan Excel:', error);
+        alert('Gagal mengambil seluruh data untuk export.');
+    } finally {
+        if (exportButton) {
+            exportButton.disabled = false;
+            exportButton.innerHTML = defaultButtonHtml || '<i class="fa-solid fa-file-excel"></i> Export Excel';
+        }
+    }
 }

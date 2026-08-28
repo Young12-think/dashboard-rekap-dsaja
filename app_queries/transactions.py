@@ -5,7 +5,7 @@ from .db_core import dec, query
 
 def get_transaction_data(date_from, date_to, item_filters, po_filter=None, search_term=None,
                          limit=100, offset=0, tx_key='', support_item=None, support_vendor=None,
-                         others_item=None):
+                         others_item=None, export_all=False):
     if not item_filters and tx_key != 'support' and tx_key != 'others':
         return {"total_rows": 0, "summary": {}, "data": []}
 
@@ -135,7 +135,7 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
     else: total_ritase = len(unique_tickets) if unique_tickets else len(all_data)
 
     total_rows = len(all_data)
-    paginated_data = all_data[offset: offset + limit]
+    paginated_data = all_data if export_all else all_data[offset: offset + limit]
     normalized = []
     for row in paginated_data:
         nr = {}
