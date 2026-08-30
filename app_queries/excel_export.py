@@ -50,6 +50,7 @@ def build_export_payload(data):
     flow = gula.get('gulaFlow', {}) or {}
     opening = flow.get('opening', {}) or {}
     reject_flow = flow.get('reject', {}) or {}
+    upgrade = flow.get('upgrade', {}) or {}
     mol = data.get('molasses', {}) or {}
     cane = data.get('cane', {}) or {}
     delivery = gula.get('delivery', {}) or {}
@@ -58,6 +59,10 @@ def build_export_payload(data):
     position = gula.get('stockPosition', {}) or {}
     production = gula.get('produksi', {}) or {}
     production_detail = gula.get('produksiDetail', {}) or {}
+    cane_previous = _num(cane.get('tebuSebelumnya'))
+    cane_previous_truck = int(_num(cane.get('tebuSebelumnyaTruck')))
+    cane_today = _num(cane.get('hariIni'))
+    cane_today_truck = int(_num(cane.get('hariIniTruck')))
 
     return {
         'date': data.get('tanggal'),
@@ -76,6 +81,9 @@ def build_export_payload(data):
             'susut_gkm': _num(delivery_reject.get('susutGkm')),
             'downgrade_gkb': _num(delivery_reject.get('downgradeGkb')),
             'downgrade_gkm': _num(delivery_reject.get('downgradeGkm')),
+            'upgrade_gkb': _num(upgrade.get('gkb')),
+            'upgrade_gkm': _num(upgrade.get('gkm')),
+            'upgrade_total': _num(upgrade.get('total')),
             'remelt': _num(reject_flow.get('remelt')),
             'closing_gkb': _num(gula.get('stokGkb')),
             'closing_gkm': _num(gula.get('stokGkm')),
@@ -100,8 +108,12 @@ def build_export_payload(data):
         'cane': {
             'to_date': _num(cane.get('kumulatif')),
             'to_date_truck': int(_num(cane.get('kumulatifTruck'))),
-            'today': _num(cane.get('hariIni')),
-            'today_truck': int(_num(cane.get('hariIniTruck'))),
+            'previous': cane_previous,
+            'previous_truck': cane_previous_truck,
+            'today': cane_today,
+            'today_truck': cane_today_truck,
+            'total_to_date': cane_previous + cane_today,
+            'total_to_date_truck': cane_previous_truck + cane_today_truck,
             'per_shift': cane.get('perShift', []) or [],
         },
     }
@@ -323,6 +335,7 @@ def export_laporan_harian_to_pdf(date_str, template_path=None):
         [text('DELIVERY REJECT', small_center), text('GKB', small_center), text('GKM', small_center), text('TOTAL', small_center)],
         [text('Susut Loading'), text(fmt(g['susut_gkb']), small_right), text(fmt(g['susut_gkm']), small_right), text(fmt(g['susut_gkb'] + g['susut_gkm']), small_right)],
         [text('Downgrade'), text(fmt(g['downgrade_gkb']), small_right), text(fmt(g['downgrade_gkm']), small_right), text(fmt(g['downgrade_gkb'] + g['downgrade_gkm']), small_right)],
+        [text('GULA UPGRADE'), text(fmt(g['upgrade_gkb']), small_right), text(fmt(g['upgrade_gkm']), small_right), text(fmt(g['upgrade_total']), small_right)],
     ], [60 * mm, 38 * mm, 38 * mm, 40 * mm]))
     story.append(Spacer(1, 4))
     story.append(table([
@@ -348,10 +361,15 @@ def export_laporan_harian_to_pdf(date_str, template_path=None):
     story += [Paragraph('CANE', section)]
     c = payload['cane']
     cane_rows = [[text('PERIOD', small_center), text('CANE (TON)', small_center), text('TRUCK', small_center)],
-                 [text('Σ TEBU SEBELUMNYA'), text(fmt(c['to_date']), small_right), text(str(c['to_date_truck']), small_right)],
+                 [text('Σ TEBU SEBELUMNYA'), text(fmt(c['previous']), small_right), text(str(c['previous_truck']), small_right)],
                  [text('PENERIMAAN TEBU (TODAY)'), text(fmt(c['today']), small_right), text(str(c['today_truck']), small_right)]]
     for row in c['per_shift']:
         cane_rows.append([text(f"SHIFT {row.get('shift')}"), text(fmt(row.get('caneKg')), small_right), text(str(int(_num(row.get('truck')))), small_right)])
+    cane_rows.append([
+        text('TOTAL TEBU (TODATE)', small),
+        text(fmt(c['total_to_date']), small_right),
+        text(str(c['total_to_date_truck']), small_right),
+    ])
     story.append(table(cane_rows, [85 * mm, 50 * mm, 40 * mm]))
 
     doc.build(story)

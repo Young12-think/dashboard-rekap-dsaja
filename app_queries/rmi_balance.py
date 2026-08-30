@@ -1174,6 +1174,8 @@ def get_lokasi_stok(start_date=None, end_date=None):
     ))) or []
 
 def get_laporan_harian(date_str):
+    from datetime import datetime, timedelta
+
     # Fetch data for Gula Stok
     gula_stok = query("""
         SELECT stok_awal_gkm, stok_awal_gkb, stok_akhir_gkm, stok_akhir_gkb, stok_akhir_reject 
@@ -1295,6 +1297,10 @@ def get_laporan_harian(date_str):
     settings = get_settings()
     milling_start = settings.get('milling_start_date')
     cane_to_date = _get_cane_to_date(milling_start, date_str)
+    previous_cane_date = (
+        datetime.strptime(date_str, '%Y-%m-%d') - timedelta(days=1)
+    ).strftime('%Y-%m-%d')
+    cane_previous = _get_cane_to_date(milling_start, previous_cane_date)
 
     # Molasses Delivery
     mol_del = query("""
@@ -1641,6 +1647,10 @@ def get_laporan_harian(date_str):
         "cane": {
             "kumulatif": cane_to_date['cane_netto_to_date'],
             "kumulatifTruck": cane_to_date['cane_ritase_to_date'],
+            "tebuSebelumnya": cane_previous['cane_netto_to_date'],
+            "tebuSebelumnyaTruck": cane_previous['cane_ritase_to_date'],
+            "tebuTodate": cane_to_date['cane_netto_to_date'],
+            "tebuTodateTruck": cane_to_date['cane_ritase_to_date'],
             "millingStartDate": _date_to_str(milling_start),
             "reportDate": date_str,
             "hariIni": cane_hari_ini,
