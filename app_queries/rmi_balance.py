@@ -1362,7 +1362,7 @@ def get_laporan_harian(date_str):
           AND UPPER(TRIM(kategori_transaksi)) = 'DELIVERY'
         GROUP BY UPPER(TRIM(jenis_reject)), UPPER(TRIM(jenis_gula))
     ''', (date_str,))) or []
-    delivery_reject = {
+    delivery_reject_breakdown = {
         'susutGkb': 0.0, 'susutGkm': 0.0,
         'downgradeGkb': 0.0, 'downgradeGkm': 0.0,
     }
@@ -1372,9 +1372,9 @@ def get_laporan_harian(date_str):
         if product not in ('GKB', 'GKM'):
             continue
         if reject_type == 'SUSUT LOADING':
-            delivery_reject[f"susut{product.title()}"] += float(row.get('qty') or 0)
+            delivery_reject_breakdown[f"susut{product.title()}"] += float(row.get('qty') or 0)
         elif reject_type == 'DOWNGRADE TO REJECT':
-            delivery_reject[f"downgrade{product.title()}"] += float(row.get('qty') or 0)
+            delivery_reject_breakdown[f"downgrade{product.title()}"] += float(row.get('qty') or 0)
 
     detail_remelt_query = query('''
         SELECT jenis_reject as jenis, SUM(COALESCE(jumlah_ton,0)) as qty
@@ -1607,7 +1607,7 @@ def get_laporan_harian(date_str):
             "stokGkm": float(g_stok.get('stok_akhir_gkm',0) or 0),
             "reject": float(g_stok.get('stok_akhir_reject',0) or 0),
             "detailReject": detail_reject_res,
-            "deliveryReject": delivery_reject,
+            "deliveryReject": delivery_reject_breakdown,
             "detailRemelt": detail_remelt_res,
             "stockPosition": stock_position,
             "deliveryPlanBesok": {
