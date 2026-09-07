@@ -1178,6 +1178,8 @@ async function loadPOMonitor() {
         <th>TARGET PO (KG)</th>
         <th>TERKIRIM (KG)</th>
         <th>SISA KUOTA (KG)</th>
+        <th>RATA-RATA NETTO/TRUCK (KG)</th>
+        <th>EST. SISA TRUCK</th>
         <th style="min-width: 150px;">STATUS TERPAKAI</th>
         <th style="text-align:left; min-width: 180px;">KETERANGAN</th>
         ${isAdmin ? '<th style="width:56px; text-align:center;">AKSI</th>' : ''}
@@ -1194,7 +1196,7 @@ async function loadPOMonitor() {
         }
     }
 
-    const colCount = isAdmin ? 8 : 7;
+    const colCount = isAdmin ? 10 : 9;
     if (!d || d.status !== 'success') { tbody.innerHTML = errRow(colCount, 'Gagal memuat Monitor PO.'); return; }
 
     // Semua user (termasuk admin) HANYA melihat PO yang dimonitor (is_monitored != 0)
@@ -1206,7 +1208,15 @@ async function loadPOMonitor() {
     tbody.innerHTML = rows.map(r => {
         const target = parseFloat(r.target_po) || 0;
         const sent = parseFloat(r.total_terkirim) || 0;
-        const balance = target - sent;
+        const balance = r.sisa_balance !== null && r.sisa_balance !== undefined
+            ? parseFloat(r.sisa_balance) || 0
+            : target - sent;
+        const avgNetto = r.avg_netto_per_truck !== null && r.avg_netto_per_truck !== undefined
+            ? parseFloat(r.avg_netto_per_truck) || 0
+            : 0;
+        const estimatedTrucks = r.estimasi_sisa_truck !== null && r.estimasi_sisa_truck !== undefined
+            ? parseInt(r.estimasi_sisa_truck, 10)
+            : null;
         const keterangan = r.keterangan || '';
         const isMonitored = (r.is_monitored == 1);
 
@@ -1248,6 +1258,8 @@ async function loadPOMonitor() {
             <td>${fmt(target)}</td>
             <td>${fmt(sent)}</td>
             <td style="font-weight:800; ${balanceColor}">${fmt(balance)}</td>
+            <td title="${avgNetto > 0 ? 'Berdasarkan PO dan item yang sama' : 'Belum ada data truck valid untuk PO dan item ini'}">${avgNetto > 0 ? fmt(avgNetto) : '<span style="color:var(--text-muted);">—</span>'}</td>
+            <td style="font-weight:800; text-align:center;">${estimatedTrucks !== null && !isNaN(estimatedTrucks) ? estimatedTrucks : '<span style="color:var(--text-muted);">—</span>'}</td>
             <td>
                 <div style="background:rgba(255,255,255,0.1); border-radius:4px; height:8px; width:100%; overflow:hidden; position:relative; margin-top:5px;">
                     <div style="background:${barColor}; height:100%; width:${percent}%; transition:width 1s ease;"></div>

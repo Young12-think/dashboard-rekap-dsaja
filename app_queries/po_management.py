@@ -1,4 +1,6 @@
 # app_queries/po_management.py
+import math
+
 from .db_core import dec, query, get_db
 
 def ensure_po_stock_table():
@@ -158,20 +160,81 @@ def get_unmonitored_pos():
 
 def get_po_monitor_data():
     ensure_po_stock_table()
+    # Ambil metadata PO dari transaksi terbaru yang valid. Item ini menjadi
+    # pasangan acuan untuk menghitung netto dan estimasi truck di bawahnya.
     sql = """
         SELECT p.nomor_po,
-               (SELECT ItemName FROM data_timbang
+               (SELECT TRIM(ItemName) FROM data_timbang
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
+                  AND ItemName IS NOT NULL AND TRIM(ItemName) != ''
+                  AND COALESCE(is_dup, 0) = 0
+                ORDER BY Tanggal_Keluar_Clean DESC, id DESC
                 LIMIT 1) as item_name,
                COALESCE((SELECT Qty_SJ FROM data_timbang
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
+                  AND ItemName IS NOT NULL AND TRIM(ItemName) != ''
+                  AND COALESCE(is_dup, 0) = 0
+                ORDER BY Tanggal_Keluar_Clean DESC, id DESC
                 LIMIT 1), p.qty_po) as target_po,
                p.keterangan,
-               p.is_monitored,
-               (SELECT SUM(COALESCE(Qty_Netto, 0)) FROM data_timbang
-                WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po) as total_terkirim
+               p.is_monitored
         FROM po_stock p WHERE p.is_active = 1 ORDER BY p.nomor_po ASC
     """
-    data = dec(query(sql))
-    return data or []
+    data = dec(query(sql)) or []
 
+    # Satu truck dapat memiliki lebih dari satu baris timbang. Karena itu,
+    # netto dijumlahkan per truck unik terlebih dahulu, baru dirata-ratakan.
+    # is_dup = 1 dikeluarkan agar transaksi duplikat tidak mempengaruhi
+    # balance maupun estimasi.
+    stats_sql = """
+        SELECT po_key,
+               item_name,
+               SUM(truck_netto) AS total_terkirim,
+               COUNT(*) AS truck_count,
+               AVG(truck_netto) AS avg_netto_per_truck
+        FROM (
+            SELECT REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') AS po_key,
+                   TRIM(ItemName) AS item_name,
+                   COALESCE(NULLIF(NoSystem, 0), id) AS truck_key,
+                   SUM(ABS(COALESCE(Qty_Netto, 0))) AS truck_netto
+            FROM data_timbang
+            WHERE Nomor_PO IS NOT NULL
+              AND TRIM(Nomor_PO) != ''
+              AND ItemName IS NOT NULL
+              AND TRIM(ItemName) != ''
+              AND COALESCE(is_dup, 0) = 0
+              AND COALESCE(Qty_Netto, 0) > 0
+            GROUP BY REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.'),
+                     TRIM(ItemName),
+                     COALESCE(NULLIF(NoSystem, 0), id)
+        ) AS truck_totals
+        WHERE truck_netto > 0
+        GROUP BY po_key, item_name
+    """
+    stats = dec(query(stats_sql)) or []
+    stats_map = {
+        (str(row.get('po_key') or '').strip(), str(row.get('item_name') or '').strip().upper()): row
+        for row in stats
+    }
+
+    for row in data:
+        po_key = str(row.get('nomor_po') or '').strip()
+        item_key = str(row.get('item_name') or '').strip().upper()
+        stat = stats_map.get((po_key, item_key), {})
+
+        target = float(row.get('target_po') or 0)
+        total_sent = float(stat.get('total_terkirim') or 0)
+        avg_netto = float(stat.get('avg_netto_per_truck') or 0)
+        truck_count = int(stat.get('truck_count') or 0)
+        balance = target - total_sent
+
+        row['total_terkirim'] = total_sent
+        row['sisa_balance'] = balance
+        row['avg_netto_per_truck'] = avg_netto if avg_netto > 0 else None
+        row['valid_truck_count'] = truck_count
+        row['estimasi_sisa_truck'] = (
+            math.ceil(balance / avg_netto)
+            if balance > 0 and avg_netto > 0 else 0 if balance <= 0 else None
+        )
+
+    return data
