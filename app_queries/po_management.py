@@ -167,13 +167,11 @@ def get_po_monitor_data():
                (SELECT TRIM(ItemName) FROM data_timbang
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
                   AND ItemName IS NOT NULL AND TRIM(ItemName) != ''
-                  AND COALESCE(is_dup, 0) = 0
                 ORDER BY Tanggal_Keluar_Clean DESC, id DESC
                 LIMIT 1) as item_name,
                COALESCE((SELECT Qty_SJ FROM data_timbang
                 WHERE REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.') = p.nomor_po
                   AND ItemName IS NOT NULL AND TRIM(ItemName) != ''
-                  AND COALESCE(is_dup, 0) = 0
                 ORDER BY Tanggal_Keluar_Clean DESC, id DESC
                 LIMIT 1), p.qty_po) as target_po,
                p.keterangan,
@@ -184,8 +182,10 @@ def get_po_monitor_data():
 
     # Satu truck dapat memiliki lebih dari satu baris timbang. Karena itu,
     # netto dijumlahkan per truck unik terlebih dahulu, baru dirata-ratakan.
-    # is_dup = 1 dikeluarkan agar transaksi duplikat tidak mempengaruhi
-    # balance maupun estimasi.
+    # Tabel data_timbang tidak memiliki kolom is_dup permanen; penanda itu
+    # hanya alias CTE pada laporan produksi. Untuk Monitor PO Limbah, data
+    # valid ditentukan dari PO/item terisi dan netto positif, lalu seluruh
+    # baris truck yang sama dijumlahkan sekali dalam satu kelompok truck.
     stats_sql = """
         SELECT po_key,
                item_name,
@@ -202,7 +202,6 @@ def get_po_monitor_data():
               AND TRIM(Nomor_PO) != ''
               AND ItemName IS NOT NULL
               AND TRIM(ItemName) != ''
-              AND COALESCE(is_dup, 0) = 0
               AND COALESCE(Qty_Netto, 0) > 0
             GROUP BY REPLACE(COALESCE(NULLIF(TRIM(Nomor_PO), ''), 'KOSONG'), ',', '.'),
                      TRIM(ItemName),
