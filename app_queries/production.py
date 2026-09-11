@@ -5,6 +5,7 @@
 # ─────────────────────────────────────────────────────────────
 from datetime import datetime, timedelta
 from .db_core import dec, query
+from .molasses_grouping import aggregate_molasses_rows
 
 
 # =============================================
@@ -125,6 +126,36 @@ def _parse_dt(tgl_raw, jam_raw):
         return None
 
 
+def _get_molasses_daily_aggregate(date_str):
+    """Use the same physical-truck grouping as the transaction page."""
+    sql = """
+        SELECT *
+        FROM data_timbang
+        WHERE Tanggal_Keluar_Clean = %s
+          AND UPPER(COALESCE(ItemName, '')) LIKE '%MOLASSE%'
+        ORDER BY Tanggal_Keluar_Clean ASC, Jam_Keluar ASC, id ASC
+    """
+    rows = dec(query(sql, (date_str,))) or []
+    return aggregate_molasses_rows(rows) if rows else None
+
+
+def _molasses_production_row(aggregate):
+    if not aggregate or aggregate['total_ritase'] == 0:
+        return None
+    by_shift = aggregate['by_shift']
+    return {
+        'type': 'MOLASSES',
+        'shift1_tonase': by_shift[1]['tonase'],
+        'shift1_ritase': by_shift[1]['ritase'],
+        'shift2_tonase': by_shift[2]['tonase'],
+        'shift2_ritase': by_shift[2]['ritase'],
+        'shift3_tonase': by_shift[3]['tonase'],
+        'shift3_ritase': by_shift[3]['ritase'],
+        'today_tonase': aggregate['total_netto'],
+        'today_ritase': aggregate['total_ritase'],
+    }
+
+
 def get_production_data(date_str):
     try:
         dt = datetime.strptime(date_str, '%Y-%m-%d')
@@ -202,7 +233,22 @@ def get_production_data(date_str):
     """
     data = dec(query(sql, (lb_start, date_str, date_str, date_str, date_str)))
     if not data:
-        return []
+        molasses_row = _molasses_production_row(_get_molasses_daily_aggregate(date_str))
+        return [molasses_row] if molasses_row else []
+
+    # Replace only the Molasses row. Other production categories keep their
+    # existing SQL aggregation, while Molasses uses the transaction rules for
+    # double-SPT and anchored OVER DO rows.
+    molasses_row = _molasses_production_row(_get_molasses_daily_aggregate(date_str))
+    if molasses_row:
+        replaced = False
+        for row in data:
+            if str(row.get('type', '')).strip().upper() == 'MOLASSES':
+                row.update(molasses_row)
+                replaced = True
+                break
+        if not replaced:
+            data.append(molasses_row)
     fc_sub = {"type": "➡️ TOTAL TODAY FILTER CAKE", "shift1_tonase": 0, "shift1_ritase": 0, "shift2_tonase": 0, "shift2_ritase": 0, "shift3_tonase": 0, "shift3_ritase": 0, "today_tonase": 0, "today_ritase": 0}
     fa_sub = {"type": "➡️ TOTAL TODAY FLY ASH", "shift1_tonase": 0, "shift1_ritase": 0, "shift2_tonase": 0, "shift2_ritase": 0, "shift3_tonase": 0, "shift3_ritase": 0, "today_tonase": 0, "today_ritase": 0}
     has_fc = False; has_fa = False
@@ -254,6 +300,13 @@ def get_summary_data(date_str):
         for row in data:
             t = row.get('type', 'UNKNOWN')
             summary[t] = {"tonase": row.get('total_tonase', 0), "ritase": row.get('total_ritase', 0)}
+
+    molasses = _get_molasses_daily_aggregate(date_str)
+    if molasses and molasses['total_ritase']:
+        summary['MOLASSES'] = {
+            'tonase': molasses['total_netto'],
+            'ritase': molasses['total_ritase'],
+        }
     return summary
 
 def get_types():

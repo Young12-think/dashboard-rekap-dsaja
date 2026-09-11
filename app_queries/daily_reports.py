@@ -6,9 +6,11 @@
 #            dan semua blok try-except.
 # ─────────────────────────────────────────────────────────────
 
-import re
 from datetime import datetime, timedelta
 from .db_core import dec, query
+from .molasses_grouping import anchor_numbers as molasses_anchor_numbers
+from .molasses_grouping import is_supplementary as is_molasses_supplementary
+from .molasses_grouping import parse_datetime
 
 
 def get_daily_delivery(date_from, date_to):
@@ -17,15 +19,8 @@ def get_daily_delivery(date_from, date_to):
     Logika: Anchor Regex Tracking (SPT Tambahan) + Look-Ahead 1 Hari + 30 Menit Filter.
     """
     def parse_time(tgl, jam):
-        if not jam: return 0
-        try:
-            dp = str(tgl).split(' ')[0]
-            if '/' in dp:
-                p = dp.split('/')
-                if len(p)==3: dp = f"{p[2]}-{p[1]}-{p[0]}"
-            dt = datetime.strptime(f"{dp} {jam}", "%Y-%m-%d %H:%M:%S")
-            return dt.timestamp() * 1000
-        except: return 0
+        parsed = parse_datetime(tgl, jam)
+        return parsed.timestamp() * 1000 if parsed else 0
 
     try:
         dt_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
@@ -37,10 +32,12 @@ def get_daily_delivery(date_from, date_to):
                 NoSystem AS TicketNo,
                 UPPER(COALESCE(ItemName, '')) AS material,
                 COALESCE(CardName, 'UNKNOWN') AS customer,
+                Nomor_SPT AS spt_no,
                 Nomor_SPPB AS nomor_sppb,
                 COALESCE(Qty_Netto, 0) AS wb_rmi_ticket,
                 COALESCE(Qty_SPMSPB, 0) AS spt,
                 Nomor_SPMSPB AS spt_doc,
+                reference_spt,
                 Nopol,
                 Supir,
                 Tanggal_Keluar,
@@ -70,21 +67,19 @@ def get_daily_delivery(date_from, date_to):
             vk = f"{nopol}_{supir}"
             
             mat_raw = str(row['material']).strip().upper()
-            remarks = str(row.get('Remarks') or '').lower()
             is_molasse = 'MOLASSE' in mat_raw or 'TETES' in mat_raw
-            is_tambahan = is_molasse and 'tambahan' in remarks
-            
-            anchor_numbers = re.findall(r'\d{5,}', remarks)
+            is_supplementary = is_molasse and is_molasses_supplementary(row)
+            anchor_numbers = molasses_anchor_numbers(row)
             
             matched_truck_id = None
             
             for t_id in range(len(physical_trucks)-1, -1, -1):
                 t_data = physical_trucks[t_id]
                 
-                if is_tambahan and anchor_numbers:
+                if is_supplementary and anchor_numbers:
                     found_anchor = False
                     for g in t_data['cust_groups'].values():
-                        spt_docs_list = list(g['spt_docs'])
+                        spt_docs_list = list(g['spt_docs'] | g.get('anchor_docs', set()))
                         if any(num in spt_docs_list for num in anchor_numbers) or any(num == t_data['TicketNo'] for num in anchor_numbers):
                             found_anchor = True
                             break
@@ -93,7 +88,7 @@ def get_daily_delivery(date_from, date_to):
                         break
                 
                 if matched_truck_id is None and t_data['vk'] == vk:
-                    if is_tambahan:
+                    if is_supplementary:
                         matched_truck_id = t_id
                         break
                     elif abs(t_data['time'] - tms) <= 1800000:
@@ -110,7 +105,8 @@ def get_daily_delivery(date_from, date_to):
                     'TicketNo': str(row['TicketNo']),
                     'wb_rmi_ticket': float(row['wb_rmi_ticket'] or 0),
                     'total_spt_ticket': 0.0,
-                    'cust_groups': {}
+                    'cust_groups': {},
+                    'spt_docs': set()
                 })
                 matched_truck_id = len(physical_trucks) - 1
                 
@@ -127,11 +123,20 @@ def get_daily_delivery(date_from, date_to):
             
             key_cust = f"{mat}_{cust}"
             if key_cust not in t_ref['cust_groups']:
-                t_ref['cust_groups'][key_cust] = {'material': mat, 'customer': cust, 'spt': 0.0, 'spt_docs': set(), 'sppbs': set()}
+                t_ref['cust_groups'][key_cust] = {
+                    'material': mat,
+                    'customer': cust,
+                    'spt': 0.0,
+                    'spt_docs': set(),
+                    'anchor_docs': set(),
+                    'sppbs': set()
+                }
             
             t_ref['cust_groups'][key_cust]['spt'] += spt_val
             t_ref['total_spt_ticket'] += spt_val
             if row['spt_doc']: t_ref['cust_groups'][key_cust]['spt_docs'].add(str(row['spt_doc']))
+            if row.get('spt_no'): t_ref['cust_groups'][key_cust]['anchor_docs'].add(str(row['spt_no']))
+            if row.get('reference_spt'): t_ref['cust_groups'][key_cust]['anchor_docs'].add(str(row['reference_spt']))
             if row['nomor_sppb']: t_ref['cust_groups'][key_cust]['sppbs'].add(str(row['nomor_sppb']))
 
         valid_trucks = [t for t in physical_trucks if dt_from_obj <= t['original_date'] <= dt_to_obj]

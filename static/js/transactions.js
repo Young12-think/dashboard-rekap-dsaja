@@ -630,13 +630,32 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
         return isNaN(ms) ? 0 : ms;
     };
 
+    const getDocKeys = (row) => [
+        row.nomor_spt,
+        row.nomor_spmspb,
+        row.nomor_sppb,
+        row.nomor_spta,
+        row.reference_spt
+    ].filter(v => v !== null && v !== undefined && String(v).trim() !== '' && String(v).trim() !== '0')
+        .map(v => String(v).toLowerCase().replace(/\s+/g, ''));
+    const getRemarkTokens = (row) => String(row.remarks || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+    const isSupplementary = (row) => {
+        const remarks = String(row.remarks || '').toLowerCase();
+        const tokens = new Set(getRemarkTokens(row));
+        if (['over', 'tambahan', 'susulan'].some(marker => tokens.has(marker))) return true;
+        return ['do', 'dari', 'spt'].every(token => tokens.has(token)) && /\d{5,}/.test(remarks);
+    };
+    const getAnchors = (row) => isSupplementary(row)
+        ? (String(row.remarks || '').match(/\d{5,}/g) || [])
+        : [];
+    const hasAnchorRelation = (rowA, rowB) => {
+        const docsA = new Set(getDocKeys(rowA));
+        const docsB = new Set(getDocKeys(rowB));
+        return getAnchors(rowA).some(v => docsB.has(v)) || getAnchors(rowB).some(v => docsA.has(v));
+    };
+
     const isSameGroup = (rowA, rowB) => {
         if (typeKey !== 'gula' && typeKey !== 'molasses' && typeKey !== 'bagasse') return false;
-        
-        // Jangan grup-kan kalau salah satunya adalah SPT Tambahan
-        const remA = (rowA.remarks || '').toLowerCase();
-        const remB = (rowB.remarks || '').toLowerCase();
-        if ((typeKey === 'molasses' || typeKey === 'bagasse') && (remA.includes('tambahan') || remB.includes('tambahan'))) return false;
 
         const nopolA = normalizeStr(rowA.nopol);
         const supirA = normalizeStr(rowA.supir);
@@ -646,7 +665,13 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
         const supirB = normalizeStr(rowB.supir);
         const timeB = parseTimeMs(rowB.tanggal_keluar, rowB.jam_keluar);
 
-        return nopolA !== '' && nopolA === nopolB && supirA === supirB && Math.abs(timeA - timeB) <= (30 * 60000);
+        const eventA = normalizeStr(rowA.truck_event_id);
+        const eventB = normalizeStr(rowB.truck_event_id);
+        if (eventA !== '' && eventA === eventB) return true;
+        if (nopolA === '' || nopolA !== nopolB || supirA !== supirB) return false;
+        if (hasAnchorRelation(rowA, rowB)) return true;
+        if ((typeKey === 'molasses' || typeKey === 'bagasse') && (isSupplementary(rowA) || isSupplementary(rowB))) return true;
+        return Math.abs(timeA - timeB) <= (30 * 60000);
     };
 
     // SMART PAGINATION
@@ -670,11 +695,10 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
         for (let i = 0; i < pageData.length; i++) {
             if (pageData[i].skipNetto) continue; 
             
-            // Tandai jika ini SPT Tambahan (Molasses/Bagasse)
-            const remarksA = (pageData[i].remarks || '').toLowerCase();
-            if ((typeKey === 'molasses' || typeKey === 'bagasse') && remarksA.includes('tambahan')) {
+            // Tandai SPT tambahan/OVER DO, tetapi tetap gabungkan netto dengan
+            // truck asal jika anchor SPT atau identitas truck cocok.
+            if ((typeKey === 'molasses' || typeKey === 'bagasse') && isSupplementary(pageData[i])) {
                 pageData[i].isTambahan = true;
-                continue; // Biarkan berdiri sendiri, jangan di-merge
             }
 
             const nopolA = normalizeStr(pageData[i].nopol);
@@ -686,12 +710,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
                 const nopolB = normalizeStr(pageData[j].nopol);
                 const supirB = normalizeStr(pageData[j].supir);
                 const timeB = parseTimeMs(pageData[j].tanggal_keluar, pageData[j].jam_keluar);
-                const remarksB = (pageData[j].remarks || '').toLowerCase();
-
-                // Stop kalau ketemu SPT tambahan
-                if ((typeKey === 'molasses' || typeKey === 'bagasse') && remarksB.includes('tambahan')) break;
-
-                if (nopolA !== '' && nopolA === nopolB && supirA === supirB && Math.abs(timeA - timeB) <= (30 * 60000)) {
+                if (isSameGroup(pageData[i], pageData[j])) {
                     rowspanCount++;
                     pageData[j].skipNetto = true; 
                 } else {
@@ -737,7 +756,7 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
 
                 // VISUAL CUES: Coret Netto jika SPT Tambahan
                 if (row.isTambahan) {
-                    return `<td class=""><span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85em;" title="Netto tidak dihitung (SPT Tambahan)">${fmt(val)}</span></td>`;
+                    return `<td class=""><span style="text-decoration: line-through; color: var(--text-muted); font-size: 0.85em;" title="Netto tidak dihitung sebagai truck kedua (SPT susulan/OVER DO)">${fmt(val)}</span></td>`;
                 }
             }
 

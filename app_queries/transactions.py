@@ -2,6 +2,7 @@
 from decimal import Decimal
 from datetime import datetime
 from .db_core import dec, query
+from .molasses_grouping import aggregate_molasses_rows
 
 def get_transaction_data(date_from, date_to, item_filters, po_filter=None, search_term=None,
                          limit=100, offset=0, tx_key='', support_item=None, support_vendor=None,
@@ -105,15 +106,21 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
             return dt_obj.timestamp() * 1000
         except: return 0
 
-    for r in all_data:
-        netto = parse_angka(r.get('Qty_Netto')); spm = parse_angka(r.get('Qty_SPMSPB'))
-        total_spm += spm
-        spt = r.get('Nomor_SPT') or r.get('Nomor_SPMSPB') or r.get('Nomor_SPPB') or r.get('Nomor_SPTA')
-        if spt and str(spt).strip() not in ('', '-'): unique_spt.add(str(spt).strip())
-        if is_gula or is_molasses or is_bagasse:
-            remarks = str(r.get('Remarks') or '').lower()
-            is_tambahan = is_molasses and 'tambahan' in remarks
-            if not is_tambahan:
+    if is_molasses:
+        # Keep every SPT row visible, but count physical truck/netto once per
+        # shared event, 30-minute double-SPT group, or anchored OVER DO row.
+        molasses = aggregate_molasses_rows(all_data)
+        total_netto = molasses['total_netto']
+        total_spm = molasses['total_qty_spm']
+        total_ritase = molasses['total_ritase']
+        total_spt = molasses['total_spt']
+    else:
+        for r in all_data:
+            netto = parse_angka(r.get('Qty_Netto')); spm = parse_angka(r.get('Qty_SPMSPB'))
+            total_spm += spm
+            spt = r.get('Nomor_SPT') or r.get('Nomor_SPMSPB') or r.get('Nomor_SPPB') or r.get('Nomor_SPTA')
+            if spt and str(spt).strip() not in ('', '-'): unique_spt.add(str(spt).strip())
+            if is_gula or is_bagasse:
                 nopol = normalize_str(r.get('Nopol')); supir = normalize_str(r.get('Supir'))
                 vk = f"{nopol}_{supir}"
                 tms = parse_time(r.get('Tanggal_Keluar'), r.get('Jam_Keluar'))
@@ -124,17 +131,18 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
                 if not is_dup:
                     total_netto += netto
                     truck_visits.append({'key': vk if nopol else f"kosong_{len(truck_visits)}", 'time': tms})
-        elif is_tebu:
-            total_netto += netto
-            spta = normalize_str(r.get('Nomor_SPTA') or r.get('Nomor_SPMSPB'))
-            if spta: tebu_visits.add(spta)
-            else: tebu_visits.add(f"kosong_{normalize_str(r.get('Nopol'))}_{r.get('Jam_Keluar')}")
-        else:
-            total_netto += netto
+            elif is_tebu:
+                total_netto += netto
+                spta = normalize_str(r.get('Nomor_SPTA') or r.get('Nomor_SPMSPB'))
+                if spta: tebu_visits.add(spta)
+                else: tebu_visits.add(f"kosong_{normalize_str(r.get('Nopol'))}_{r.get('Jam_Keluar')}")
+            else:
+                total_netto += netto
 
-    if is_gula or is_molasses or is_bagasse: total_ritase = len(truck_visits)
-    elif is_tebu: total_ritase = len(tebu_visits) if tebu_visits else len(all_data)
-    else: total_ritase = len(unique_tickets) if unique_tickets else len(all_data)
+        if is_gula or is_bagasse: total_ritase = len(truck_visits)
+        elif is_tebu: total_ritase = len(tebu_visits) if tebu_visits else len(all_data)
+        else: total_ritase = len(unique_tickets) if unique_tickets else len(all_data)
+        total_spt = len(unique_spt)
 
     total_rows = len(all_data)
     paginated_data = all_data if export_all else all_data[offset: offset + limit]
@@ -149,7 +157,7 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
 
     return {
         "total_rows": total_rows,
-        "summary": {"total_netto": total_netto, "total_ritase": total_ritase, "total_qty_spm": total_spm, "total_spt": len(unique_spt)},
+        "summary": {"total_netto": total_netto, "total_ritase": total_ritase, "total_qty_spm": total_spm, "total_spt": total_spt},
         "data": normalized
     }
 
