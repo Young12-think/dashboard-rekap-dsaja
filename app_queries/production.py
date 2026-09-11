@@ -13,19 +13,21 @@ from .db_core import dec, query
 def _dedup_cte():
     """
     SQL CTE fragment untuk mendeteksi dan menandai baris duplikat
-    (Double SPT) pada item GULA dan MOLASES.
+    pada item GULA dan MOLASES.
 
     Membutuhkan 2 parameter %s: (lookback_start_date, lookback_end_date).
     Menghasilkan virtual table 'Cleaned' dengan kolom tambahan:
       - item_cat  : 'GULA', 'MOLASES', atau 'OTHER'
       - full_dt   : TIMESTAMP lengkap (Tanggal_Keluar_Clean + Jam_Keluar)
       - prev_dt   : Timestamp timbangan sebelumnya dari truk yang sama
-      - is_dup    : 1 = duplikat (harus di-exclude), 0 = data asli
+      - is_dup    : 1 = baris timbang berulang (tidak menambah truck/netto),
+                    0 = baris utama
 
     Logika deteksi:
-      1. GULA: Nopol+Supir+Qty_Netto sama, jarak waktu keluar <= 30 menit
-      2. MOLASES Kasus 1: Sama seperti GULA
-      3. MOLASES Kasus 2: Remarks mengandung 'tambahan' → selalu duplikat
+      1. GULA dan MOLASES: Nopol+Supir+Qty_Netto sama, jarak waktu keluar <= 30 menit
+      2. MOLASES: hanya remarks eksplisit 'tambahan' yang dikecualikan.
+         Remarks seperti '2SPT' adalah event valid: satu truck dapat membawa
+         beberapa SPT dan seluruh barisnya tetap harus tersedia untuk audit.
     """
     return """WITH RawData AS (
         SELECT d.*,
@@ -44,10 +46,10 @@ def _dedup_cte():
         SELECT r.*,
             LAG(r.full_dt) OVER (
                 PARTITION BY r.item_cat,
-                             UPPER(TRIM(COALESCE(r.Nopol, ''))),
-                             UPPER(TRIM(COALESCE(r.Supir, ''))),
-                             ABS(COALESCE(r.Qty_Netto, 0))
-                ORDER BY r.full_dt
+                              LOWER(REPLACE(TRIM(COALESCE(r.Nopol, '')), ' ', '')),
+                              LOWER(REPLACE(TRIM(COALESCE(r.Supir, '')), ' ', '')),
+                              ABS(COALESCE(r.Qty_Netto, 0))
+                 ORDER BY r.full_dt, r.id
             ) AS prev_dt
         FROM RawData r
     ),
@@ -55,14 +57,7 @@ def _dedup_cte():
         SELECT w.*,
             CASE
                 WHEN w.item_cat = 'MOLASES'
-                     AND( LOWER(COALESCE(w.Remarks, '')) LIKE '%%tambahan%%'
-                     OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%over%%'
-                     OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE '%%DO%%'
-                     OR
-                     LOWER(COALESCE(w.Remarks, '')) LIKE CONCAT('%', 'spt', '%')
-                     )
+                     AND LOWER(COALESCE(w.Remarks, '')) LIKE '%%tambahan%%'
                 THEN 1
                 WHEN w.item_cat IN ('GULA', 'MOLASES')
                      AND TRIM(COALESCE(w.Nopol, '')) != ''

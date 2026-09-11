@@ -50,7 +50,9 @@ def get_transaction_data(date_from, date_to, item_filters, po_filter=None, searc
         SELECT * FROM data_timbang
         WHERE {date_clause}
           AND ({filter_sql}) {po_clause} {search_clause}
-        ORDER BY Tanggal_Keluar_Clean ASC, Jam_Keluar ASC
+        -- Tie-breaker id keeps same-time multi-SPT rows in the same order as
+        -- the dashboard deduplication CTE.
+        ORDER BY Tanggal_Keluar_Clean ASC, Jam_Keluar ASC, id ASC
     """
     all_data = dec(query(sql, final_params)) or []
 
