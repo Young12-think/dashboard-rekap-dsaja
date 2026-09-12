@@ -639,10 +639,19 @@ function renderTransactionPage(typeKey, pageData, totalRows) {
     ].filter(v => v !== null && v !== undefined && String(v).trim() !== '' && String(v).trim() !== '0')
         .map(v => String(v).toLowerCase().replace(/\s+/g, ''));
     const getRemarkTokens = (row) => String(row.remarks || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+    const isOverLike = (token) => {
+        if (token === 'over') return true;
+        if (token.length !== 4) return false;
+        let differences = 0;
+        for (let i = 0; i < 4; i++) differences += token[i] !== 'over'[i] ? 1 : 0;
+        return differences <= 1;
+    };
     const isSupplementary = (row) => {
         const remarks = String(row.remarks || '').toLowerCase();
-        const tokens = new Set(getRemarkTokens(row));
+        const tokenList = getRemarkTokens(row);
+        const tokens = new Set(tokenList);
         if (['over', 'tambahan', 'susulan'].some(marker => tokens.has(marker))) return true;
+        if (tokens.has('do') && tokenList.some(isOverLike)) return true;
         return ['do', 'dari', 'spt'].every(token => tokens.has(token)) && /\d{5,}/.test(remarks);
     };
     const getAnchors = (row) => isSupplementary(row)

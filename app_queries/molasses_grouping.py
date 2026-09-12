@@ -90,14 +90,28 @@ def remark_tokens(row):
     return set(_REMARK_TOKEN_RE.findall(remarks))
 
 
+def _is_over_like(token):
+    """Accept common four-letter typos such as UVER and OVED."""
+    if token == "over":
+        return True
+    if len(token) != 4:
+        return False
+    return sum(left != right for left, right in zip(token, "over")) <= 1
+
+
 def is_supplementary(row):
     remarks = str(row.get("Remarks", row.get("remarks", "")) or "").lower()
     tokens = remark_tokens(row)
     if any(marker in tokens for marker in _SUPPLEMENT_MARKERS):
         return True
 
-    # Accept malformed variants such as "UVER DO DARI SPT 26004362" when
-    # the operational phrase and the referenced SPT number are still clear.
+    # Accept malformed variants such as "UVER DO" and "OVED DO" when the
+    # operator's intent is still clear even without a referenced SPT number.
+    if "do" in tokens and any(_is_over_like(token) for token in tokens):
+        return True
+
+    # Also accept "DO DARI SPT <number>" when the OVER word is malformed or
+    # omitted but the referenced SPT makes the continuation unambiguous.
     return {"do", "dari", "spt"}.issubset(tokens) and bool(_ANCHOR_RE.search(remarks))
 
 
