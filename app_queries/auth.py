@@ -3,23 +3,41 @@
 # User authentication: hash, ensure table, verify login.
 # ─────────────────────────────────────────────────────────────
 
+import bcrypt
 import hashlib
 import os
 
 from .db_core import get_db, query
 
 # =============================================
-# Password Hashing
+# Password Hashing (bcrypt — slow, salt built-in)
 # =============================================
 def hash_password(password: str, salt: str = None) -> tuple:
     """
-    Hash password dengan SHA-256 + salt.
-    Return: (hashed_password, salt)
+    Hash password dengan bcrypt.
+    `salt` parameter dipertahankan untuk kompatibilitas tapi tidak dipakai —
+    bcrypt sudah meng-handle salt internal.
+    Return: (hashed_password, salt_legacy).
+
+    Simpan encoded bcrypt standar (60 karakter), bukan representasi hex
+    dari digest (120 karakter), supaya tetap kompatibel dengan instalasi
+    lama yang masih memiliki password_hash VARCHAR(64).
     """
-    if salt is None:
-        salt = os.urandom(16).hex()  # 32 char hex salt
-    hashed = hashlib.sha256(f"{salt}{password}".encode('utf-8')).hexdigest()
-    return hashed, salt
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed.decode('ascii'), ''
+
+
+def _check_bcrypt_password(password: str, stored_hash: str) -> bool:
+    """Cek hash bcrypt standar maupun format hex legacy yang pernah dipakai."""
+    try:
+        if stored_hash.startswith(('$2a$', '$2b$', '$2y$')):
+            encoded_hash = stored_hash.encode('ascii')
+        else:
+            # Versi sebelumnya menyimpan bytes bcrypt sebagai hex 120 char.
+            encoded_hash = bytes.fromhex(stored_hash)
+        return bcrypt.checkpw(password.encode('utf-8'), encoded_hash)
+    except (TypeError, ValueError, UnicodeEncodeError):
+        return False
 
 # =============================================
 # Table Bootstrap
@@ -39,7 +57,7 @@ def ensure_users_table():
             CREATE TABLE IF NOT EXISTS rekap_users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(64) NOT NULL,
-                password_hash VARCHAR(64) NOT NULL,
+                password_hash VARCHAR(128) NOT NULL,
                 salt VARCHAR(32) NOT NULL,
                 role VARCHAR(32) DEFAULT 'viewer',
                 is_active TINYINT(1) DEFAULT 1,
@@ -49,7 +67,7 @@ def ensure_users_table():
         """)
         conn.commit()
 
-        # Migrasi kolom 'role' jika tabel sudah ada sebelumnya tapi belum punya kolom ini
+        # Migrasi schema untuk instalasi lama
         cur.execute("""
             SELECT COLUMN_NAME 
             FROM INFORMATION_SCHEMA.COLUMNS 
@@ -60,6 +78,8 @@ def ensure_users_table():
         if not cur.fetchone():
             cur.execute("ALTER TABLE rekap_users ADD COLUMN role VARCHAR(32) DEFAULT 'viewer'")
             conn.commit()
+        cur.execute("ALTER TABLE rekap_users MODIFY password_hash VARCHAR(128) NOT NULL")
+        conn.commit()
 
         # Cek apakah ada user
         cur.execute("SELECT COUNT(*) AS cnt FROM rekap_users")
@@ -67,14 +87,14 @@ def ensure_users_table():
         count = row[0] if isinstance(row, tuple) else row.get('cnt', 0)
 
         if count == 0:
-            # Buat default user: admin / admin123
-            pwd, salt = hash_password('admin123')
+            default_pw = os.getenv('DEFAULT_ADMIN_PASSWORD', 'Rmi@dm1n2026!')
+            pwd, salt = hash_password(default_pw)
             cur.execute(
                 "INSERT INTO rekap_users (username, password_hash, salt, role) VALUES (%s, %s, %s, %s)",
                 ('admin', pwd, salt, 'admin')
             )
             conn.commit()
-            print("[AUTH] Default user created: username=admin, password=admin123, role=admin")
+            print("[AUTH] Default admin created. SEGERA GANTI PASSWORD via menu User Management!")
         else:
             # Pastikan user 'admin' memiliki role 'admin'
             cur.execute("UPDATE rekap_users SET role = 'admin' WHERE username = 'admin'")
@@ -112,10 +132,33 @@ def verify_login(username: str, password: str) -> dict | None:
     if not result:
         return None
 
-    # Bandingkan hash password dari input dengan yang tersimpan
-    pw_hash, _ = hash_password(password, result['salt'])
-    if pw_hash == result['password_hash']:
-        return {'username': result['username'], 'role': result.get('role', 'viewer')}
+    stored_hash = result['password_hash'] or ''
+    if stored_hash.startswith(('$2a$', '$2b$', '$2y$')) or len(stored_hash) == 120:
+        if _check_bcrypt_password(password, stored_hash):
+            return {'username': result['username'], 'role': result.get('role', 'viewer')}
+        return None
+
+    if len(stored_hash) == 64:
+        legacy_hash = hashlib.sha256(f"{result['salt']}{password}".encode('utf-8')).hexdigest()
+        if legacy_hash == stored_hash:
+            new_hash, new_salt = hash_password(password)
+            conn = get_db()
+            if conn:
+                cur = None
+                try:
+                    cur = conn.cursor()
+                    cur.execute("UPDATE rekap_users SET password_hash = %s, salt = %s WHERE username = %s", (new_hash, new_salt, result['username']))
+                    conn.commit()
+                except Exception as e:
+                    # Password yang valid tetap boleh login walaupun migrasi
+                    # schema/hash gagal (mis. DB server masih VARCHAR(64) atau
+                    # user database tidak memiliki privilege ALTER/UPDATE).
+                    print(f"[DB ERROR] legacy password migration: {e}")
+                finally:
+                    if cur:
+                        cur.close()
+                    conn.close()
+            return {'username': result['username'], 'role': result.get('role', 'viewer')}
 
     return None
 
